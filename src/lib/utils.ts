@@ -91,10 +91,11 @@ export function sourceLabel(source: string) {
   const labels: Record<string, string> = {
     mock: "Sample inventory",
     facebook: "Facebook Marketplace",
+    bestbuy: "Best Buy Open Box",
     ksl: "KSL Classifieds",
     craigslist: "Craigslist",
     offerup: "OfferUp",
-    ebay: "eBay Motors",
+    ebay: "eBay",
     dealer: "Dealer inventory",
   };
   return labels[source] ?? source;

@@ -51,8 +51,8 @@ export function DashboardHome({
       <div className="mt-8 flex flex-wrap gap-2">
         <Tab href="/search" label={`All Deals (${stats.count})`} active />
         <Tab href="/search?sort=dealScore" label={`High Profit (${stats.highProfit})`} />
+        <Tab href="/search?source=bestbuy&sort=dealScore" label="Open Box → eBay" />
         <Tab href="/search?category=Electronics" label="Electronics" />
-        <Tab href="/search?category=Sneakers" label="Sneakers" />
         <Tab href="/search?category=Vehicles" label="Vehicles" />
         <Tab href="/account" label="Watched" />
       </div>

@@ -65,7 +65,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
               {formatLocation(listing.city, listing.state)} · {timeAgo(listing.firstSeenAt)}
             </span>
             <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
-              {listing.source === "ksl" ? "KSL" : "FB"}
+              {sourceTag(listing.source)}
             </span>
           </div>
           {listing.dealScore != null ? (
@@ -86,4 +86,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
       </div>
     </article>
   );
+}
+
+function sourceTag(source: string) {
+  if (source === "bestbuy") return "BBY";
+  if (source === "ksl") return "KSL";
+  return "FB";
 }

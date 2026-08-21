@@ -8,6 +8,8 @@ import { estimateMarketPrice, isComparable, scoreDeal } from "@/lib/scoring/deal
 import { listingMatchesParams } from "@/lib/search/query";
 import { getSource } from "@/sources";
 import { dispatchListingAlert } from "@/lib/notifications/dispatch";
+import { getResaleComp, isArbitrageSource, scoreArbitrage } from "@/lib/arbitrage/resale";
+import { openBoxReferencePrice } from "@/sources/bestbuy/mock";
 
 function isValidRaw(raw: RawListing) {
   return Boolean(raw.source && raw.sourceListingId && raw.sourceUrl && raw.title);
@@ -80,6 +82,23 @@ export async function ingestSource(sourceName = "mock") {
           normalizationConfidence: normalized.confidence,
           lastSeenAt: new Date(),
         };
+
+        if (isArbitrageSource(raw.source)) {
+          const comp = await getResaleComp({
+            identifier: raw.sourceListingId,
+            title: raw.title,
+            category: data.category,
+            referencePrice: openBoxReferencePrice(raw.sourceListingId) ?? raw.price ?? null,
+          });
+          if (comp) {
+            const arb = scoreArbitrage(raw.price ?? null, comp);
+            data.marketPrice = arb.marketPrice;
+            data.marketPriceDelta = arb.marketPriceDelta;
+            data.marketSampleSize = arb.marketSampleSize;
+            data.dealScore = arb.breakdown.total;
+            data.dealScoreBreakdown = arb.breakdown;
+          }
+        }
 
         const existing = await prisma.listing.findUnique({
           where: {
@@ -173,6 +192,9 @@ export async function ingestSource(sourceName = "mock") {
 export async function rescoreActiveListings() {
   const listings = await prisma.listing.findMany({ where: { listingStatus: "active" } });
   for (const listing of listings) {
+    // Arbitrage listings are scored against an external resale comp at ingest
+    // time, so don't overwrite them with sibling-listing comps here.
+    if (isArbitrageSource(listing.source)) continue;
     const comparables = listings.filter((candidate) => candidate.id !== listing.id && isComparable(listing, candidate));
     const market = estimateMarketPrice(listing, comparables);
     const breakdown = scoreDeal(listing, comparables);

@@ -2,6 +2,7 @@ import type { RawListing } from "@/types/listing";
 import type { MarketplaceSource } from "@/types/source";
 import { SourceNotConfiguredError } from "@/types/source";
 import { generateMockListings } from "@/sources/mock/generator";
+import { bestBuyOpenBoxSource } from "@/sources/bestbuy";
 
 export const mockMarketplaceSource: MarketplaceSource = {
   name: "mock",
@@ -27,6 +28,7 @@ export const facebookMarketplaceSource: MarketplaceSource = {
 const sources: Record<string, MarketplaceSource> = {
   mock: mockMarketplaceSource,
   facebook: facebookMarketplaceSource,
+  bestbuy: bestBuyOpenBoxSource,
 };
 
 export function getSource(name = "mock") {

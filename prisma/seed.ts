@@ -81,8 +81,24 @@ async function main() {
     },
   });
 
+  await prisma.savedSearch.upsert({
+    where: { id: "seed-search-openbox" },
+    update: {},
+    create: {
+      id: "seed-search-openbox",
+      userId: demo.id,
+      name: "Best Buy Open Box arbitrage",
+      params: {
+        source: "bestbuy",
+        sort: "dealScore",
+      },
+      notifyEmail: true,
+    },
+  });
+
   await ingestSource("mock");
-  console.log("Seeded users, saved search, and mock listings.");
+  await ingestSource("bestbuy");
+  console.log("Seeded users, saved searches, mock listings, and Best Buy Open Box arbitrage.");
   console.log("Demo login: demo@lotline.local / LotlineDemo!2026");
   console.log("Admin login: admin@lotline.local / LotlineDemo!2026");
 }
