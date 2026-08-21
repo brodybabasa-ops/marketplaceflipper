@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070b14;
+  --foreground: #f8fafc;
+  --surface: #121826;
+  --surface-2: #171f2e;
+  --muted: #94a3b8;
+  --border: #243044;
+  --accent: #10b981;
+  --accent-fg: #042f1e;
+  --cyan: #22d3ee;
+  --purple: #8b5cf6;
+  --blue: #3b82f6;
+  --profit: #34d399;
+  --copper: #f59e0b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-cyan: var(--cyan);
+  --color-purple: var(--purple);
+  --color-profit: var(--profit);
+  --color-copper: var(--copper);
+  --font-sans: var(--font-geist-sans);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: #8b5cf6;
+  color: #fff;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.select {
+  width: 100%;
+  height: 2.6rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: #0d1320;
+  padding: 0 0.75rem;
+  color: var(--foreground);
+  outline: none;
+}
+
+.select:focus {
+  border-color: #22d3ee;
+}
+
+.btn-gradient {
+  background-image: linear-gradient(90deg, #22d3ee 0%, #6366f1 50%, #8b5cf6 100%);
+  color: #fff;
+}
+
+.btn-signup {
+  background-image: linear-gradient(90deg, #a855f7 0%, #3b82f6 100%);
+  color: #fff;
+}
+
+.gradient-text {
+  background-image: linear-gradient(90deg, #22d3ee, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-glow {
+  background:
+    radial-gradient(800px 400px at 20% -10%, rgba(34, 211, 238, 0.18), transparent 60%),
+    radial-gradient(700px 360px at 90% 10%, rgba(139, 92, 246, 0.16), transparent 55%);
+}
