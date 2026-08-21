@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f0ea;
+  --foreground: #161513;
+  --surface: #fffcf7;
+  --muted: #6f6b63;
+  --border: #e4dfd5;
+  --accent: #1f3d32;
+  --accent-fg: #f6f3ec;
+  --copper: #9a4b1c;
+  --good: #1f3d32;
+  --warn: #9a4b1c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-copper: var(--copper);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-instrument);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: #1f3d32;
+  color: #f6f3ec;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.select {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0 0.75rem;
+  color: var(--foreground);
+  outline: none;
+}
+
+.select:focus {
+  border-color: var(--accent);
+}

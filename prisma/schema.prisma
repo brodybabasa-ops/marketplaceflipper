@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Listing {
+  id                      String   @id @default(cuid())
+  source                  String
+  sourceListingId         String
+  sourceUrl               String
+  title                   String
+  description             String?  @db.Text
+  price                   Int?
+  year                    Int?
+  make                    String?
+  model                   String?
+  trim                    String?
+  mileage                 Int?
+  condition               String?
+  city                    String?
+  state                   String?
+  zipCode                 String?
+  latitude                Float?
+  longitude               Float?
+  sellerType              String   @default("unknown")
+  sellerName              String?
+  imageUrls               String[]
+  vin                     String?
+  listingStatus           String   @default("active")
+  normalizedMake          String?
+  normalizedModel         String?
+  normalizedTrim          String?
+  drivetrain              String?
+  transmission            String?
+  fuelType                String?
+  bodyStyle               String?
+  engine                  String?
+  dealScore               Int?
+  dealScoreBreakdown      Json?
+  normalizationConfidence Float?
+  marketPrice             Int?
+  marketPriceDelta        Int?
+  marketSampleSize        Int?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  firstSeenAt             DateTime @default(now())
+  lastSeenAt              DateTime @default(now())
+
+  priceHistory  PriceHistory[]
+  duplicateOf   DuplicateFlag[] @relation("ListingDuplicates")
+  duplicateHits DuplicateFlag[] @relation("FlaggedListing")
+  favorites     Favorite[]
+  notifications Notification[]
+
+  @@unique([source, sourceListingId])
+  @@index([normalizedMake, normalizedModel, year])
+  @@index([price])
+  @@index([mileage])
+  @@index([year])
+  @@index([dealScore])
+  @@index([listingStatus, lastSeenAt])
+  @@index([city, state])
+  @@index([createdAt])
+  @@index([vin])
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  price      Int
+  recordedAt DateTime @default(now())
+
+  @@index([listingId, recordedAt])
+}
+
+model DuplicateFlag {
+  id            String   @id @default(cuid())
+  listingId     String
+  listing       Listing  @relation("ListingDuplicates", fields: [listingId], references: [id], onDelete: Cascade)
+  duplicateOfId String
+  duplicateOf   Listing  @relation("FlaggedListing", fields: [duplicateOfId], references: [id], onDelete: Cascade)
+  confidence    Float
+  signals       Json
+  createdAt     DateTime @default(now())
+
+  @@unique([listingId, duplicateOfId])
+  @@index([listingId])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  role         String    @default("user")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  savedSearches SavedSearch[]
+  favorites     Favorite[]
+  notifications Notification[]
+}
+
+model SavedSearch {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  params         Json
+  notifyEmail    Boolean   @default(true)
+  lastNotifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  notifications Notification[]
+
+  @@index([userId])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+}
+
+model Notification {
+  id            String       @id @default(cuid())
+  userId        String
+  listingId     String
+  savedSearchId String?
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing       Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  savedSearch   SavedSearch? @relation(fields: [savedSearchId], references: [id], onDelete: SetNull)
+  channel       String       @default("email")
+  status        String       @default("pending")
+  sentAt        DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@unique([userId, listingId, savedSearchId])
+  @@index([userId, createdAt])
+}
+
+model IngestionJob {
+  id              String    @id @default(cuid())
+  source          String
+  status          String
+  startedAt       DateTime  @default(now())
+  finishedAt      DateTime?
+  listingsFound   Int       @default(0)
+  listingsCreated Int       @default(0)
+  listingsUpdated Int       @default(0)
+  listingsFailed  Int       @default(0)
+  duplicatesFlagged Int     @default(0)
+  error           String?
+  metadata        Json?
+}
+
+model SearchEvent {
+  id          String   @id @default(cuid())
+  params      Json
+  resultCount Int
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
