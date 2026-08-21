@@ -380,7 +380,7 @@ function showcaseProducts(): RawListing[] {
   ];
 }
 
-export function generateMockListings(vehicleCount = 48): RawListing[] {
+export function generateMockListings(vehicleCount = 120): RawListing[] {
   const rng = mulberry32(42);
   const listings: RawListing[] = [...showcaseVehicles(), ...showcaseProducts()];
 
