@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/account";
+  const next = searchParams.get("next") || "/";
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -36,7 +36,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="font-[family-name:var(--font-instrument)] text-4xl">
+      <h1 className="text-4xl font-semibold tracking-tight">
         {mode === "login" ? "Sign in" : "Create account"}
       </h1>
       <p className="mt-2 text-sm text-muted">
@@ -61,7 +61,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <button
           type="submit"
           disabled={pending}
-          className="h-12 w-full rounded-xl bg-accent text-sm font-semibold text-accent-fg"
+          className="btn-gradient h-12 w-full rounded-xl text-sm font-semibold disabled:opacity-60"
         >
           {pending ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
         </button>

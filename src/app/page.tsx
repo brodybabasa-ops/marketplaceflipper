@@ -1,57 +1,72 @@
-import { ListingCard } from "@/components/listings/ListingCard";
-import { SearchHero } from "@/components/search/SearchHero";
-import { prisma } from "@/lib/db/prisma";
 import Link from "next/link";
+import type { Listing } from "@prisma/client";
+import { prisma } from "@/lib/db/prisma";
+import { getSession } from "@/lib/auth/session";
+import { MarketingNav } from "@/components/layout/MarketingNav";
+import { HeroSearch } from "@/components/home/HeroSearch";
+import { CategoryRibbon } from "@/components/home/CategoryRibbon";
+import { FeatureRow } from "@/components/home/FeatureRow";
+import { ListingCard } from "@/components/listings/ListingCard";
+import { DashboardHome } from "@/components/dashboard/DashboardHome";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [featured, count] = await Promise.all([
+  const session = await getSession();
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const [featured, count, highProfit, recent, spread] = await Promise.all([
     prisma.listing.findMany({
-      where: { listingStatus: "active", dealScore: { gte: 70 } },
+      where: { listingStatus: "active" },
       orderBy: { dealScore: "desc" },
-      take: 6,
+      take: 8,
     }),
     prisma.listing.count({ where: { listingStatus: "active" } }),
+    prisma.listing.count({ where: { listingStatus: "active", dealScore: { gte: 70 } } }),
+    prisma.listing.count({
+      where: { listingStatus: "active", createdAt: { gte: startOfDay } },
+    }),
+    prisma.listing.aggregate({
+      _sum: { marketPriceDelta: true },
+      where: { listingStatus: "active", marketPriceDelta: { lt: 0 } },
+    }),
   ]);
+
+  if (session) {
+    return (
+      <DashboardHome
+        user={session}
+        listings={featured}
+        stats={{ count, highProfit, recent, spread: Math.abs(spread._sum.marketPriceDelta ?? 0) }}
+      />
+    );
+  }
 
   return (
     <div>
-      <SearchHero />
-      <section className="mx-auto max-w-6xl px-4 pb-6">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Stat label="Active listings" value={count.toLocaleString()} />
-          <Stat label="Connected sources" value="Mock inventory" />
-          <Stat label="Transactions" value="On the original listing" />
-        </div>
-      </section>
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="mb-5 flex items-end justify-between">
+      <MarketingNav />
+      <HeroSearch />
+      <CategoryRibbon />
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <div className="mb-6 flex items-end justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted">Deal desk</p>
-            <h2 className="mt-1 font-[family-name:var(--font-instrument)] text-3xl">
-              Strong relative values
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Live deals</p>
+            <h2 className="mt-2 text-2xl font-semibold">Top flip opportunities</h2>
           </div>
-          <Link href="/search?sort=dealScore" className="text-sm text-muted hover:text-foreground">
+          <Link href="/search?sort=dealScore" className="text-sm text-slate-400 hover:text-white">
             View all
           </Link>
         </div>
-        <div className="grid gap-4">
-          {featured.map((listing) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {featured.map((listing: Listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}
         </div>
       </section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-surface px-5 py-4">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <FeatureRow />
+      <footer className="border-t border-white/5 py-8 text-center text-sm text-slate-500">
+        FlipFinder is a search layer. Transactions happen on the original marketplace.
+      </footer>
     </div>
   );
 }

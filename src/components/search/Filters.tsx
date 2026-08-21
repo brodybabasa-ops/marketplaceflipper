@@ -7,7 +7,7 @@ import { FilterForm } from "@/components/search/FilterForm";
 export function FilterSidebar({ values }: { values: SearchParams }) {
   return (
     <aside className="hidden w-72 shrink-0 lg:block">
-      <div className="sticky top-24 rounded-2xl border border-border bg-surface p-5">
+      <div className="sticky top-24 rounded-2xl border border-white/10 bg-surface p-5">
         <h2 className="text-sm font-semibold">Filters</h2>
         <div className="mt-4">
           <FilterForm values={values} />
@@ -25,7 +25,7 @@ export function FilterSheet({ values }: { values: SearchParams }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-full border border-border bg-surface px-4 py-3 text-sm font-medium"
+        className="w-full rounded-full border border-white/10 bg-surface px-4 py-3 text-sm font-medium"
       >
         Filters & sort
       </button>

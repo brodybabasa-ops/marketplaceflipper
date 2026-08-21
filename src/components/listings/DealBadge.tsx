@@ -12,14 +12,13 @@ export function DealBadge({ score }: { score: number | null }) {
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
         strong
-          ? "bg-copper text-white"
+          ? "bg-emerald-500 text-emerald-950"
           : good
-            ? "bg-accent text-accent-fg"
-            : "bg-[#ece7dc] text-foreground",
+            ? "bg-violet-500 text-white"
+            : "bg-white/10 text-slate-200",
       )}
     >
-      {strong ? "🔥 " : null}
-      {score} {label}
+      {score} {strong ? "High Profit" : label}
     </span>
   );
 }

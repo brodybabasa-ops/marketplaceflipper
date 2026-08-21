@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { getSession } from "@/lib/auth/session";
 import { IngestButton } from "@/components/admin/IngestButton";
+import { AppShell } from "@/components/layout/AppShell";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +17,13 @@ export default async function IngestionPage() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <Link href="/admin" className="text-sm text-muted">
+    <AppShell user={session}>
+    <div>
+      <Link href="/admin" className="text-sm text-slate-400">
         ← Dashboard
       </Link>
       <div className="mt-4 flex items-end justify-between">
-        <h1 className="font-[family-name:var(--font-instrument)] text-4xl">Ingestion</h1>
+        <h1 className="text-3xl font-semibold">Ingestion</h1>
         <IngestButton />
       </div>
       <div className="mt-8 overflow-x-auto rounded-2xl border border-border bg-surface">
@@ -55,5 +57,6 @@ export default async function IngestionPage() {
         </table>
       </div>
     </div>
+    </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getSession, clearSession } from "@/lib/auth/session";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { AccountActions } from "@/components/account/AccountActions";
+import { AppShell } from "@/components/layout/AppShell";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +25,12 @@ export default async function AccountPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <AppShell user={session}>
+    <div>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted">Account</p>
-          <h1 className="mt-1 font-[family-name:var(--font-instrument)] text-4xl">
+          <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">Account</p>
+          <h1 className="mt-1 text-3xl font-semibold">
             {session.name || session.email}
           </h1>
         </div>
@@ -39,7 +41,7 @@ export default async function AccountPage() {
             redirect("/");
           }}
         >
-          <button type="submit" className="rounded-full border border-border px-4 py-2 text-sm">
+          <button type="submit" className="rounded-full border border-white/15 px-4 py-2 text-sm">
             Sign out
           </button>
         </form>
@@ -75,7 +77,7 @@ export default async function AccountPage() {
 
       <section className="mt-12">
         <h2 className="text-lg font-semibold">Favorites</h2>
-        <div className="mt-4 grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {favorites.length === 0 ? (
             <p className="text-sm text-muted">
               <Link href="/search" className="underline">
@@ -89,5 +91,6 @@ export default async function AccountPage() {
         </div>
       </section>
     </div>
+    </AppShell>
   );
 }

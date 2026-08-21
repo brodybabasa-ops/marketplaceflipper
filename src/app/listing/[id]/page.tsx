@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { DealBadge } from "@/components/listings/DealBadge";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { getSession } from "@/lib/auth/session";
+import { AppShell } from "@/components/layout/AppShell";
 import { dealScoreLabel } from "@/lib/scoring/deal-score";
 import {
   formatLocation,
@@ -51,7 +52,8 @@ export default async function ListingPage({ params }: Props) {
   } | null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <AppShell user={session}>
+    <div className="mx-auto max-w-6xl">
       <div className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">
         <div>
           <div className="overflow-hidden rounded-2xl border border-border bg-surface">
@@ -72,7 +74,7 @@ export default async function ListingPage({ params }: Props) {
           </div>
 
           <div className="mt-8">
-            <h1 className="font-[family-name:var(--font-instrument)] text-4xl tracking-tight">
+            <h1 className="text-4xl font-semibold tracking-tight">
               {title}
             </h1>
             <p className="mt-2 text-muted">
@@ -133,13 +135,13 @@ export default async function ListingPage({ params }: Props) {
               href={listing.sourceUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-5 flex h-12 items-center justify-center rounded-xl bg-accent text-sm font-semibold text-accent-fg"
+              className="btn-gradient mt-5 flex h-12 items-center justify-center rounded-xl text-sm font-semibold"
             >
               View original listing
             </a>
             <FavoriteButton listingId={listing.id} initial={favorited} />
             <p className="mt-3 text-xs leading-5 text-muted">
-              Lotline does not host transactions. Contact the seller on {sourceLabel(listing.source)}.
+              FlipFinder does not host transactions. Contact the seller on {sourceLabel(listing.source)}.
             </p>
           </div>
 
@@ -171,6 +173,7 @@ export default async function ListingPage({ params }: Props) {
         </aside>
       </div>
     </div>
+    </AppShell>
   );
 }
 

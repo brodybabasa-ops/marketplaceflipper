@@ -1,6 +1,6 @@
-# Lotline
+# FlipFinder
 
-Vehicle marketplace search engine. Find listings faster than browsing Facebook Marketplace by hand — then click through to the original source to contact the seller.
+Vehicle marketplace search. Find listings faster, score the spread, and click through to the original source.
 
 Lotline is a search, filter, normalization, comparison, and alerting layer. It does not host transactions, message sellers, or replace the source marketplace.
 
