@@ -155,6 +155,79 @@ export function generateMockListings(count = 120): RawListing[] {
   }
 
   const listings: RawListing[] = [];
+
+  listings.push(
+    {
+      source: "facebook",
+      sourceListingId: "mock-showcase-f250",
+      sourceUrl: "https://example.com/listings/mock-showcase-f250",
+      title: "2019 F250 Lariat 6.7 Diesel 4x4 low miles",
+      description:
+        "2019 Ford F-250 Lariat. 6.7L Power Stroke diesel. 4x4, 84000 miles. Clean title. Located in Layton. Contact through the original listing.",
+      price: 38900,
+      year: 2019,
+      mileage: 84000,
+      condition: "Clean title",
+      city: "Layton",
+      state: "UT",
+      zipCode: "84041",
+      latitude: 41.0602,
+      longitude: -111.971,
+      sellerType: "private",
+      sellerName: "Alex M.",
+      imageUrls: IMAGES.Pickup.slice(0, 3),
+      listedAt: new Date(Date.now() - 8 * 3600000),
+    },
+    {
+      source: "facebook",
+      sourceListingId: "mock-showcase-tacoma",
+      sourceUrl: "https://example.com/listings/mock-showcase-tacoma",
+      title: "2021 Toyota Tacoma TRD Off-Road",
+      description:
+        "2021 Toyota Tacoma TRD Off-Road. 4WD, 41000 miles. One owner. Located in Salt Lake City.",
+      price: 28900,
+      year: 2021,
+      make: "Toyota",
+      model: "Tacoma",
+      trim: "TRD Off-Road",
+      mileage: 41000,
+      condition: "Excellent",
+      city: "Salt Lake City",
+      state: "UT",
+      zipCode: "84101",
+      latitude: 40.7608,
+      longitude: -111.891,
+      sellerType: "private",
+      sellerName: "Jordan P.",
+      imageUrls: IMAGES.Pickup.slice(1, 4),
+      listedAt: new Date(Date.now() - 20 * 3600000),
+    },
+    {
+      source: "facebook",
+      sourceListingId: "mock-showcase-911",
+      sourceUrl: "https://example.com/listings/mock-showcase-911",
+      title: "2018 Porsche 911 Carrera S",
+      description:
+        "2018 Porsche 911 Carrera S. RWD, 28000 miles. Clean title. Located in Park City.",
+      price: 92500,
+      year: 2018,
+      make: "Porsche",
+      model: "911",
+      trim: "Carrera S",
+      mileage: 28000,
+      condition: "Excellent",
+      city: "Park City",
+      state: "UT",
+      zipCode: "84060",
+      latitude: 40.6461,
+      longitude: -111.498,
+      sellerType: "dealer",
+      sellerName: "Wasatch Auto Group",
+      imageUrls: IMAGES.Coupe.slice(0, 3),
+      listedAt: new Date(Date.now() - 30 * 3600000),
+    },
+  );
+
   for (let i = 0; i < count; i += 1) {
     const vehicle = inventory[i % inventory.length]!;
     const year = between(rng, 2014, 2024);

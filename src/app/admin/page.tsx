@@ -27,7 +27,7 @@ export default async function AdminPage() {
     alertVolume,
   ] = await Promise.all([
     prisma.listing.count(),
-    prisma.listing.count({ where: { firstSeenAt: { gte: startOfDay } } }),
+    prisma.listing.count({ where: { createdAt: { gte: startOfDay } } }),
     prisma.listing.count({ where: { listingStatus: "active" } }),
     prisma.listing.groupBy({ by: ["source"], _count: true }),
     prisma.ingestionJob.count({ where: { status: "failed" } }),
