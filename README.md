@@ -1,6 +1,6 @@
 # FlipFinder
 
-Vehicle marketplace search. Find listings faster, score the spread, and click through to the original source.
+Marketplace search for Facebook Marketplace categories — electronics, sneakers, tools, vehicles, and more. Find listings faster, score the spread, and click through to the original source.
 
 Lotline is a search, filter, normalization, comparison, and alerting layer. It does not host transactions, message sellers, or replace the source marketplace.
 
@@ -35,7 +35,7 @@ Demo accounts (seeded):
 | `npm run dev` | Next.js dev server |
 | `npm test` | Unit tests (parser, query parsing, deal score) |
 | `npm run build` | Production build |
-| `npm run db:seed` | Seed users + 120 mock listings through the ingestion pipeline |
+| `npm run db:seed` | Seed users + mixed-category mock listings through the ingestion pipeline |
 | `npm run ingest` | Re-run mock ingestion |
 
 ## Architecture
@@ -51,6 +51,6 @@ Do not scrape, bypass authentication, CAPTCHA, rate limits, or private APIs.
 ## Product rules
 
 - The original listing remains authoritative.
-- Missing vehicle fields stay `null`. Nothing is invented.
+- Missing listing fields stay `null`. Nothing is invented.
 - Market price is shown only when there are enough comparables.
 - Deal score is a relative attractiveness signal, not a guarantee.

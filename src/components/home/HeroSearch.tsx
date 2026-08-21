@@ -3,13 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MapPin, Search } from "lucide-react";
+import { CATEGORIES } from "@/lib/categories";
 import { parseNaturalQuery, toSearchParams } from "@/lib/search/params";
 
 const EXAMPLES = [
+  { label: "MacBook Pro", query: "MacBook Pro under $800" },
+  { label: "iPhone 15", query: "iPhone 15 under $500" },
+  { label: "Jordan 1", query: "Jordan 1 under $150" },
+  { label: "Dyson V15", query: "Dyson V15" },
   { label: "Ford F-250", query: "2018-2022 Ford F-250 under $40k" },
-  { label: "Toyota Tacoma", query: "Toyota Tacoma under $30k" },
-  { label: "Porsche 911", query: "Porsche 911 under $100k" },
-  { label: "Jeep Wrangler", query: "Jeep Wrangler" },
 ];
 
 export function HeroSearch() {
@@ -18,6 +20,7 @@ export function HeroSearch() {
   const [location, setLocation] = useState("Salt Lake City, UT");
   const [radius, setRadius] = useState("50");
   const [priceMax, setPriceMax] = useState("");
+  const [category, setCategory] = useState("");
 
   function submit(value = query) {
     const parsed = parseNaturalQuery(value);
@@ -26,6 +29,7 @@ export function HeroSearch() {
       location: location || undefined,
       radius: radius ? Number(radius) : undefined,
       priceMax: priceMax ? Number(priceMax) : parsed.priceMax,
+      category: category || parsed.category,
     });
     router.push(`/search?${params.toString()}`);
   }
@@ -40,8 +44,8 @@ export function HeroSearch() {
           <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Repeat.</span>
         </p>
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-          We scan Facebook Marketplace 24/7 so you don&apos;t have to. Find underpriced vehicles and local deals
-          before anyone else.
+          Search Facebook Marketplace categories in one place. Score the spread against comparable listings, then
+          click through to the original post.
         </p>
         <div className="mt-6 flex items-center justify-center gap-3 text-sm text-slate-300">
           <div className="flex -space-x-2">
@@ -71,13 +75,21 @@ export function HeroSearch() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="What are you looking for?"
+              placeholder="MacBook Pro, iPhone 15, Jordan 1..."
               className="h-12 w-full rounded-xl bg-[#0d1320] pl-10 pr-3 text-sm outline-none"
             />
           </label>
-          <select className="h-12 rounded-xl bg-[#0d1320] px-3 text-sm text-slate-200">
-            <option>Vehicles</option>
-            <option>All categories</option>
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            className="h-12 rounded-xl bg-[#0d1320] px-3 text-sm text-slate-200"
+          >
+            <option value="">All categories</option>
+            {CATEGORIES.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
           <select
             value={priceMax}
@@ -85,7 +97,11 @@ export function HeroSearch() {
             className="h-12 rounded-xl bg-[#0d1320] px-3 text-sm text-slate-200"
           >
             <option value="">Max Price</option>
-            <option value="10000">$10,000</option>
+            <option value="100">$100</option>
+            <option value="250">$250</option>
+            <option value="500">$500</option>
+            <option value="1000">$1,000</option>
+            <option value="5000">$5,000</option>
             <option value="25000">$25,000</option>
             <option value="40000">$40,000</option>
             <option value="100000">$100,000</option>

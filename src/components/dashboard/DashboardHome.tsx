@@ -35,7 +35,7 @@ export function DashboardHome({
           </section>
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Market insight</p>
-            <p className="mt-2 text-sm">Truck prices are moving. Watch Super Duty comps this week.</p>
+            <p className="mt-2 text-sm">Electronics and sneakers are moving. Watch iPhone and Jordan comps this week.</p>
           </section>
         </div>
       }
@@ -51,6 +51,9 @@ export function DashboardHome({
       <div className="mt-8 flex flex-wrap gap-2">
         <Tab href="/search" label={`All Deals (${stats.count})`} active />
         <Tab href="/search?sort=dealScore" label={`High Profit (${stats.highProfit})`} />
+        <Tab href="/search?category=Electronics" label="Electronics" />
+        <Tab href="/search?category=Sneakers" label="Sneakers" />
+        <Tab href="/search?category=Vehicles" label="Vehicles" />
         <Tab href="/account" label="Watched" />
       </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

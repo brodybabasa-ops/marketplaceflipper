@@ -6,10 +6,10 @@ import { generateMockListings } from "@/sources/mock/generator";
 export const mockMarketplaceSource: MarketplaceSource = {
   name: "mock",
   async searchListings(): Promise<RawListing[]> {
-    return generateMockListings(120);
+    return generateMockListings();
   },
   async getListing(id: string) {
-    const listings = generateMockListings(120);
+    const listings = generateMockListings();
     return listings.find((listing) => listing.sourceListingId === id) ?? null;
   },
 };

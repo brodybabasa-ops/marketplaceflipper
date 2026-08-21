@@ -39,9 +39,43 @@ async function main() {
       params: {
         make: "Ford",
         model: "F-250",
+        category: "Vehicles",
         priceMax: 40000,
         location: "Salt Lake City",
         radius: 100,
+      },
+      notifyEmail: true,
+    },
+  });
+
+  await prisma.savedSearch.upsert({
+    where: { id: "seed-search-iphone" },
+    update: {},
+    create: {
+      id: "seed-search-iphone",
+      userId: demo.id,
+      name: "iPhone 15 under $500",
+      params: {
+        category: "Electronics",
+        make: "Apple",
+        model: "iPhone 15",
+        priceMax: 500,
+      },
+      notifyEmail: true,
+    },
+  });
+
+  await prisma.savedSearch.upsert({
+    where: { id: "seed-search-macbook" },
+    update: {},
+    create: {
+      id: "seed-search-macbook",
+      userId: demo.id,
+      name: "MacBook Pro",
+      params: {
+        category: "Electronics",
+        make: "Apple",
+        model: "MacBook Pro 16",
       },
       notifyEmail: true,
     },

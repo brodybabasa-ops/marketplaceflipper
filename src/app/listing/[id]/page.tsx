@@ -9,8 +9,9 @@ import {
   formatLocation,
   formatMiles,
   formatPrice,
+  isVehicleListing,
+  listingTitle,
   sourceLabel,
-  vehicleTitle,
 } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,8 @@ export default async function ListingPage({ params }: Props) {
       )
     : false;
 
-  const title = vehicleTitle(listing);
+  const title = listingTitle(listing);
+  const vehicle = isVehicleListing(listing);
   const belowMarket =
     listing.marketPriceDelta != null && listing.marketPriceDelta < 0
       ? Math.abs(listing.marketPriceDelta)
@@ -78,20 +80,30 @@ export default async function ListingPage({ params }: Props) {
               {title}
             </h1>
             <p className="mt-2 text-muted">
-              {formatMiles(listing.mileage)} · {formatLocation(listing.city, listing.state)}
+              {[listing.category, vehicle ? formatMiles(listing.mileage) : listing.condition, formatLocation(listing.city, listing.state)]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
 
           <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Spec label="Year" value={listing.year} />
-            <Spec label="Make" value={listing.normalizedMake} />
+            <Spec label="Category" value={listing.category} />
+            <Spec label={vehicle ? "Make" : "Brand"} value={listing.normalizedMake} />
             <Spec label="Model" value={listing.normalizedModel} />
-            <Spec label="Trim" value={listing.normalizedTrim} />
-            <Spec label="Drivetrain" value={listing.drivetrain} />
-            <Spec label="Transmission" value={listing.transmission} />
-            <Spec label="Fuel" value={listing.fuelType} />
-            <Spec label="Body" value={listing.bodyStyle} />
-            <Spec label="Engine" value={listing.engine} />
+            {vehicle ? (
+              <>
+                <Spec label="Year" value={listing.year} />
+                <Spec label="Trim" value={listing.normalizedTrim} />
+                <Spec label="Mileage" value={listing.mileage != null ? formatMiles(listing.mileage) : null} />
+                <Spec label="Drivetrain" value={listing.drivetrain} />
+                <Spec label="Transmission" value={listing.transmission} />
+                <Spec label="Fuel" value={listing.fuelType} />
+                <Spec label="Body" value={listing.bodyStyle} />
+                <Spec label="Engine" value={listing.engine} />
+              </>
+            ) : (
+              <Spec label="Details" value={listing.normalizedTrim} />
+            )}
             <Spec label="Condition" value={listing.condition} />
             <Spec label="Seller" value={listing.sellerType} />
             <Spec

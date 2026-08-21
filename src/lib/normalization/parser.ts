@@ -1,4 +1,5 @@
 import type { NormalizedVehicle } from "@/types/listing";
+import { categoryFromText, findProduct } from "@/lib/categories";
 import {
   findMake,
   findModel,
@@ -108,16 +109,19 @@ function firstMatch(text: string, patterns: Array<[RegExp, string]>): string | n
 }
 
 function confidenceOf(fields: NormalizedVehicle) {
-  const scored = [
-    fields.year,
-    fields.make,
-    fields.model,
-    fields.trim,
-    fields.mileage,
-    fields.drivetrain,
-    fields.engine,
-    fields.bodyStyle,
-  ];
+  const isVehicle = fields.category === "Vehicles" || (!fields.category && Boolean(fields.mileage || fields.drivetrain));
+  const scored = isVehicle
+    ? [
+        fields.year,
+        fields.make,
+        fields.model,
+        fields.trim,
+        fields.mileage,
+        fields.drivetrain,
+        fields.engine,
+        fields.bodyStyle,
+      ]
+    : [fields.make, fields.model, fields.category, fields.condition, fields.trim];
   const present = scored.filter((value) => value != null).length;
   return Number((present / scored.length).toFixed(2));
 }
@@ -127,6 +131,27 @@ export function parseVehicleText(
   description?: string | null,
 ): NormalizedVehicle {
   const text = `${title}\n${description ?? ""}`;
+  const product = findProduct(text);
+  if (product) {
+    const normalized: NormalizedVehicle = {
+      year: extractYear(title) ?? extractYear(text),
+      make: product.brand,
+      model: product.model,
+      trim: product.specs ?? null,
+      mileage: null,
+      engine: null,
+      drivetrain: null,
+      transmission: null,
+      fuelType: null,
+      bodyStyle: null,
+      condition: firstMatch(text, CONDITION_PATTERNS),
+      category: product.category,
+      confidence: 0,
+    };
+    normalized.confidence = Math.max(0.72, confidenceOf(normalized));
+    return normalized;
+  }
+
   const make = findMake(text);
   const modelHit = findModel(text, make);
   const resolvedMake = make ?? modelHit?.make ?? null;
@@ -137,6 +162,9 @@ export function parseVehicleText(
     resolvedModel?.engines?.find((engine) =>
       wordIncludes(text.toLowerCase(), engine.toLowerCase()),
     ) ?? null;
+
+  const category =
+    resolvedMake || resolvedModel ? "Vehicles" : categoryFromText(text) ?? "Other";
 
   const normalized: NormalizedVehicle = {
     year: extractYear(title) ?? extractYear(text),
@@ -150,6 +178,7 @@ export function parseVehicleText(
     fuelType: firstMatch(text, FUEL_PATTERNS),
     bodyStyle: resolvedModel?.bodyStyle ?? null,
     condition: firstMatch(text, CONDITION_PATTERNS),
+    category,
     confidence: 0,
   };
 
@@ -177,6 +206,7 @@ export function mergeNormalized(
     fuelType: provided.fuelType ?? parsed.fuelType,
     bodyStyle: provided.bodyStyle ?? parsed.bodyStyle,
     condition: provided.condition ?? parsed.condition,
+    category: provided.category ?? parsed.category,
     confidence: parsed.confidence,
   };
   merged.confidence = confidenceOf(merged);

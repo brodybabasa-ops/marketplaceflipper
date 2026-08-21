@@ -82,7 +82,7 @@ export function AppShell({
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               name="keyword"
-              placeholder="Search deals"
+              placeholder="Search Marketplace deals"
               className="h-10 w-full rounded-full border border-white/10 bg-white/5 pl-10 pr-14 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-400"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] text-slate-500">

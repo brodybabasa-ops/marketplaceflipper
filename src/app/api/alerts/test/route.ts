@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/session";
 import { previewAlertsForUser } from "@/lib/notifications/dispatch";
 import { httpError, json } from "@/lib/http";
-import { vehicleTitle, formatPrice, formatMiles, formatLocation } from "@/lib/utils";
+import { listingTitle, formatPrice, formatMiles, formatLocation } from "@/lib/utils";
 
 export async function POST() {
   try {
@@ -13,9 +13,9 @@ export async function POST() {
         searchName: item.search.name,
         matches: item.matches.map((listing) => ({
           id: listing.id,
-          title: vehicleTitle(listing),
+          title: listingTitle(listing),
           price: formatPrice(listing.price),
-          mileage: formatMiles(listing.mileage),
+          mileage: listing.mileage != null ? formatMiles(listing.mileage) : listing.category,
           location: formatLocation(listing.city, listing.state),
           sourceUrl: listing.sourceUrl,
         })),

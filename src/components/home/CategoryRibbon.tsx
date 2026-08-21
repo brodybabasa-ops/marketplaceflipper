@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { Car, Grid2x2, Hammer, Home, Shirt, Smartphone, Trophy, Watch } from "lucide-react";
+import { Car, Footprints, Grid2x2, Hammer, Home, Shirt, Smartphone, Trophy, Watch } from "lucide-react";
 
 const CATEGORIES = [
   { href: "/search", label: "All Categories", icon: Grid2x2, color: "text-violet-400" },
-  { href: "/search", label: "Electronics", icon: Smartphone, color: "text-sky-400" },
-  { href: "/search?bodyStyle=Pickup", label: "Vehicles", icon: Car, color: "text-emerald-400" },
-  { href: "/search", label: "Tools", icon: Hammer, color: "text-amber-400" },
-  { href: "/search", label: "Home", icon: Home, color: "text-rose-400" },
-  { href: "/search", label: "Sports", icon: Trophy, color: "text-orange-400" },
-  { href: "/search", label: "Collectibles", icon: Watch, color: "text-fuchsia-400" },
-  { href: "/search", label: "Fashion", icon: Shirt, color: "text-cyan-400" },
+  { href: "/search?category=Electronics", label: "Electronics", icon: Smartphone, color: "text-sky-400" },
+  { href: "/search?category=Vehicles", label: "Vehicles", icon: Car, color: "text-emerald-400" },
+  { href: "/search?category=Sneakers", label: "Sneakers", icon: Footprints, color: "text-lime-400" },
+  { href: "/search?category=Tools", label: "Tools", icon: Hammer, color: "text-amber-400" },
+  { href: "/search?category=Home+%26+Garden", label: "Home", icon: Home, color: "text-rose-400" },
+  { href: "/search?category=Sports", label: "Sports", icon: Trophy, color: "text-orange-400" },
+  { href: "/search?category=Collectibles", label: "Collectibles", icon: Watch, color: "text-fuchsia-400" },
+  { href: "/search?category=Fashion", label: "Fashion", icon: Shirt, color: "text-cyan-400" },
 ];
 
 export function CategoryRibbon() {

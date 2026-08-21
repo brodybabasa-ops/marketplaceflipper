@@ -13,6 +13,7 @@ const AI_SCHEMA_HINT = `{
   "fuelType": string | null,
   "bodyStyle": string | null,
   "condition": string | null,
+  "category": string | null,
   "confidence": number
 }`;
 
@@ -31,7 +32,7 @@ export async function aiNormalizeListing(input: {
       {
         role: "system",
         content:
-          "Extract structured vehicle fields from a marketplace listing. Never invent missing information. If a field is not clearly present, return null. Do not use seller names, phone numbers, or other personal details. Return JSON only matching this shape: " +
+          "Extract structured listing fields from a marketplace post. Use category values like Vehicles, Electronics, Sneakers, Tools, Home & Garden, Sports, Collectibles, Fashion, or Other. For non-vehicles, put brand in make and product name in model. Never invent missing information. If a field is not clearly present, return null. Do not use seller names, phone numbers, or other personal details. Return JSON only matching this shape: " +
           AI_SCHEMA_HINT,
       },
       {
@@ -74,6 +75,7 @@ export async function aiNormalizeListing(input: {
       fuelType: strOrNull(parsed.fuelType),
       bodyStyle: strOrNull(parsed.bodyStyle),
       condition: strOrNull(parsed.condition),
+      category: strOrNull(parsed.category),
       confidence: clampConfidence(parsed.confidence),
     };
   } catch (error) {

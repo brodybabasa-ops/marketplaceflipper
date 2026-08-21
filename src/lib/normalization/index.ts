@@ -14,6 +14,8 @@ export async function normalizeListing(raw: RawListing): Promise<NormalizedVehic
       model: raw.model ?? parsed.model,
       trim: raw.trim ?? parsed.trim,
       mileage: raw.mileage ?? parsed.mileage,
+      category: raw.category ?? parsed.category,
+      condition: raw.condition ?? parsed.condition,
     },
     parsed,
   );

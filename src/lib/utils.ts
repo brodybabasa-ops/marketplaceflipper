@@ -52,6 +52,41 @@ export function vehicleTitle(input: {
   return parts || input.title || "Vehicle listing";
 }
 
+export function isVehicleListing(input: { category?: string | null }) {
+  return !input.category || input.category === "Vehicles";
+}
+
+export function listingTitle(input: {
+  year?: number | null;
+  make?: string | null;
+  model?: string | null;
+  trim?: string | null;
+  title?: string | null;
+  category?: string | null;
+}) {
+  if (!isVehicleListing(input)) {
+    return input.title || [input.make, input.model].filter(Boolean).join(" ") || "Marketplace listing";
+  }
+  return vehicleTitle(input);
+}
+
+export function listingMeta(input: {
+  year?: number | null;
+  make?: string | null;
+  model?: string | null;
+  trim?: string | null;
+  normalizedTrim?: string | null;
+  mileage?: number | null;
+  category?: string | null;
+  condition?: string | null;
+}) {
+  const spec = input.normalizedTrim || input.trim;
+  if (!isVehicleListing(input)) {
+    return [input.category, input.condition, spec || input.make].filter(Boolean).join(" · ");
+  }
+  return [input.year, spec, input.mileage != null ? formatMiles(input.mileage) : null].filter(Boolean).join(" · ");
+}
+
 export function sourceLabel(source: string) {
   const labels: Record<string, string> = {
     mock: "Sample inventory",

@@ -23,6 +23,7 @@ export type RawListing = {
   imageUrls?: string[];
   vin?: string | null;
   listedAt?: Date | string | null;
+  category?: string | null;
 };
 
 export type NormalizedVehicle = {
@@ -37,6 +38,7 @@ export type NormalizedVehicle = {
   fuelType: string | null;
   bodyStyle: string | null;
   condition: string | null;
+  category: string | null;
   confidence: number;
 };
 

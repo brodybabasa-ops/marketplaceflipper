@@ -5,9 +5,10 @@ import { useState } from "react";
 import { parseNaturalQuery, toSearchParams } from "@/lib/search/params";
 
 const EXAMPLES = [
+  { label: "MacBook Pro under $800", query: "MacBook Pro under $800" },
+  { label: "iPhone 15 under $500", query: "iPhone 15 under $500" },
+  { label: "Jordan 1 under $150", query: "Jordan 1 under $150" },
   { label: "2018–2022 Ford F-250 under $40k", query: "2018-2022 Ford F-250 under $40k" },
-  { label: "Toyota Tacoma under $30k", query: "Toyota Tacoma under $30k" },
-  { label: "Porsche 911 under $100k", query: "Porsche 911 under $100k" },
 ];
 
 export function SearchHero() {
@@ -23,7 +24,7 @@ export function SearchHero() {
   return (
     <section className="mx-auto max-w-6xl px-4 pb-8 pt-14 sm:pt-20">
       <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">
-        Vehicle marketplace search
+        Marketplace search
       </p>
       <h1 className="mt-4 max-w-3xl font-[family-name:var(--font-instrument)] text-5xl leading-[1.05] tracking-tight text-foreground sm:text-7xl">
         What are you looking for?
@@ -40,14 +41,14 @@ export function SearchHero() {
         }}
       >
         <label className="sr-only" htmlFor="hero-search">
-          Search vehicles
+          Search listings
         </label>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
             id="hero-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="2018-2022 Ford F-250 under $40k"
+            placeholder="MacBook Pro, iPhone 15, Jordan 1..."
             className="h-14 flex-1 rounded-xl bg-transparent px-4 text-lg outline-none placeholder:text-muted/70"
           />
           <button

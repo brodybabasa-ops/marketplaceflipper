@@ -1,11 +1,11 @@
 import type { Listing } from "@prisma/client";
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { formatLocation, formatMiles, formatPrice, timeAgo, vehicleTitle } from "@/lib/utils";
+import { formatLocation, formatPrice, listingMeta, listingTitle, timeAgo } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const image = listing.imageUrls[0];
-  const title = vehicleTitle(listing);
+  const title = listingTitle(listing);
   const profit =
     listing.marketPriceDelta != null && listing.marketPriceDelta < 0
       ? Math.abs(listing.marketPriceDelta)
@@ -40,9 +40,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </div>
         <div className="p-4">
           <h2 className="line-clamp-1 text-[15px] font-semibold tracking-tight">{title}</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            {[listing.year, listing.normalizedTrim, formatMiles(listing.mileage)].filter(Boolean).join(" · ")}
-          </p>
+          <p className="mt-1 text-xs text-slate-400">{listingMeta(listing)}</p>
           <div className="mt-3 flex items-end justify-between gap-3">
             <p className="text-lg font-semibold text-profit">{formatPrice(listing.price)}</p>
             {profit ? (

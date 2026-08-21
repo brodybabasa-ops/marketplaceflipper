@@ -2,6 +2,7 @@ import { z } from "zod";
 import { SORT_OPTIONS, type SearchParams } from "@/types/search";
 import { resolveLocation } from "@/lib/geo";
 import { VEHICLE_CATALOG, findMake, findModel } from "@/lib/normalization/catalog";
+import { brandsForCategory, categoryFromText, findProduct, modelsForBrand } from "@/lib/categories";
 
 export const searchParamsSchema = z.object({
   keyword: z.string().trim().max(200).optional(),
@@ -23,6 +24,7 @@ export const searchParamsSchema = z.object({
   fuelType: z.string().trim().max(20).optional(),
   sellerType: z.enum(["private", "dealer", "unknown"]).optional(),
   source: z.string().trim().max(40).optional(),
+  category: z.string().trim().max(40).optional(),
   sort: z.enum(SORT_OPTIONS).optional(),
   page: z.coerce.number().int().min(1).max(1000).optional(),
   pageSize: z.coerce.number().int().min(1).max(50).optional(),
@@ -98,15 +100,26 @@ export function parseNaturalQuery(query: string): SearchParams {
     params.mileageMax = miles[2] ? base * 1000 : base;
   }
 
-  const make = findMake(text);
-  if (make) params.make = make.name;
-  const model = findModel(text, make);
-  if (model) {
-    params.make = model.make.name;
-    params.model = model.model.name;
+  const product = findProduct(text);
+  if (product) {
+    params.category = product.category;
+    params.make = product.brand;
+    params.model = product.model;
+  } else {
+    const make = findMake(text);
+    if (make) params.make = make.name;
+    const model = findModel(text, make);
+    if (model) {
+      params.make = model.make.name;
+      params.model = model.model.name;
+      params.category = "Vehicles";
+    }
   }
 
-  if (!params.make && !params.model && !params.yearMin && !params.priceMax) {
+  const category = categoryFromText(text);
+  if (category && !params.category) params.category = category;
+
+  if (!params.make && !params.model && !params.yearMin && !params.priceMax && !params.category) {
     params.keyword = text;
   }
 
@@ -120,4 +133,12 @@ export function makes() {
 export function modelsFor(makeName?: string) {
   const make = VEHICLE_CATALOG.find((item) => item.name === makeName);
   return make?.models.map((model) => model.name) ?? [];
+}
+
+export function brandsFor(category?: string) {
+  return brandsForCategory(category);
+}
+
+export function productModelsFor(category?: string, brand?: string) {
+  return modelsForBrand(category, brand);
 }

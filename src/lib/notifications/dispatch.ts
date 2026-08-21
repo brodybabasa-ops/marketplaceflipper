@@ -2,7 +2,7 @@ import type { Listing, SavedSearch, User } from "@prisma/client";
 import type { SearchParams } from "@/types/search";
 import { prisma } from "@/lib/db/prisma";
 import { logger } from "@/lib/logger";
-import { formatMiles, formatPrice, vehicleTitle } from "@/lib/utils";
+import { formatMiles, formatPrice, listingTitle } from "@/lib/utils";
 
 type SearchWithUser = SavedSearch & { user: User };
 
@@ -65,9 +65,9 @@ async function sendAlertEmail(input: { listing: Listing; search: SearchWithUser 
   const body = [
     `New listing matching your search “${search.name}”`,
     "",
-    vehicleTitle(listing),
+    listingTitle(listing),
     formatPrice(listing.price),
-    formatMiles(listing.mileage),
+    listing.mileage != null ? formatMiles(listing.mileage) : listing.category,
     [listing.city, listing.state].filter(Boolean).join(", "),
     "",
     `${appUrl}/listing/${listing.id}`,

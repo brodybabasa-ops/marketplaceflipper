@@ -30,6 +30,7 @@ model Listing {
   sellerName              String?
   imageUrls               String[]
   vin                     String?
+  category                String   @default("Other")
   listingStatus           String   @default("active")
   normalizedMake          String?
   normalizedModel         String?
@@ -66,6 +67,7 @@ model Listing {
   @@index([city, state])
   @@index([createdAt])
   @@index([vin])
+  @@index([category])
 }
 
 model PriceHistory {

@@ -41,6 +41,7 @@ export function listingWhere(params: SearchParams): Prisma.ListingWhereInput {
   if (params.fuelType) AND.push({ fuelType: { equals: params.fuelType, mode: "insensitive" } });
   if (params.sellerType) AND.push({ sellerType: params.sellerType });
   if (params.source) AND.push({ source: params.source });
+  if (params.category) AND.push({ category: { equals: params.category, mode: "insensitive" } });
 
   if (params.latitude != null && params.longitude != null && params.radius) {
     const box = boundingBox(
@@ -82,6 +83,7 @@ export function listingMatchesParams(
   if (params.fuelType && listing.fuelType?.toLowerCase() !== params.fuelType.toLowerCase()) return false;
   if (params.sellerType && listing.sellerType !== params.sellerType) return false;
   if (params.source && listing.source !== params.source) return false;
+  if (params.category && listing.category.toLowerCase() !== params.category.toLowerCase()) return false;
   if (params.keyword) {
     const blob = `${listing.title} ${listing.description ?? ""} ${listing.normalizedMake ?? ""} ${listing.normalizedModel ?? ""}`.toLowerCase();
     if (!blob.includes(params.keyword.toLowerCase())) return false;

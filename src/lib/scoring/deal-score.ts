@@ -1,5 +1,6 @@
 import type { Listing } from "@prisma/client";
 import type { DealScoreBreakdown, MarketEstimate } from "@/types/listing";
+import { isVehicleCategory } from "@/lib/categories";
 
 type Scoreable = Pick<
   Listing,
@@ -17,6 +18,8 @@ type Scoreable = Pick<
   | "condition"
   | "drivetrain"
   | "engine"
+  | "category"
+  | "title"
 >;
 
 function median(values: number[]) {
@@ -27,6 +30,10 @@ function median(values: number[]) {
     return Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
   }
   return sorted[mid]!;
+}
+
+function isVehicle(listing: Scoreable) {
+  return isVehicleCategory(listing.category);
 }
 
 export function estimateMarketPrice(
@@ -68,15 +75,21 @@ export function estimateMarketPrice(
 }
 
 export function isComparable(listing: Scoreable, candidate: Scoreable) {
+  if (listing.category && candidate.category && listing.category !== candidate.category) {
+    return false;
+  }
   if (!listing.normalizedMake || !listing.normalizedModel) return false;
   if (candidate.normalizedMake !== listing.normalizedMake) return false;
   if (candidate.normalizedModel !== listing.normalizedModel) return false;
-  if (listing.year && candidate.year && Math.abs(candidate.year - listing.year) > 2) {
-    return false;
-  }
-  if (listing.mileage && candidate.mileage) {
-    const spread = Math.max(15000, listing.mileage * 0.3);
-    if (Math.abs(candidate.mileage - listing.mileage) > spread) return false;
+
+  if (isVehicle(listing)) {
+    if (listing.year && candidate.year && Math.abs(candidate.year - listing.year) > 2) {
+      return false;
+    }
+    if (listing.mileage && candidate.mileage) {
+      const spread = Math.max(15000, listing.mileage * 0.3);
+      if (Math.abs(candidate.mileage - listing.mileage) > spread) return false;
+    }
   }
   return true;
 }
@@ -88,6 +101,7 @@ export function scoreDeal(
 ): DealScoreBreakdown {
   const market = estimateMarketPrice(listing, comparables);
   const reasons: string[] = [];
+  const vehicle = isVehicle(listing);
 
   let priceScore = 20;
   if (market.hasOwnProperty("marketPrice") && market.marketPrice && listing.price) {
@@ -106,8 +120,8 @@ export function scoreDeal(
   const mileageMedian = median(
     comparables.map((item) => item.mileage).filter((value): value is number => value != null),
   );
-  let mileageScore = 8;
-  if (listing.mileage != null && mileageMedian) {
+  let mileageScore = vehicle ? 8 : 10;
+  if (vehicle && listing.mileage != null && mileageMedian) {
     const ratio = listing.mileage / mileageMedian;
     if (ratio <= 0.7) mileageScore = 15;
     else if (ratio >= 1.3) mileageScore = 2;
@@ -115,11 +129,11 @@ export function scoreDeal(
     if (ratio < 0.9) reasons.push("Lower mileage than similar vehicles");
   }
 
-  let yearScore = 5;
+  let yearScore = vehicle ? 5 : 8;
   const yearMedian = median(
     comparables.map((item) => item.year).filter((value): value is number => value != null),
   );
-  if (listing.year && yearMedian) {
+  if (vehicle && listing.year && yearMedian) {
     const delta = listing.year - yearMedian;
     yearScore = Math.max(0, Math.min(10, 5 + delta * 2));
   }
@@ -130,28 +144,39 @@ export function scoreDeal(
   else if (ageHours < 24 * 7) freshness = 7;
   else if (ageHours < 24 * 30) freshness = 4;
 
-  const completenessFields = [
-    listing.year,
-    listing.normalizedMake,
-    listing.normalizedModel,
-    listing.price,
-    listing.mileage,
-    listing.city,
-    listing.imageUrls.length > 0,
-    listing.description,
-    listing.drivetrain,
-    listing.engine,
-  ];
+  const completenessFields = vehicle
+    ? [
+        listing.year,
+        listing.normalizedMake,
+        listing.normalizedModel,
+        listing.price,
+        listing.mileage,
+        listing.city,
+        listing.imageUrls.length > 0,
+        listing.description,
+        listing.drivetrain,
+        listing.engine,
+      ]
+    : [
+        listing.normalizedMake,
+        listing.normalizedModel,
+        listing.price,
+        listing.condition,
+        listing.city,
+        listing.imageUrls.length > 0,
+        listing.description,
+        listing.category,
+      ];
   const completeness = Math.round(
     (completenessFields.filter(Boolean).length / completenessFields.length) * 10,
   );
 
   let condition = 3;
   const blob = `${listing.condition ?? ""} ${listing.description ?? ""}`.toLowerCase();
-  if (/\b(salvage|rebuilt|flood|lemon|frame damage)\b/.test(blob)) {
+  if (/\b(salvage|rebuilt|flood|lemon|frame damage|broken|cracked screen|for parts)\b/.test(blob)) {
     condition = 0;
     reasons.push("Condition language is a negative signal");
-  } else if (/\b(clean title|one owner|service records|garage kept)\b/.test(blob)) {
+  } else if (/\b(clean title|one owner|service records|garage kept|like new|open box|unused)\b/.test(blob)) {
     condition = 5;
     reasons.push("Positive condition signals in the listing");
   }

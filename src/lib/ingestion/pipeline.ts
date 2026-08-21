@@ -67,6 +67,7 @@ export async function ingestSource(sourceName = "mock") {
           sellerName: raw.sellerName ?? null,
           imageUrls: raw.imageUrls ?? [],
           vin: raw.vin ?? null,
+          category: raw.category ?? normalized.category ?? "Other",
           listingStatus: "active",
           normalizedMake: normalized.make,
           normalizedModel: normalized.model,

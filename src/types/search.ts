@@ -32,6 +32,7 @@ export type SearchParams = {
   fuelType?: string;
   sellerType?: SellerType;
   source?: string;
+  category?: string;
   sort?: SortOption;
   page?: number;
   pageSize?: number;
