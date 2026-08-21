@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { DealBadge } from "@/components/listings/DealBadge";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
+import { OpenOnMarketplace } from "@/components/listings/OpenOnMarketplace";
 import { getSession } from "@/lib/auth/session";
 import { AppShell } from "@/components/layout/AppShell";
 import { dealScoreLabel } from "@/lib/scoring/deal-score";
+import { dealSnapshot } from "@/lib/marketplace";
 import {
   formatLocation,
   formatMiles,
-  formatPrice,
   isVehicleListing,
   listingTitle,
   sourceLabel,
@@ -40,10 +41,7 @@ export default async function ListingPage({ params }: Props) {
 
   const title = listingTitle(listing);
   const vehicle = isVehicleListing(listing);
-  const belowMarket =
-    listing.marketPriceDelta != null && listing.marketPriceDelta < 0
-      ? Math.abs(listing.marketPriceDelta)
-      : null;
+  const snapshot = dealSnapshot(listing);
   const breakdown = listing.dealScoreBreakdown as {
     reasons?: string[];
     hasMarketData?: boolean;
@@ -128,32 +126,33 @@ export default async function ListingPage({ params }: Props) {
 
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-border bg-surface p-5">
-            <p className="text-3xl font-semibold">{formatPrice(listing.price)}</p>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Asking price</p>
+            <p className="mt-1 text-3xl font-semibold">{snapshot.ask}</p>
             <div className="mt-3">
               <DealBadge score={listing.dealScore} />
             </div>
-            <p className="mt-3 text-sm text-muted">
-              {belowMarket
-                ? `${formatPrice(belowMarket)} below estimated market`
-                : "Insufficient market data"}
-            </p>
-            {listing.marketPrice ? (
-              <p className="mt-1 text-xs text-muted">
-                Estimated comparable market {formatPrice(listing.marketPrice)} ·{" "}
-                {listing.marketSampleSize} comps
-              </p>
-            ) : null}
-            <a
-              href={listing.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-gradient mt-5 flex h-12 items-center justify-center rounded-xl text-sm font-semibold"
-            >
-              View original listing
-            </a>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border border-white/8 bg-[#0d1320] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Est. market</p>
+                <p className="mt-1 font-semibold">{snapshot.market}</p>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-[#0d1320] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Est. profit</p>
+                <p className="mt-1 font-semibold text-profit">{snapshot.profit}</p>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-[#0d1320] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Margin</p>
+                <p className="mt-1 font-semibold">{snapshot.margin}</p>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-[#0d1320] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Comps</p>
+                <p className="mt-1 font-semibold">{snapshot.comps || "—"}</p>
+              </div>
+            </div>
+            <OpenOnMarketplace listing={listing} className="mt-5" />
             <FavoriteButton listingId={listing.id} initial={favorited} />
             <p className="mt-3 text-xs leading-5 text-muted">
-              FlipFinder does not host transactions. Contact the seller on {sourceLabel(listing.source)}.
+              FlipFinder scores the deal. You message the seller on {sourceLabel(listing.source === "mock" ? "facebook" : listing.source)}.
             </p>
           </div>
 
@@ -164,6 +163,11 @@ export default async function ListingPage({ params }: Props) {
                 ? `${listing.dealScore}/100 — ${dealScoreLabel(listing.dealScore)}`
                 : "Unscored"}
             </p>
+            <div className="mt-4 space-y-2">
+              <ScoreBar label="Price vs comps" value={breakdown?.price} max={50} />
+              <ScoreBar label="Freshness" value={breakdown?.freshness} max={10} />
+              <ScoreBar label="Completeness" value={breakdown?.completeness} max={10} />
+            </div>
             <ul className="mt-3 space-y-1 text-muted">
               {(breakdown?.reasons ?? []).map((reason) => (
                 <li key={reason}>• {reason}</li>
@@ -194,6 +198,32 @@ function Spec({ label, value }: { label: string; value: string | number | null |
     <div className="rounded-xl border border-border bg-surface px-4 py-3">
       <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</dt>
       <dd className="mt-1 text-sm font-medium">{value ?? "—"}</dd>
+    </div>
+  );
+}
+
+function ScoreBar({
+  label,
+  value,
+  max,
+}: {
+  label: string;
+  value?: number;
+  max: number;
+}) {
+  const pct = Math.max(0, Math.min(100, ((value ?? 0) / max) * 100));
+  return (
+    <div>
+      <div className="flex justify-between text-[11px] text-slate-500">
+        <span>{label}</span>
+        <span>{value ?? 0}/{max}</span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+          style={{ width: `${Math.max(6, pct)}%` }}
+        />
+      </div>
     </div>
   );
 }

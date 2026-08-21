@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: "%s · FlipFinder",
   },
   description:
-    "Scan marketplace listings across Facebook Marketplace categories, score the spread, and click through to the original listing.",
+    "Score Marketplace deals, then click through to Facebook to contact the seller. FlipFinder does not host checkout.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

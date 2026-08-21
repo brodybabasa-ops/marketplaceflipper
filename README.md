@@ -50,7 +50,7 @@ Do not scrape, bypass authentication, CAPTCHA, rate limits, or private APIs.
 
 ## Product rules
 
-- The original listing remains authoritative.
+- The original listing remains authoritative. FlipFinder shows deal stats; users click through to Facebook Marketplace to contact the seller.
 - Missing listing fields stay `null`. Nothing is invented.
 - Market price is shown only when there are enough comparables.
 - Deal score is a relative attractiveness signal, not a guarantee.

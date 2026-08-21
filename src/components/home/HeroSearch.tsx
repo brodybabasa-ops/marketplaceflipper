@@ -44,8 +44,8 @@ export function HeroSearch() {
           <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Repeat.</span>
         </p>
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-          Search Facebook Marketplace categories in one place. Score the spread against comparable listings, then
-          click through to the original post.
+          Search Facebook Marketplace categories, see estimated profit against comps, then open the original
+          post to message the seller. FlipFinder does not host checkout.
         </p>
         <div className="mt-6 flex items-center justify-center gap-3 text-sm text-slate-300">
           <div className="flex -space-x-2">

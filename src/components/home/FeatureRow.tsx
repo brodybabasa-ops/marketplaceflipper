@@ -3,23 +3,23 @@ import { Bell, LineChart, Radar, Save } from "lucide-react";
 const FEATURES = [
   {
     icon: Radar,
-    title: "24/7 Scanning",
-    body: "We scan marketplace listings around the clock so you never miss a deal.",
+    title: "Deals on one board",
+    body: "Asking price, location, and freshness in one place so you are not hunting through Marketplace tabs.",
   },
   {
     icon: LineChart,
-    title: "Deal Score & Profit Estimator",
-    body: "See estimated spread versus comparable listings and a transparent deal score.",
+    title: "Deal score & estimated profit",
+    body: "See spread versus comparable listings, margin, and a transparent deal score before you click through.",
   },
   {
     icon: Bell,
     title: "Instant Alerts",
-    body: "Get notified the moment new deals match your saved search.",
+    body: "Get notified the moment a new listing matches a saved search.",
   },
   {
     icon: Save,
-    title: "Export & Track",
-    body: "Save favorites, keep searches, and click through to the original listing.",
+    title: "Open on Facebook",
+    body: "Save favorites, then message the seller on Facebook Marketplace. FlipFinder never hosts the sale.",
   },
 ];
 

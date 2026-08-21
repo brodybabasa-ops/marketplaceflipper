@@ -1,17 +1,17 @@
 import type { Listing } from "@prisma/client";
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { formatLocation, formatPrice, listingMeta, listingTitle, timeAgo } from "@/lib/utils";
+import { OpenOnMarketplace } from "@/components/listings/OpenOnMarketplace";
+import { dealSnapshot } from "@/lib/marketplace";
+import { formatLocation, listingMeta, listingTitle, timeAgo } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const image = listing.imageUrls[0];
   const title = listingTitle(listing);
-  const profit =
-    listing.marketPriceDelta != null && listing.marketPriceDelta < 0
-      ? Math.abs(listing.marketPriceDelta)
-      : null;
+  const snapshot = dealSnapshot(listing);
   const highProfit = (listing.dealScore ?? 0) >= 70;
   const trending = !highProfit && (listing.dealScore ?? 0) >= 55;
+  const hasProfit = snapshot.profit !== "—";
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-white/8 bg-surface shadow-[0_10px_40px_-24px_rgba(0,0,0,0.8)]">
@@ -38,23 +38,34 @@ export function ListingCard({ listing }: { listing: Listing }) {
             <Heart className="h-4 w-4" />
           </span>
         </div>
-        <div className="p-4">
+        <div className="px-4 pt-4">
           <h2 className="line-clamp-1 text-[15px] font-semibold tracking-tight">{title}</h2>
           <p className="mt-1 text-xs text-slate-400">{listingMeta(listing)}</p>
           <div className="mt-3 flex items-end justify-between gap-3">
-            <p className="text-lg font-semibold text-profit">{formatPrice(listing.price)}</p>
-            {profit ? (
-              <p className="text-sm font-medium text-profit">Est. Profit: +{formatPrice(profit)}</p>
-            ) : (
-              <p className="text-xs text-slate-500">Insufficient market data</p>
-            )}
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Asking</p>
+              <p className="text-lg font-semibold">{snapshot.ask}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500">Est. profit</p>
+              {hasProfit ? (
+                <p className="text-sm font-semibold text-profit">{snapshot.profit}</p>
+              ) : (
+                <p className="text-xs text-slate-500">Need more comps</p>
+              )}
+            </div>
           </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Market {snapshot.market}
+            {snapshot.comps > 0 ? ` · ${snapshot.comps} comps` : ""}
+            {hasProfit ? ` · ${snapshot.margin} margin` : ""}
+          </p>
           <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
             <span>
               {formatLocation(listing.city, listing.state)} · {timeAgo(listing.firstSeenAt)}
             </span>
             <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
-              FB
+              {listing.source === "ksl" ? "KSL" : "FB"}
             </span>
           </div>
           {listing.dealScore != null ? (
@@ -70,6 +81,9 @@ export function ListingCard({ listing }: { listing: Listing }) {
           ) : null}
         </div>
       </Link>
+      <div className="p-4 pt-3">
+        <OpenOnMarketplace listing={listing} className="h-10 text-xs" />
+      </div>
     </article>
   );
 }

@@ -6,6 +6,7 @@ import { MarketingNav } from "@/components/layout/MarketingNav";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { CategoryRibbon } from "@/components/home/CategoryRibbon";
 import { FeatureRow } from "@/components/home/FeatureRow";
+import { HowItWorks } from "@/components/home/HowItWorks";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { DashboardHome } from "@/components/dashboard/DashboardHome";
 
@@ -50,8 +51,8 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-12">
         <div className="mb-6 flex items-end justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Live deals</p>
-            <h2 className="mt-2 text-2xl font-semibold">Top flip opportunities</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Scored deals</p>
+            <h2 className="mt-2 text-2xl font-semibold">Put the spread in front of you</h2>
           </div>
           <Link href="/search?sort=dealScore" className="text-sm text-slate-400 hover:text-white">
             View all
@@ -63,9 +64,10 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+      <HowItWorks />
       <FeatureRow />
       <footer className="border-t border-white/5 py-8 text-center text-sm text-slate-500">
-        FlipFinder is a search layer. Transactions happen on the original marketplace.
+        FlipFinder scores Marketplace deals. You contact the seller on Facebook.
       </footer>
     </div>
   );
