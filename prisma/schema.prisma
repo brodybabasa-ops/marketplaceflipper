@@ -1,0 +1,851 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  MECHANIC
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum VerificationLevel {
+  UNVERIFIED
+  PROFILE_VERIFIED
+  PROFESSIONAL_VERIFIED
+  INSURED
+  POCKET_VERIFIED
+}
+
+enum VerificationStatus {
+  NOT_STARTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ServiceMode {
+  MOBILE
+  SHOP
+  BOTH
+}
+
+enum ServiceCategory {
+  BRAKES
+  ENGINE
+  TRANSMISSION
+  ELECTRICAL
+  SUSPENSION
+  STEERING
+  COOLING
+  AC_HEATING
+  STARTING
+  CHARGING
+  TIRES
+  MAINTENANCE
+  DIAGNOSTICS
+  OTHER
+}
+
+enum JobStatus {
+  REQUESTED
+  ACCEPTED
+  SCHEDULED
+  EN_ROUTE
+  ARRIVED
+  DIAGNOSING
+  AWAITING_APPROVAL
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum ServiceRequestStatus {
+  OPEN
+  MATCHED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+enum EstimateType {
+  PRELIMINARY
+  PRIMARY
+  CHANGE_ORDER
+}
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  APPROVED
+  DECLINED
+  SUPERSEDED
+}
+
+enum EstimateLineCategory {
+  DIAGNOSTIC
+  PARTS
+  LABOR
+  SUPPLIES
+  OTHER
+}
+
+enum ApprovalAction {
+  APPROVED
+  DECLINED
+}
+
+enum MessageKind {
+  TEXT
+  PHOTO
+  ATTACHMENT
+  SYSTEM
+}
+
+enum PhotoKind {
+  BEFORE
+  AFTER
+  DIAGNOSIS
+  PARTS
+  OTHER
+}
+
+enum DisputeCategory {
+  REPAIR_DIDNT_FIX
+  UNEXPECTED_CHARGE
+  WORKMANSHIP
+  NO_SHOW
+  VEHICLE_DAMAGE
+  COMMUNICATION
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  AUTHORIZED
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+model User {
+  id             String        @id @default(uuid()) @db.Uuid
+  email          String        @unique
+  passwordHash   String
+  role           UserRole
+  status         AccountStatus @default(ACTIVE)
+  firstName      String
+  lastName       String
+  phone          String?
+  avatarUrl      String?
+  emailVerifiedAt DateTime?
+  lastLoginAt    DateTime?
+  lastLoginIp    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  customerProfile CustomerProfile?
+  mechanicProfile MechanicProfile?
+
+  vehicles           Vehicle[]
+  serviceRequests    ServiceRequest[] @relation("CustomerRequests")
+  jobsAsCustomer     Job[]            @relation("CustomerJobs")
+  jobsAsMechanic     Job[]            @relation("MechanicJobs")
+  estimatesCreated   Estimate[]       @relation("MechanicEstimates")
+  estimateApprovals  EstimateApproval[]
+  threadsAsCustomer  MessageThread[]  @relation("CustomerThreads")
+  threadsAsMechanic  MessageThread[]  @relation("MechanicThreads")
+  messages           Message[]
+  reviewsAuthored    Review[]         @relation("CustomerReviews")
+  reviewResponses    ReviewResponse[]
+  notifications      Notification[]
+  disputesOpened     Dispute[]        @relation("CustomerDisputes")
+  disputesAgainst    Dispute[]        @relation("MechanicDisputes")
+  adminActions       AdminAction[]
+  savedMechanics     SavedMechanic[]
+  verificationsReviewed Verification[] @relation("VerificationReviewer")
+  fraudSignals       FraudSignal[]
+  payouts            Payout[]
+  subscriptions      Subscription[]
+
+  @@index([role, status])
+  @@index([email])
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  city      String?
+  state     String?
+  zip       String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MechanicProfile {
+  id                   String            @id @default(uuid()) @db.Uuid
+  userId               String            @unique @db.Uuid
+  slug                 String            @unique
+  businessName         String
+  tagline              String?
+  bio                  String
+  yearsExperience      Int               @default(0)
+  serviceMode          ServiceMode       @default(MOBILE)
+  shopAddress          String?
+  shopCity             String?
+  shopState            String?
+  shopZip              String?
+  latitude             Float
+  longitude            Float
+  serviceRadiusMiles   Int               @default(25)
+  diagnosticPriceCents Int               @default(9500)
+  laborRateCents       Int               @default(11000)
+  mobileFeeCents       Int               @default(2500)
+  startingPriceCents   Int               @default(9500)
+  timezone             String            @default("America/Denver")
+  profilePhotoUrl      String?
+  coverPhotoUrl        String?
+  onboardingStep       Int               @default(1)
+  profileCompletePct   Int               @default(0)
+  verificationLevel    VerificationLevel @default(UNVERIFIED)
+  isSponsored          Boolean           @default(false)
+  acceptsNewJobs       Boolean           @default(true)
+
+  averageRating       Float @default(0)
+  reviewCount         Int   @default(0)
+  completedJobsCount  Int   @default(0)
+  onTimePercentage    Float @default(100)
+  estimateAccuracy    Float @default(100)
+  customerRepeatRate  Float @default(0)
+  reviewQualityScore  Float @default(0)
+  avgResponseMinutes  Int   @default(30)
+  cancellationRate    Float @default(0)
+  mechanicScore       Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialties    MechanicSpecialty[]
+  certifications MechanicCertification[]
+  serviceAreas   MechanicServiceArea[]
+  availability   MechanicAvailability[]
+  makeExpertise  MechanicMakeExpertise[]
+  verifications  Verification[]
+  jobs           Job[]
+  reviews        Review[]
+  savedBy        SavedMechanic[]
+
+  @@index([mechanicScore])
+  @@index([shopState, shopCity])
+  @@index([verificationLevel])
+  @@index([serviceMode])
+}
+
+model VehicleMake {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  models     VehicleModel[]
+  vehicles   Vehicle[]
+  expertise  MechanicMakeExpertise[]
+}
+
+model VehicleModel {
+  id        String   @id @default(uuid()) @db.Uuid
+  makeId    String   @db.Uuid
+  name      String
+  slug      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  make     VehicleMake @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  vehicles Vehicle[]
+
+  @@unique([makeId, slug])
+  @@index([makeId])
+}
+
+model Vehicle {
+  id          String   @id @default(uuid()) @db.Uuid
+  customerId  String   @db.Uuid
+  year        Int
+  makeId      String   @db.Uuid
+  modelId     String   @db.Uuid
+  trim        String?
+  engine      String?
+  drivetrain  String?
+  mileage     Int
+  vin         String?
+  nickname    String?
+  notes       String?
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer        User             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  make            VehicleMake      @relation(fields: [makeId], references: [id])
+  model           VehicleModel     @relation(fields: [modelId], references: [id])
+  serviceRequests ServiceRequest[]
+  jobs            Job[]
+  repairRecords   RepairRecord[]
+
+  @@index([customerId])
+}
+
+model MechanicSpecialty {
+  id                String          @id @default(uuid()) @db.Uuid
+  mechanicProfileId String          @db.Uuid
+  category          ServiceCategory
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([mechanicProfileId, category])
+}
+
+model MechanicMakeExpertise {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  vehicleMakeId     String   @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  make     VehicleMake     @relation(fields: [vehicleMakeId], references: [id], onDelete: Cascade)
+
+  @@unique([mechanicProfileId, vehicleMakeId])
+}
+
+model MechanicCertification {
+  id                String    @id @default(uuid()) @db.Uuid
+  mechanicProfileId String    @db.Uuid
+  name              String
+  issuer            String
+  credentialNumber  String?
+  issuedAt          DateTime?
+  expiresAt         DateTime?
+  documentUrl       String?
+  verified          Boolean   @default(false)
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+}
+
+model MechanicServiceArea {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  city              String
+  state             String
+  stateCode         String
+  zip               String?
+  latitude          Float
+  longitude         Float
+  radiusMiles       Int      @default(25)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@index([stateCode, city])
+}
+
+model MechanicAvailability {
+  id                String    @id @default(uuid()) @db.Uuid
+  mechanicProfileId String    @db.Uuid
+  dayOfWeek         DayOfWeek
+  startTime         String
+  endTime           String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([mechanicProfileId, dayOfWeek])
+}
+
+model ZipCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  zip       String   @unique
+  city      String
+  state     String
+  stateCode String
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stateCode, city])
+}
+
+model ServiceRequest {
+  id                   String               @id @default(uuid()) @db.Uuid
+  customerId           String               @db.Uuid
+  vehicleId            String               @db.Uuid
+  mechanicProfileId    String?              @db.Uuid
+  status               ServiceRequestStatus @default(OPEN)
+  problemText          String
+  category             ServiceCategory      @default(OTHER)
+  description          String?
+  zip                  String
+  city                 String?
+  state                String?
+  latitude             Float?
+  longitude            Float?
+  preferredDate        DateTime?            @db.Date
+  preferredTimeWindow  String?
+  budgetCents          Int?
+  mobilePreferred      Boolean              @default(true)
+  photoUrls            String[]             @default([])
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  customer User             @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle          @relation(fields: [vehicleId], references: [id])
+  jobs     Job[]
+  thread   MessageThread?
+
+  @@index([customerId, status])
+  @@index([mechanicProfileId, status])
+}
+
+model Job {
+  id                String        @id @default(uuid()) @db.Uuid
+  serviceRequestId  String        @db.Uuid
+  customerId        String        @db.Uuid
+  mechanicUserId    String        @db.Uuid
+  mechanicProfileId String        @db.Uuid
+  vehicleId         String        @db.Uuid
+  status            JobStatus     @default(REQUESTED)
+  scheduledAt       DateTime?
+  arrivedAt         DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  cancelReason      String?
+  paymentStatus     PaymentStatus @default(UNPAID)
+  paymentIntentId   String?
+  commissionPercent Float?
+  totalCents        Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  serviceRequest  ServiceRequest   @relation(fields: [serviceRequestId], references: [id])
+  customer        User             @relation("CustomerJobs", fields: [customerId], references: [id])
+  mechanicUser    User             @relation("MechanicJobs", fields: [mechanicUserId], references: [id])
+  mechanicProfile MechanicProfile  @relation(fields: [mechanicProfileId], references: [id])
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  estimates       Estimate[]
+  events          JobEvent[]
+  photos          JobPhoto[]
+  repairRecord    RepairRecord?
+  review          Review?
+  thread          MessageThread?
+  disputes        Dispute[]
+  payouts         Payout[]
+
+  @@index([customerId, status])
+  @@index([mechanicProfileId, status])
+  @@index([status])
+}
+
+model JobEvent {
+  id        String    @id @default(uuid()) @db.Uuid
+  jobId     String    @db.Uuid
+  status    JobStatus
+  note      String?
+  createdAt DateTime  @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, createdAt])
+}
+
+model Estimate {
+  id            String         @id @default(uuid()) @db.Uuid
+  jobId         String         @db.Uuid
+  mechanicId    String         @db.Uuid
+  type          EstimateType   @default(PRIMARY)
+  status        EstimateStatus @default(DRAFT)
+  parentId      String?        @db.Uuid
+  reason        String?
+  subtotalCents Int            @default(0)
+  totalCents    Int            @default(0)
+  notes         String?
+  sentAt        DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  job       Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  mechanic  User               @relation("MechanicEstimates", fields: [mechanicId], references: [id])
+  parent    Estimate?          @relation("EstimateRevisions", fields: [parentId], references: [id])
+  children  Estimate[]         @relation("EstimateRevisions")
+  lineItems EstimateLineItem[]
+  approvals EstimateApproval[]
+
+  @@index([jobId, status])
+}
+
+model EstimateLineItem {
+  id          String               @id @default(uuid()) @db.Uuid
+  estimateId  String               @db.Uuid
+  category    EstimateLineCategory
+  description String
+  quantity    Float                @default(1)
+  unitCents   Int
+  totalCents  Int
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+model EstimateApproval {
+  id          String         @id @default(uuid()) @db.Uuid
+  estimateId  String         @db.Uuid
+  userId      String         @db.Uuid
+  action      ApprovalAction
+  ipAddress   String?
+  userAgent   String?
+  note        String?
+  createdAt   DateTime       @default(now())
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([estimateId])
+}
+
+model MessageThread {
+  id             String   @id @default(uuid()) @db.Uuid
+  customerId     String   @db.Uuid
+  mechanicId     String   @db.Uuid
+  jobId          String?  @unique @db.Uuid
+  requestId      String?  @unique @db.Uuid
+  lastMessageAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer User            @relation("CustomerThreads", fields: [customerId], references: [id])
+  mechanic User            @relation("MechanicThreads", fields: [mechanicId], references: [id])
+  job      Job?            @relation(fields: [jobId], references: [id])
+  request  ServiceRequest? @relation(fields: [requestId], references: [id])
+  messages Message[]
+
+  @@index([customerId, lastMessageAt])
+  @@index([mechanicId, lastMessageAt])
+}
+
+model Message {
+  id         String      @id @default(uuid()) @db.Uuid
+  threadId   String      @db.Uuid
+  senderId   String      @db.Uuid
+  kind       MessageKind @default(TEXT)
+  body       String
+  attachmentUrl String?
+  readAt     DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User          @relation(fields: [senderId], references: [id])
+
+  @@index([threadId, createdAt])
+}
+
+model JobPhoto {
+  id        String    @id @default(uuid()) @db.Uuid
+  jobId     String    @db.Uuid
+  kind      PhotoKind @default(OTHER)
+  url       String
+  caption   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model RepairRecord {
+  id              String   @id @default(uuid()) @db.Uuid
+  jobId           String   @unique @db.Uuid
+  vehicleId       String   @db.Uuid
+  title           String
+  diagnosis       String?
+  workPerformed   String?
+  partsReplaced   String?
+  partNumbers     String?
+  laborHours      Float?
+  mileage         Int?
+  warrantySummary String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId, createdAt])
+}
+
+model Review {
+  id                    String   @id @default(uuid()) @db.Uuid
+  jobId                 String   @unique @db.Uuid
+  customerId            String   @db.Uuid
+  mechanicProfileId     String   @db.Uuid
+  overallRating         Int
+  communicationRating   Int
+  professionalismRating Int
+  pricingRating         Int
+  timelinessRating      Int
+  qualityRating         Int
+  wouldUseAgain         Boolean
+  body                  String
+  repairSummary         String?
+  priceCents            Int?
+  flagged               Boolean  @default(false)
+  hidden                Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  job       Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  customer  User           @relation("CustomerReviews", fields: [customerId], references: [id])
+  mechanic  MechanicProfile @relation(fields: [mechanicProfileId], references: [id])
+  response  ReviewResponse?
+
+  @@index([mechanicProfileId, createdAt])
+}
+
+model ReviewResponse {
+  id        String   @id @default(uuid()) @db.Uuid
+  reviewId  String   @unique @db.Uuid
+  mechanicId String  @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  mechanic User   @relation(fields: [mechanicId], references: [id])
+}
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @db.Uuid
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model Dispute {
+  id          String          @id @default(uuid()) @db.Uuid
+  jobId       String          @db.Uuid
+  customerId  String          @db.Uuid
+  mechanicId  String          @db.Uuid
+  category    DisputeCategory
+  status      DisputeStatus   @default(OPEN)
+  description String
+  photoUrls   String[]        @default([])
+  resolution  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  job      Job  @relation(fields: [jobId], references: [id])
+  customer User @relation("CustomerDisputes", fields: [customerId], references: [id])
+  mechanic User @relation("MechanicDisputes", fields: [mechanicId], references: [id])
+
+  @@index([status])
+}
+
+model Verification {
+  id                String             @id @default(uuid()) @db.Uuid
+  mechanicProfileId String             @db.Uuid
+  level             VerificationLevel
+  status            VerificationStatus @default(PENDING)
+  notes             String?
+  documentUrls      String[]           @default([])
+  reviewedById      String?            @db.Uuid
+  reviewedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  mechanic   MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  reviewedBy User?           @relation("VerificationReviewer", fields: [reviewedById], references: [id])
+
+  @@index([status, level])
+}
+
+model SavedMechanic {
+  id                String   @id @default(uuid()) @db.Uuid
+  customerId        String   @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customer User            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, mechanicProfileId])
+}
+
+model Favorite {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  targetType String
+  targetId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, targetType, targetId])
+}
+
+model Payout {
+  id                    String       @id @default(uuid()) @db.Uuid
+  mechanicUserId        String       @db.Uuid
+  jobId                 String?      @db.Uuid
+  amountCents           Int
+  commissionCents       Int
+  status                PayoutStatus @default(PENDING)
+  stripeTransferId      String?
+  stripeConnectAccountId String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  mechanic User @relation(fields: [mechanicUserId], references: [id])
+  job      Job? @relation(fields: [jobId], references: [id])
+
+  @@index([mechanicUserId, status])
+}
+
+model Subscription {
+  id                     String             @id @default(uuid()) @db.Uuid
+  userId                 String             @db.Uuid
+  planKey                String
+  status                 SubscriptionStatus @default(INACTIVE)
+  priceCents             Int
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  currentPeriodEnd       DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model AdminAction {
+  id         String   @id @default(uuid()) @db.Uuid
+  adminId    String   @db.Uuid
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id])
+
+  @@index([targetType, targetId])
+}
+
+model FraudSignal {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  type      String
+  severity  String   @default("low")
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([type, createdAt])
+}
+
+model PlatformConfig {
+  id                  String @id @default("default")
+  commissionPercent   Float  @default(10)
+  mechanicProMonthlyCents Int @default(4900)
+  rankingWeights      Json
+  verificationLevels  Json
+  marketplaceName     String @default("Pocket Mechanic")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model PlatformStat {
+  id                 String   @id @default("public")
+  averageRating      Float    @default(4.9)
+  verifiedJobsCount  Int      @default(25000)
+  mechanicCount      Int      @default(1200)
+  statesCovered      Int      @default(50)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
