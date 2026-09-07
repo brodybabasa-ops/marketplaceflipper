@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createScheduleBlockAction, moveScheduleBlockAction, sendScheduleUpdateAction } from "@/app/actions/vision";
@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils";
 import { scheduleMessageTemplate } from "@/lib/schedule-intelligence";
 import {
   TONE_CLASS,
+  displayTitle,
+  intersectsNow,
+  isBlockedKind,
+  moneyLabel,
   type ColorMode,
   type Density,
   minutesFromOpen,
@@ -103,6 +107,7 @@ export function CommandBoard({
   unscheduled,
   arrivals,
   upcoming,
+  monthDays,
   fillOpenHours,
   jobs,
 }: {
@@ -124,13 +129,14 @@ export function CommandBoard({
     waitingCustomers: number;
     arrivingSoon: number;
   };
-  attention: { href: string; label: string; tone: string }[];
+  attention: { href: string; label: string; tone: string; filter?: string; blockId?: string | null }[];
   techs: CommandTech[];
   resources: CommandResource[];
   cards: CommandCard[];
   unscheduled: UnscheduledItem[];
   arrivals: { id: string; time: string; customerName: string | null; assetLabel: string | null; checkIn: string; jobId: string | null }[];
   upcoming: { id: string; title: string; when: string; assetLabel: string; cents: number; kind: string }[];
+  monthDays: { date: string; pct: number }[];
   fillOpenHours: number;
   jobs: { id: string; label: string }[];
 }) {
@@ -144,10 +150,14 @@ export function CommandBoard({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [legendOpen, setLegendOpen] = useState(true);
-  const [composer, setComposer] = useState<{ hour: number; minute: number; laneId: string } | null>(null);
+  const [composer, setComposer] = useState<{ hour: number; minute: number; laneId: string; kind?: string } | null>(null);
   const [toast, setToast] = useState<{ text: string; undo?: { id: string; startsAt: string; endsAt: string; technicianProfileId: string | null; resourceId: string | null } } | null>(null);
   const [conflict, setConflict] = useState<{ message: string; retry: FormData } | null>(null);
   const [notes, setNotes] = useState("");
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  const [messageKind, setMessageKind] = useState<"CHECKED_IN" | "BEHIND" | "INSPECTION" | "READY">("READY");
+  const [messageBody, setMessageBody] = useState(scheduleMessageTemplate("READY"));
+  const scrolledNow = useRef(false);
   const hourPx = pxPerHour(density);
   const timelineStart = Math.max(6, shopStart - 1);
   const timelineEnd = Math.max(shopEnd, shopStart + 10);
@@ -175,6 +185,25 @@ export function CommandBoard({
   }, [date]);
 
   useEffect(() => {
+    scrolledNow.current = false;
+  }, [date]);
+
+  useEffect(() => {
+    function close() {
+      setMenu(null);
+    }
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    const kind = selected.behind ? "BEHIND" : selected.checkIn === "CHECKED_IN" ? "CHECKED_IN" : selected.jobStatus === "READY" ? "READY" : selected.category === "DIAGNOSTICS" ? "INSPECTION" : "READY";
+    setMessageKind(kind);
+    setMessageBody(scheduleMessageTemplate(kind));
+  }, [selectedId]);
+
+  useEffect(() => {
     function onKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
@@ -199,7 +228,10 @@ export function CommandBoard({
         subtitle: item.kind.replaceAll("_", " ").toLowerCase(),
         kind: "resource" as const,
         pct: null as number | null,
-        current: cards.find((card) => card.resourceId === item.id && new Date(card.startsAt) <= now && new Date(card.endsAt) > now)?.title ?? null,
+        current: (() => {
+          const liveTitle = cards.find((card) => card.resourceId === item.id && new Date(card.startsAt) <= now && new Date(card.endsAt) > now)?.title;
+          return liveTitle ? displayTitle(liveTitle) : null;
+        })(),
         off: false,
         hours: "",
       }));
@@ -228,6 +260,15 @@ export function CommandBoard({
 
   const nowTop = minutesFromOpen(now, timelineStart) * (hourPx / 60);
   const showNow = isToday && nowTop >= 0 && nowTop <= height;
+
+  useEffect(() => {
+    if (!isToday || scrolledNow.current) return;
+    const id = window.setTimeout(() => {
+      nowLine.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      scrolledNow.current = true;
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [isToday, showNow]);
 
   function timeFromY(y: number) {
     const minutes = snapMinutes(Math.max(0, (y / hourPx) * 60), density === "compact" ? 30 : 15);
@@ -330,7 +371,7 @@ export function CommandBoard({
         <LiveClock now={now} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
         <Metric label="Appointments" value={header.appointments} />
         <Metric label="In progress" value={header.inProgress} tone="success" />
         <Metric label="Waiting on parts" value={header.waitingOnParts} tone="warning" />
@@ -339,15 +380,24 @@ export function CommandBoard({
         <Metric label="Ready" value={header.ready} tone="success" />
         <Metric label="Arriving soon" value={header.arrivingSoon} />
         <Metric label="Shop utilization" value={`${header.utilization}%`} hint={`${header.openHours}h open`} />
+        <Metric label="Est. revenue" value={moneyLabel(header.expectedCents) || "—"} />
       </div>
 
       {attention.length ? (
         <div className="flex flex-wrap gap-2">
           <span className="self-center text-[11px] font-semibold uppercase tracking-[0.14em] text-warning">Needs attention</span>
           {attention.slice(0, 8).map((item) => (
-            <Link key={item.href + item.label} href={item.href} className="rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs text-ink">
+            <button
+              key={item.href + item.label}
+              type="button"
+              onClick={() => {
+                if (item.filter) setFilter(item.filter);
+                if (item.blockId) setSelectedId(item.blockId);
+              }}
+              className="rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs text-ink"
+            >
               {item.label}
-            </Link>
+            </button>
           ))}
         </div>
       ) : null}
@@ -369,6 +419,11 @@ export function CommandBoard({
           {new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
         </span>
         <span className="ml-auto" />
+        {filter !== "all" ? (
+          <Button size="sm" variant="secondary" type="button" onClick={() => setFilter("all")}>
+            Clear filters
+          </Button>
+        ) : null}
         <Select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-9 w-40">
           <option value="all">All work</option>
           <option value="late">Running late</option>
@@ -416,10 +471,32 @@ export function CommandBoard({
         <Button size="sm" type="button" onClick={() => setComposer({ hour: shopStart, minute: 0, laneId: techs[0]?.id ?? "solo" })}>
           + New
         </Button>
+        <Button size="sm" variant="secondary" type="button" onClick={() => setComposer({ hour: 12, minute: 0, laneId: techs[0]?.id ?? "solo", kind: "BREAK" })}>
+          Block time
+        </Button>
       </div>
 
+      <ul className="space-y-2 xl:hidden">
+        {visibleCards
+          .slice()
+          .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+          .map((card) => (
+            <li key={card.id}>
+              <button type="button" onClick={() => setSelectedId(card.id)} className="w-full rounded-xl border border-line bg-card p-3 text-left">
+                <p className="text-xs text-muted">
+                  {clock(new Date(card.startsAt))}–{clock(new Date(card.endsAt))} · {card.technicianName ?? "Unassigned"}
+                </p>
+                <p className="font-semibold">{displayTitle(card.title)}</p>
+                <p className="text-xs text-muted">
+                  {card.assetLabel} {card.behind ? `· running late +${card.minutesBehind} min` : `· ${card.progressLabel}`}
+                </p>
+              </button>
+            </li>
+          ))}
+      </ul>
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
-        <Card className="overflow-hidden p-0">
+        <Card className="hidden overflow-hidden p-0 xl:block">
           <div ref={scroller} className="relative max-h-[78vh] overflow-auto">
             <div className="sticky top-0 z-30 grid border-b border-line bg-navy/95 backdrop-blur" style={{ gridTemplateColumns: `4.5rem repeat(${Math.max(lanes.length, 1)}, minmax(11rem, 1fr))` }}>
               <div className="px-2 py-3 text-[10px] uppercase tracking-wide text-muted">Time</div>
@@ -489,12 +566,18 @@ export function CommandBoard({
                         <JobBlock
                           key={card.id}
                           card={card}
+                          now={now}
                           timelineStart={timelineStart}
                           hourPx={hourPx}
                           colorMode={colorMode}
                           offsite={showTravel}
                           selected={selectedId === card.id}
                           onSelect={() => setSelectedId(card.id)}
+                          onMenu={(event) => {
+                            event.preventDefault();
+                            setSelectedId(card.id);
+                            setMenu({ x: event.clientX, y: event.clientY, id: card.id });
+                          }}
                           onResize={async (endsAt) => {
                             const form = new FormData();
                             form.set("blockId", card.id);
@@ -504,7 +587,7 @@ export function CommandBoard({
                             const result = await moveScheduleBlockAction(form);
                             if (!result.ok) setConflict({ message: result.error, retry: form });
                             else {
-                              setToast({ text: `${card.title} duration updated.`, undo: { id: card.id, startsAt: card.startsAt, endsAt: card.endsAt, technicianProfileId: card.technicianProfileId, resourceId: card.resourceId } });
+                              setToast({ text: `${displayTitle(card.title)} duration updated.`, undo: { id: card.id, startsAt: card.startsAt, endsAt: card.endsAt, technicianProfileId: card.technicianProfileId, resourceId: card.resourceId } });
                               router.refresh();
                             }
                           }}
@@ -521,7 +604,7 @@ export function CommandBoard({
           {selected ? (
             <Card className="p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">Appointment</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">{selected.title.replace(/^Demo:\s/, "")}</h2>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{displayTitle(selected.title)}</h2>
               <p className="text-sm text-muted">
                 {selected.assetLabel} {selected.customerName ? `· ${selected.customerName}` : ""}
               </p>
@@ -530,31 +613,73 @@ export function CommandBoard({
                 {selected.resourceName ? ` · ${selected.resourceName}` : ""}
               </p>
               <p className="mt-2 text-sm">
-                Job {selected.jobStatus?.replaceAll("_", " ").toLowerCase() ?? "unlinked"} · {selected.progressLabel}
+                {selected.progressLabel}
                 {selected.behind ? ` · running late +${selected.minutesBehind} min` : ""}
+                {selected.authorizedCents >= 250000 ? ` · ${moneyLabel(selected.authorizedCents)}` : ""}
               </p>
-              {selected.complaint ? <p className="mt-2 text-sm text-muted">{selected.complaint}</p> : null}
+              {selected.complaint ? <p className="mt-2 text-sm text-muted">{displayTitle(selected.complaint)}</p> : null}
               {selected.slip ? <p className="mt-2 text-xs text-danger">Schedule at risk · {selected.slip.message}</p> : null}
-              {selected.potentiallyDelayed ? <p className="mt-2 text-xs text-warning">Potentially delayed. Customer has not been notified.</p> : null}
+              {selected.potentiallyDelayed ? (
+                <div className="mt-2 rounded-xl border border-warning/30 bg-warning/10 p-2 text-xs text-warning">
+                  Potentially delayed. Customer has not been notified.
+                  {selected.jobId ? (
+                    <Link className="ml-2 font-semibold text-ink" href={`/mechanic/jobs/${selected.jobId}`}>
+                      Message customer
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
               <p className="mt-2 text-[11px] uppercase tracking-wide text-muted">
                 {selected.source.toLowerCase()} · parts {selected.partsStatus.toLowerCase()} · {selected.checkIn.replaceAll("_", " ").toLowerCase()}
               </p>
               {selected.jobId ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button asChild size="sm">
-                    <Link href={`/mechanic/jobs/${selected.jobId}`}>Open job</Link>
-                  </Button>
-                  <form action={sendScheduleUpdateAction}>
-                    <input type="hidden" name="jobId" value={selected.jobId} />
-                    <input type="hidden" name="body" value={scheduleMessageTemplate(selected.behind ? "BEHIND" : selected.checkIn === "CHECKED_IN" ? "READY" : "READY")} />
+                <form action={sendScheduleUpdateAction} className="mt-3 space-y-2">
+                  <input type="hidden" name="jobId" value={selected.jobId} />
+                  <Select
+                    value={messageKind}
+                    onChange={(event) => {
+                      const kind = event.target.value as typeof messageKind;
+                      setMessageKind(kind);
+                      setMessageBody(scheduleMessageTemplate(kind));
+                    }}
+                  >
+                    <option value="CHECKED_IN">Checked in</option>
+                    <option value="BEHIND">Running behind</option>
+                    <option value="INSPECTION">Inspection complete</option>
+                    <option value="READY">Vehicle ready</option>
+                  </Select>
+                  <textarea name="body" className="min-h-20 w-full rounded-xl border border-line bg-navy p-2 text-sm" value={messageBody} onChange={(event) => setMessageBody(event.target.value)} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/mechanic/jobs/${selected.jobId}`}>Open job</Link>
+                    </Button>
                     <Button size="sm" variant="secondary" type="submit">
                       Message customer
                     </Button>
-                  </form>
-                </div>
+                  </div>
+                </form>
               ) : null}
             </Card>
           ) : null}
+
+          <MiniCalendar date={date} todayKey={todayKey} days={monthDays} />
+
+          <Card className="p-4">
+            <h2 className="font-semibold text-ink">Availability</h2>
+            <ul className="mt-2 space-y-2 text-sm">
+              {techs.map((tech) => (
+                <li key={tech.id} className="flex items-center justify-between gap-2">
+                  <span>
+                    {tech.name}
+                    <span className="block text-[11px] text-muted">
+                      {tech.off ? "Time off" : `${tech.hoursStart}–${tech.hoursEnd}`}
+                    </span>
+                  </span>
+                  <span className={cn("text-[11px] font-semibold uppercase", tech.off ? "text-danger" : "text-success")}>{tech.off ? "Off" : "Available"}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
 
           <Card className="p-4">
             <h2 className="font-semibold text-ink">Arrivals</h2>
@@ -585,9 +710,13 @@ export function CommandBoard({
                   }}
                   className="cursor-grab rounded-xl border border-line bg-navy p-2 text-sm active:cursor-grabbing"
                 >
-                  <p className="font-semibold">{item.asset}</p>
+                  <p className="font-semibold">{displayTitle(item.title)}</p>
+                  <p className="text-[11px] text-muted">
+                    {item.customer} · {item.asset}
+                  </p>
                   <p className="text-[11px] text-muted">
                     {item.source} · {item.hours}h · {item.recommendedTech}
+                    {item.parts === "DELAYED" ? " · waiting parts" : ""}
                   </p>
                   <Link className="text-xs font-semibold text-accent" href={item.fitHref}>
                     Smart Fit
@@ -677,7 +806,7 @@ export function CommandBoard({
                 </option>
               ))}
             </Select>
-            <Select name="kind" defaultValue="WORK">
+            <Select name="kind" defaultValue={composer.kind ?? "WORK"}>
               <option value="WORK">Work</option>
               <option value="DROP_OFF">Drop-off</option>
               <option value="PICKUP">Pickup</option>
@@ -708,6 +837,34 @@ export function CommandBoard({
           ) : null}
           <button type="button" className="text-muted" onClick={() => setToast(null)}>
             Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      {menu ? (
+        <div
+          className="fixed z-50 min-w-44 rounded-xl border border-line bg-card p-1 text-sm shadow-[var(--shadow)]"
+          style={{ left: menu.x, top: menu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {cards.find((card) => card.id === menu.id)?.jobId ? (
+            <Link className="block rounded-lg px-3 py-2 hover:bg-slate" href={`/mechanic/jobs/${cards.find((card) => card.id === menu.id)?.jobId}`}>
+              Open job
+            </Link>
+          ) : null}
+          <button type="button" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-slate" onClick={() => { setSelectedId(menu.id); setMenu(null); }}>
+            View details
+          </button>
+          <button
+            type="button"
+            className="block w-full rounded-lg px-3 py-2 text-left hover:bg-slate"
+            onClick={() => {
+              const card = cards.find((item) => item.id === menu.id);
+              if (card) setComposer({ hour: new Date(card.startsAt).getHours(), minute: new Date(card.startsAt).getMinutes(), laneId: card.technicianProfileId ?? techs[0]?.id ?? "solo" });
+              setMenu(null);
+            }}
+          >
+            Reschedule
           </button>
         </div>
       ) : null}
@@ -757,28 +914,32 @@ function LiveClock({ now }: { now: Date }) {
 
 function JobBlock({
   card,
+  now,
   timelineStart,
   hourPx,
   colorMode,
   offsite,
   selected,
   onSelect,
+  onMenu,
   onResize,
 }: {
   card: CommandCard;
+  now: Date;
   timelineStart: number;
   hourPx: number;
   colorMode: ColorMode;
   offsite: boolean;
   selected: boolean;
   onSelect: () => void;
+  onMenu: (event: ReactMouseEvent) => void;
   onResize: (endsAt: Date) => void;
 }) {
   const start = new Date(card.startsAt);
   const end = new Date(card.endsAt);
   const top = minutesFromOpen(start, timelineStart) * (hourPx / 60);
   const height = Math.max(28, card.durationMin * (hourPx / 60) - 4);
-  const compact = card.durationMin <= 30;
+  const compact = card.durationMin <= 30 || height < 44;
   const visual = visualTone({
     mode: colorMode,
     kind: card.kind,
@@ -791,7 +952,8 @@ function JobBlock({
     offsite: offsite && (card.kind === "TRAVEL" || card.kind === "WORK"),
     urgent: card.urgencyMode === "URGENT",
   });
-  const active = card.inProgress && !card.behind;
+  const live = !isBlockedKind(card.kind) && intersectsNow(start, end, now) && !card.behind;
+  const value = card.authorizedCents >= 250000 ? moneyLabel(card.authorizedCents) : "";
   return (
     <article
       draggable
@@ -799,40 +961,42 @@ function JobBlock({
         event.dataTransfer.setData("application/json", JSON.stringify({ type: "block", id: card.id, title: card.title, durationMin: card.durationMin }));
       }}
       onClick={onSelect}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        onSelect();
-      }}
+      onContextMenu={onMenu}
       className={cn(
         "absolute right-1 left-1 overflow-hidden rounded-xl border px-2 py-1 text-left text-xs",
         TONE_CLASS[visual.tone],
-        active && "pm-job-active",
+        live && "pm-job-active",
         card.behind && "pm-job-late",
         selected && "ring-2 ring-accent",
       )}
       style={{ top, height }}
     >
-      <p className="font-semibold leading-tight">{card.title.replace(/^Demo:\s/, "")}</p>
-      {!compact ? (
+      <p className="truncate font-semibold leading-tight">{displayTitle(card.title)}</p>
+      {compact ? (
+        <p className="truncate text-[10px] text-muted">
+          {clock(start)} {card.assetLabel}
+        </p>
+      ) : (
         <>
-          {card.assetLabel ? <p className="truncate text-[11px] text-muted">{card.assetLabel}</p> : null}
+          {card.assetLabel ? <p className="truncate text-[11px] text-muted">{card.assetLabel}{card.customerName ? ` · ${card.customerName}` : ""}</p> : null}
           <p className="text-[10px] uppercase tracking-wide text-muted">
             {clock(start)}–{clock(end)}
-            {card.behind ? ` · running late +${card.minutesBehind} min` : ""}
-            {card.inProgress ? " · in progress" : ""}
-            {card.waiting ? " · waiting" : ""}
             {card.source === "MARKETPLACE" || card.source === "FLEET" ? ` · ${card.source.toLowerCase()}` : ""}
+            {value ? ` · ${value}` : ""}
           </p>
-          {card.kind === "WORK" || card.inProgress ? (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {card.behind ? <span className="rounded bg-danger px-1.5 py-0.5 text-[9px] font-bold text-white">Running late +{card.minutesBehind} min</span> : null}
+            {live ? <span className="rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">In progress {card.progressPct}%</span> : null}
+            {!live && !card.behind ? <span className="rounded bg-navy/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink/80">{visual.label}</span> : null}
+            {card.jobStatus === "AWAITING_APPROVAL" ? <span className="rounded bg-warning px-1.5 py-0.5 text-[9px] font-bold text-navy">Waiting approval</span> : null}
+            {["ORDERED", "ARRIVING", "DELAYED"].includes(card.partsStatus) ? <span className="rounded bg-warning/80 px-1.5 py-0.5 text-[9px] font-bold text-navy">Waiting parts</span> : null}
+          </div>
+          {(card.kind === "WORK" || live || card.inProgress) && height > 72 ? (
             <div className="mt-1 h-1 overflow-hidden rounded-full bg-navy/40">
               <div className="h-full bg-white/70" style={{ width: `${card.progressPct}%` }} />
             </div>
           ) : null}
         </>
-      ) : (
-        <p className="text-[10px] text-muted">
-          {clock(start)} {card.assetLabel}
-        </p>
       )}
       <button
         type="button"
@@ -853,6 +1017,49 @@ function JobBlock({
         }}
       />
     </article>
+  );
+}
+
+function MiniCalendar({ date, todayKey, days }: { date: string; todayKey: string; days: { date: string; pct: number }[] }) {
+  const focus = new Date(`${date}T12:00:00`);
+  const start = new Date(focus.getFullYear(), focus.getMonth(), 1);
+  const pad = (start.getDay() + 6) % 7;
+  const count = new Date(focus.getFullYear(), focus.getMonth() + 1, 0).getDate();
+  const cells = Array.from({ length: pad + count }, (_, index) => {
+    if (index < pad) return null;
+    const day = index - pad + 1;
+    const key = `${focus.getFullYear()}-${String(focus.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const mark = days.find((item) => item.date === key);
+    return { day, key, pct: mark?.pct ?? 0 };
+  });
+  return (
+    <Card className="p-4">
+      <h2 className="font-semibold text-ink">{focus.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2>
+      <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[10px] text-muted">
+        {["M", "T", "W", "T", "F", "S", "S"].map((label, index) => (
+          <span key={`${label}-${index}`}>{label}</span>
+        ))}
+        {cells.map((cell, index) =>
+          cell ? (
+            <Link
+              key={cell.key}
+              href={`/mechanic/schedule?date=${cell.key}`}
+              className={cn(
+                "rounded-lg py-1 text-[11px]",
+                cell.key === date && "bg-accent text-white",
+                cell.key === todayKey && cell.key !== date && "ring-1 ring-accent",
+                cell.pct > 100 && cell.key !== date && "bg-danger/20 text-danger",
+                cell.pct > 80 && cell.pct <= 100 && cell.key !== date && "bg-warning/15",
+              )}
+            >
+              {cell.day}
+            </Link>
+          ) : (
+            <span key={`empty-${index}`} />
+          ),
+        )}
+      </div>
+    </Card>
   );
 }
 

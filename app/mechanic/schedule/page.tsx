@@ -11,6 +11,7 @@ import { jobAssetLabel } from "@/lib/asset-display";
 import { getScheduleBoard, fillFromBoard, smartFit, weekLoad, calloutRecovery, cancellationRecovery } from "@/services/scheduler";
 import { parseNaturalScheduleCommand } from "@/lib/schedule-intelligence";
 import { CommandBoard } from "@/components/schedule/command-board";
+import { displayTitle } from "@/lib/schedule-visual";
 import type { DayOfWeek } from "@prisma/client";
 
 export const metadata = { title: "Schedule" };
@@ -34,7 +35,7 @@ export default async function MechanicSchedulePage({
   const fill = fillFromBoard(board);
   const fit = params.fit ? await smartFit(profile.id, params.fit) : null;
   const view = params.view ?? "day";
-  const load = view === "week" || view === "load" || view === "month" ? await weekLoad(profile.id, day) : null;
+  const load = view === "week" || view === "load" ? await weekLoad(profile.id, day) : null;
   const callout = params.callout ? await calloutRecovery(profile.id, params.callout, day) : null;
   const recovery = params.recover ? await cancellationRecovery(profile.id, Number(params.recover) || 150) : null;
   const ask = params.ask ? parseNaturalScheduleCommand(params.ask) : null;
@@ -113,6 +114,7 @@ export default async function MechanicSchedulePage({
           }))}
           arrivals={board.arrivals}
           upcoming={board.upcoming}
+          monthDays={board.monthDays}
           fillOpenHours={fill.openHours}
           jobs={board.jobs.map((job) => ({ id: job.id, label: jobAssetLabel(job) }))}
         />
@@ -149,20 +151,32 @@ export default async function MechanicSchedulePage({
         </Card>
       ) : null}
 
-      {view === "month" && load ? (
+      {view === "month" ? (
         <Card className="p-5">
           <h2 className="font-semibold text-ink">Month density</h2>
-          <p className="mt-1 text-sm text-muted">This week’s load is the operational signal. Closed or empty days stay dim.</p>
-          <div className="mt-4 grid grid-cols-5 gap-2">
-            {load.days.map((label, index) => {
-              const avg = Math.round(load.rows.reduce((sum, row) => sum + row.cells[index].pct, 0) / Math.max(1, load.rows.length));
-              return (
-                <div key={label} className={`rounded-2xl border border-line p-4 ${avg > 100 ? "bg-danger/15" : avg > 80 ? "bg-warning/10" : "bg-card"}`}>
-                  <p className="text-xs text-muted">{label}</p>
-                  <p className="number mt-2 text-2xl font-bold">{avg}%</p>
-                </div>
-              );
-            })}
+          <p className="mt-1 text-sm text-muted">Appointment load by day. Over 100% is over capacity — not a KPI dashboard.</p>
+          <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] text-muted">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+            {(() => {
+              const first = board.monthDays[0]?.date;
+              if (!first) return null;
+              const pad = (new Date(`${first}T12:00:00`).getDay() + 6) % 7;
+              return [
+                ...Array.from({ length: pad }, (_, index) => <span key={`pad-${index}`} />),
+                ...board.monthDays.map((day) => (
+                  <Link
+                    key={day.date}
+                    href={`/mechanic/schedule?date=${day.date}`}
+                    className={`rounded-2xl border border-line p-3 ${day.pct > 100 ? "bg-danger/15 text-danger" : day.pct > 80 ? "bg-warning/10" : day.pct === 0 ? "bg-navy/40 text-muted" : "bg-card text-ink"}`}
+                  >
+                    <span className="block text-xs">{Number(day.date.slice(-2))}</span>
+                    <span className="number mt-1 block text-lg font-bold">{day.pct}%</span>
+                  </Link>
+                )),
+              ];
+            })()}
           </div>
         </Card>
       ) : null}
@@ -172,11 +186,12 @@ export default async function MechanicSchedulePage({
           <h2 className="font-semibold text-ink">Chronological list</h2>
           <ul className="mt-4 space-y-2">
             {board.blocks.map((block) => (
-              <li key={block.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2 text-sm">
+              <li key={block.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${block.behind ? "border-danger/40 bg-danger/10" : "border-line"}`}>
                 <span>
-                  <span className="number text-muted">{block.startsAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span> {block.title.replace(/^Demo:\s/, "")}
+                  <span className="number text-muted">{block.startsAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span> {displayTitle(block.title)}
                   <span className="block text-xs text-muted">
                     {block.assetLabel} · {block.technicianName ?? "Unassigned"} · {block.progressLabel}
+                    {block.behind ? ` · running late +${block.minutesBehind} min` : ""}
                   </span>
                 </span>
                 {block.jobId ? (

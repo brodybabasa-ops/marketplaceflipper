@@ -82,6 +82,20 @@ export function isBlockedKind(kind?: string | null) {
   return BLOCKED_KINDS.has(kind ?? "");
 }
 
+export function displayTitle(title?: string | null) {
+  const cleaned = (title ?? "").replace(/^(Demo|Board):\s*/i, "").trim();
+  return cleaned || "Untitled";
+}
+
+export function intersectsNow(startsAt: Date, endsAt: Date, now: Date) {
+  return now.getTime() >= startsAt.getTime() && now.getTime() < endsAt.getTime();
+}
+
+export function moneyLabel(cents: number) {
+  if (cents < 100) return "";
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
+}
+
 export function visualTone(input: {
   mode: ColorMode;
   kind?: string;

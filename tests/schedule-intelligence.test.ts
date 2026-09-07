@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { operatingViews, resolveOperatingModel, operatingModelFromForm, resourceKindsForModel } from "../lib/operating-model";
-import { checkInState, jobProgressPct, slipRisk, visualTone } from "../lib/schedule-visual";
+import { checkInState, displayTitle, intersectsNow, isBlockedKind, jobProgressPct, slipRisk, visualTone } from "../lib/schedule-visual";
 import {
   authorizationSchedulingHint,
   delayRisk,
@@ -71,6 +71,20 @@ test("job status and schedule status stay separate", () => {
   });
   assert.equal(risk.scheduleStatus, "BEHIND");
   assert.equal(risk.minutesBehind, 30);
+  const wrap = delayRisk({
+    endsAt: new Date("2026-09-08T09:00:00"),
+    now: new Date("2026-09-08T16:00:00"),
+    jobStatus: "QUALITY_CHECK",
+  });
+  assert.equal(wrap.behind, false);
+  const ready = delayRisk({
+    endsAt: new Date("2026-09-08T09:00:00"),
+    now: new Date("2026-09-08T16:00:00"),
+    jobStatus: "READY",
+  });
+  assert.equal(ready.behind, false);
+  assert.equal(displayTitle("Board: Brake service"), "Brake service");
+  assert.equal(displayTitle("Demo: Oil change"), "Oil change");
 });
 
 test("capacity overload is visible without becoming an analytics dashboard", () => {
@@ -119,4 +133,13 @@ test("visual tones keep status and type modes separate and never rely on color a
     minutesBehind: 25,
   });
   assert.equal(hit?.delayMinutes, 25);
+});
+
+test("current-time intersection is independent of job status", () => {
+  const start = new Date("2026-09-07T13:00:00");
+  const end = new Date("2026-09-07T16:00:00");
+  assert.equal(intersectsNow(start, end, new Date("2026-09-07T14:00:00")), true);
+  assert.equal(intersectsNow(start, end, new Date("2026-09-07T16:00:00")), false);
+  assert.equal(isBlockedKind("BREAK"), true);
+  assert.equal(isBlockedKind("WORK"), false);
 });

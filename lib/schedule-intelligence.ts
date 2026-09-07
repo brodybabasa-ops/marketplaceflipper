@@ -102,10 +102,13 @@ export function authorizationSchedulingHint(status: JobStatus | string, kind: Sc
   return null;
 }
 
+const SETTLED_JOB_STATUSES = new Set(["COMPLETED", "CANCELLED", "READY", "QUALITY_CHECK"]);
+
 export function delayRisk(input: { endsAt: Date; now: Date; jobStatus?: string; promisedReadyAt?: Date | null }) {
-  const behind = input.now.getTime() > input.endsAt.getTime() && input.jobStatus !== "COMPLETED";
+  const settled = SETTLED_JOB_STATUSES.has(input.jobStatus ?? "");
+  const behind = !settled && input.now.getTime() > input.endsAt.getTime();
   const promiseAtRisk =
-    Boolean(input.promisedReadyAt) && input.endsAt.getTime() > (input.promisedReadyAt as Date).getTime();
+    Boolean(input.promisedReadyAt) && input.endsAt.getTime() > (input.promisedReadyAt as Date).getTime() && !settled;
   return {
     behind,
     promiseAtRisk,
@@ -152,10 +155,12 @@ export function parseNaturalScheduleCommand(text: string) {
   };
 }
 
-export function scheduleMessageTemplate(kind: "BEHIND" | "PARTS" | "READY" | "EN_ROUTE" | "RESCHEDULE") {
-  if (kind === "BEHIND") return "We’re running a bit behind on this repair. I’ll send an updated ready time as soon as I have it.";
+export function scheduleMessageTemplate(kind: "BEHIND" | "PARTS" | "READY" | "EN_ROUTE" | "RESCHEDULE" | "CHECKED_IN" | "INSPECTION") {
+  if (kind === "CHECKED_IN") return "Your vehicle is checked in.";
+  if (kind === "BEHIND") return "We’re running approximately 20 minutes behind.";
   if (kind === "PARTS") return "A part we need is delayed. I’ll confirm the new arrival and your options before we change the appointment.";
-  if (kind === "READY") return "The work is complete and ready for pickup.";
+  if (kind === "INSPECTION") return "Your inspection is complete.";
+  if (kind === "READY") return "Your vehicle is ready.";
   if (kind === "EN_ROUTE") return "The technician is on the way to the service location.";
   return "We need to reschedule this appointment. I’ll send open times shortly.";
 }
