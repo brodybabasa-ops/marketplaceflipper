@@ -1,4 +1,5 @@
 import type { ServiceCategory } from "@prisma/client";
+import { TAXONOMY, type IndustryKey } from "@/lib/catalog";
 
 type Rule = { category: ServiceCategory; keywords: string[] };
 
@@ -18,7 +19,66 @@ const RULES: Rule[] = [
   { category: "DIAGNOSTICS", keywords: ["not sure", "unknown", "diagnos", "check it out", "weird noise"] },
 ];
 
-export function classifyProblem(text: string): ServiceCategory {
+const INDUSTRY_RULES: Record<string, { key: string; keywords: string[] }[]> = {
+  MARINE: [
+    { key: "IMPELLER", keywords: ["impeller", "overheat", "no water", "pee stream"] },
+    { key: "SURF_SYSTEM", keywords: ["surf", "ballast", "wake", "won't get on plane", "wont get on plane", "on plane"] },
+    { key: "WINTERIZATION", keywords: ["winterize", "dewinter", "winterization"] },
+    { key: "TRAILER", keywords: ["trailer", "bearing", "bunk"] },
+    { key: "ENGINE", keywords: ["outboard", "sterndrive", "inboard", "engine", "no start", "won't start"] },
+    { key: "ELECTRICAL", keywords: ["battery", "charging", "electrical"] },
+    { key: "ANNUAL_SERVICE", keywords: ["annual", "season", "tune"] },
+  ],
+  POWERSPORTS: [
+    { key: "ENGINE", keywords: ["hard to start", "hot", "top end", "bottom end", "no start"] },
+    { key: "DRIVELINE", keywords: ["chain", "sprocket", "clutch", "belt"] },
+    { key: "SUSPENSION", keywords: ["fork", "shock", "linkage"] },
+    { key: "ELECTRICAL", keywords: ["battery", "spark", "ignition"] },
+    { key: "MAINTENANCE", keywords: ["oil", "filter", "maintenance"] },
+  ],
+  RV: [
+    { key: "SLIDES", keywords: ["slide", "retract", "leveling"] },
+    { key: "GENERATOR", keywords: ["generator"] },
+    { key: "HVAC", keywords: ["ac", "furnace", "hvac"] },
+    { key: "PLUMBING", keywords: ["leak", "tank", "water", "plumbing"] },
+    { key: "ELECTRICAL", keywords: ["battery", "converter", "electrical"] },
+    { key: "CHASSIS", keywords: ["chassis", "engine", "brake"] },
+  ],
+  HEAVY_EQUIPMENT: [
+    { key: "HYDRAULICS", keywords: ["hydraulic", "pressure", "drift", "lift"] },
+    { key: "UNDERCARRIAGE", keywords: ["track", "undercarriage", "final drive"] },
+    { key: "ENGINE", keywords: ["engine", "no start", "smoke"] },
+    { key: "ELECTRICAL", keywords: ["electrical", "sensor"] },
+    { key: "PM", keywords: ["pm", "maintenance", "service"] },
+  ],
+};
+
+const AUTO_CATEGORY_TO_TAXONOMY: Partial<Record<ServiceCategory, string>> = {
+  BRAKES: "BRAKES",
+  ENGINE: "ENGINE",
+  STARTING: "ENGINE",
+  TRANSMISSION: "TRANSMISSION",
+  ELECTRICAL: "ELECTRICAL",
+  CHARGING: "ELECTRICAL",
+  SUSPENSION: "SUSPENSION",
+  STEERING: "SUSPENSION",
+  MAINTENANCE: "MAINTENANCE",
+  DIAGNOSTICS: "DIAGNOSTICS",
+  TIRES: "BRAKES",
+  COOLING: "ENGINE",
+  AC_HEATING: "ENGINE",
+};
+
+export function classifyProblem(text: string, industryKey: string = "AUTOMOTIVE"): ServiceCategory {
+  if (industryKey !== "AUTOMOTIVE") {
+    const taxonomy = classifyTaxonomy(text, industryKey);
+    if (taxonomy === "ELECTRICAL") return "ELECTRICAL";
+    if (taxonomy === "ENGINE" || taxonomy === "IMPELLER") return "ENGINE";
+    if (taxonomy === "SUSPENSION") return "SUSPENSION";
+    if (taxonomy === "MAINTENANCE" || taxonomy === "ANNUAL_SERVICE" || taxonomy === "PM") return "MAINTENANCE";
+    if (taxonomy === "HYDRAULICS") return "OTHER";
+    return "OTHER";
+  }
   const haystack = text.toLowerCase();
   let best: { category: ServiceCategory; hits: number } | null = null;
   for (const rule of RULES) {
@@ -28,6 +88,29 @@ export function classifyProblem(text: string): ServiceCategory {
     }
   }
   return best?.category ?? "OTHER";
+}
+
+export function classifyTaxonomy(text: string, industryKey: string = "AUTOMOTIVE"): string {
+  const haystack = text.toLowerCase();
+  const rules = INDUSTRY_RULES[industryKey];
+  if (rules) {
+    let best: { key: string; hits: number } | null = null;
+    for (const rule of rules) {
+      const hits = rule.keywords.filter((keyword) => haystack.includes(keyword)).length;
+      if (hits > 0 && (!best || hits > best.hits)) best = { key: rule.key, hits };
+    }
+    if (best) return best.key;
+  }
+  if (industryKey === "AUTOMOTIVE") {
+    return AUTO_CATEGORY_TO_TAXONOMY[classifyProblem(text)] ?? "DIAGNOSTICS";
+  }
+  return TAXONOMY.find((item) => item.industry === industryKey)?.key ?? "ENGINE";
+}
+
+export function classifyNeed(text: string, industryKey: string = "AUTOMOTIVE") {
+  const category = classifyProblem(text, industryKey);
+  const taxonomyKey = classifyTaxonomy(text, industryKey);
+  return { category, taxonomyKey, industryKey: industryKey as IndustryKey };
 }
 
 export function categoryLabel(category: ServiceCategory) {

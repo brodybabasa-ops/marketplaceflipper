@@ -1,4 +1,4 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -15,7 +15,7 @@ function Bar({ value, max, label, display }: { value: number; max: number; label
         <span>{label}</span>
         <span className="number">{display ?? value}</span>
       </div>
-      <div className="h-2 rounded-full bg-paper">
+      <div className="h-2 rounded-full bg-navy-soft">
         <div className="h-2 rounded-full bg-navy" style={{ width: `${width}%` }} />
       </div>
     </div>
@@ -31,36 +31,36 @@ export default async function MechanicAnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/analytics" />
-      <h1 className="text-3xl font-bold text-navy">Performance</h1>
+      <MechanicAppNav current="/mechanic/analytics" />
+      <h1 className="text-3xl font-bold text-ink">Performance</h1>
       <p className="mt-2 text-sm text-muted">These numbers feed Pocket Score. Advertising cannot buy a higher rank.</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5">
           <p className="text-sm text-muted">Completed jobs</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{analytics.totals.completed}</p>
+          <p className="number mt-1 text-3xl font-bold text-ink">{analytics.totals.completed}</p>
         </Card>
         <Card className="p-5">
           <p className="text-sm text-muted">Request conversion</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{analytics.totals.conversion}%</p>
+          <p className="number mt-1 text-3xl font-bold text-ink">{analytics.totals.conversion}%</p>
         </Card>
         <Card className="p-5">
           <p className="text-sm text-muted">This month</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{formatCents(analytics.totals.monthRevenueCents)}</p>
+          <p className="number mt-1 text-3xl font-bold text-ink">{formatCents(analytics.totals.monthRevenueCents)}</p>
         </Card>
         <Card className="p-5">
           <p className="text-sm text-muted">Would use again</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{analytics.ratings.wouldUseAgain}%</p>
+          <p className="number mt-1 text-3xl font-bold text-ink">{analytics.ratings.wouldUseAgain}%</p>
         </Card>
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Card className="space-y-3 p-5">
-          <h2 className="font-semibold text-navy">Jobs by month</h2>
+          <h2 className="font-semibold text-ink">Jobs by month</h2>
           {analytics.byMonth.map((item) => (
             <Bar key={item.label} label={item.label} value={item.jobs} max={maxJobs} />
           ))}
         </Card>
         <Card className="space-y-3 p-5">
-          <h2 className="font-semibold text-navy">Volume by month</h2>
+          <h2 className="font-semibold text-ink">Volume by month</h2>
           {analytics.byMonth.map((item) => (
             <Bar
               key={item.label}
@@ -83,7 +83,7 @@ export default async function MechanicAnalyticsPage() {
         ].map(([label, value]) => (
           <div key={String(label)}>
             <p className="text-sm text-muted">{label}</p>
-            <p className="number text-xl font-semibold text-navy">{Number(value).toFixed(1)}</p>
+            <p className="number text-xl font-semibold text-ink">{Number(value).toFixed(1)}</p>
           </div>
         ))}
       </Card>

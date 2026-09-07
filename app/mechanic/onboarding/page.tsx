@@ -1,19 +1,24 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { saveMechanicProfileAction } from "@/app/actions/mechanic";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { INDUSTRIES } from "@/lib/catalog";
 
 export const metadata = { title: "Onboarding" };
 
 export default async function OnboardingPage() {
   const session = await requireSession("MECHANIC");
-  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({
+    where: { userId: session.id },
+    include: { industries: { include: { industry: true } } },
+  });
+  const selected = new Set(profile.industries.map((item) => item.industry.key));
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/profile" />
-      <h1 className="text-3xl font-bold text-navy">Set up your mechanic profile</h1>
+      <MechanicAppNav current="/mechanic/profile" />
+      <h1 className="text-3xl font-bold text-ink">Set up your mechanic profile</h1>
       <p className="mt-2 text-sm text-muted">Profile {profile.profileCompletePct}% complete. Customers see this before they request service.</p>
       <form action={saveMechanicProfileAction} className="mt-6 space-y-4">
         <Field label="Business name">
@@ -54,6 +59,22 @@ export default async function OnboardingPage() {
         </Field>
         <Field label="Mobile fee">
           <Input name="mobileFee" defaultValue={(profile.mobileFeeCents / 100).toString()} />
+        </Field>
+        <Field label="Industries you service">
+          <div className="grid gap-2 rounded-xl border border-line p-3">
+            {INDUSTRIES.map((industry) => (
+              <label key={industry.key} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="industryKey"
+                  value={industry.key}
+                  defaultChecked={selected.size ? selected.has(industry.key) : industry.key === "AUTOMOTIVE"}
+                  className="h-4 w-4"
+                />
+                {industry.name}
+              </label>
+            ))}
+          </div>
         </Field>
         <Button type="submit">Save and continue</Button>
       </form>

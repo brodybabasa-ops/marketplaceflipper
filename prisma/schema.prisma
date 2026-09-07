@@ -11,6 +11,9 @@ enum UserRole {
   CUSTOMER
   MECHANIC
   ADMIN
+  INSPECTOR
+  SUPPORT
+  FINANCE
 }
 
 enum AccountStatus {
@@ -64,9 +67,12 @@ enum JobStatus {
   SCHEDULED
   EN_ROUTE
   ARRIVED
+  CHECKED_IN
   DIAGNOSING
   AWAITING_APPROVAL
   IN_PROGRESS
+  QUALITY_CHECK
+  READY
   COMPLETED
   CANCELLED
   DISPUTED
@@ -130,6 +136,8 @@ enum DisputeCategory {
   NO_SHOW
   VEHICLE_DAMAGE
   COMMUNICATION
+  UNAUTHORIZED_WORK
+  WORK_NOT_COMPLETED
   OTHER
 }
 
@@ -170,6 +178,38 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum GroupAuthStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum FindingStatus {
+  GOOD
+  MONITOR
+  NEEDS_ATTENTION
+}
+
+enum VerificationPipelineStatus {
+  NOT_STARTED
+  APPLICATION_RECEIVED
+  REVIEWING
+  VISIT_SCHEDULING
+  VISIT_SCHEDULED
+  EVALUATION_COMPLETED
+  VERIFIED
+  ADDITIONAL_ACTION
+  DENIED
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum InspectionKind {
+  SHOP
+  MOBILE
+}
+
 enum DayOfWeek {
   SUNDAY
   MONDAY
@@ -178,6 +218,205 @@ enum DayOfWeek {
   THURSDAY
   FRIDAY
   SATURDAY
+}
+
+enum UsageUnit {
+  MILES
+  KILOMETERS
+  ENGINE_HOURS
+  OPERATING_HOURS
+  CYCLES
+  CALENDAR_INTERVAL
+  OTHER
+}
+
+enum IdentifierKind {
+  VIN
+  LICENSE_PLATE
+  HIN
+  ENGINE_SERIAL
+  DRIVE_SERIAL
+  TRAILER_VIN
+  CHASSIS_VIN
+  SERIAL_NUMBER
+  FLEET_ID
+  EQUIPMENT_NUMBER
+  EQUIPMENT_ID
+  MODEL_NUMBER
+  OTHER
+}
+
+enum RequestKind {
+  REPAIR
+  MAINTENANCE
+  DIAGNOSTIC
+  PRE_PURCHASE
+  INSPECTION
+  FLEET_PM
+  ROADSIDE
+}
+
+enum PaymentKind {
+  DEPOSIT
+  PROGRESS
+  FINAL
+  REFUND
+  PARTIAL_REFUND
+}
+
+enum FinancingPartnerStatus {
+  NOT_OFFERED
+  REFERRED
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum RepairOutcomeKind {
+  YES
+  PARTIALLY
+  NO
+}
+
+enum UrgencyMode {
+  NORMAL
+  URGENT
+}
+
+enum OperatingModel {
+  SHOP_ONLY
+  MOBILE_ONLY
+  HYBRID
+  FIELD_SERVICE
+  MULTI_LOCATION
+  FLEET_SERVICE
+}
+
+enum TechnicianDuty {
+  SHOP
+  OFF_SITE
+  BOTH
+}
+
+enum ScheduleBlockKind {
+  WORK
+  DROP_OFF
+  PICKUP
+  TRAVEL
+  BUFFER
+  QC
+  ROAD_TEST
+  WATER_TEST
+  BREAK
+  PTO
+  UNAVAILABLE
+  ADMIN
+}
+
+enum PartsStatus {
+  UNKNOWN
+  READY
+  ORDERED
+  ARRIVING
+  DELAYED
+}
+
+enum DocumentKind {
+  TITLE
+  REGISTRATION
+  RECEIPT
+  WARRANTY
+  MANUAL
+  INSPECTION
+  PURCHASE
+  PHOTO
+  OTHER
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum ShareRole {
+  VIEW
+  MANAGE
+  PAY
+  ADMIN
+}
+
+enum FleetMemberRole {
+  OWNER
+  MANAGER
+  DISPATCHER
+  DRIVER
+  OPERATOR
+}
+
+enum ResourceKind {
+  BAY
+  LIFT
+  ALIGNMENT_RACK
+  DIAGNOSTIC_STATION
+  BENCH
+  MOTORCYCLE_LIFT
+  YARD
+  WATER_TEST
+  LAUNCH
+  SERVICE_TRUCK
+  FIELD_UNIT
+  DYNO
+  WASH
+  OTHER
+}
+
+enum MaintenanceItemStatus {
+  UPCOMING
+  DUE_SOON
+  DUE
+  OVERDUE
+  COMPLETED
+  DEFERRED
+}
+
+enum WalletLedgerKind {
+  PAYMENT
+  CREDIT
+  REFUND
+  MAINTENANCE_FUND
+  FEE
+}
+
+enum RoadsideKind {
+  TOW
+  JUMP
+  TIRE
+  LOCKOUT
+  FUEL
+  MOBILE_DIAGNOSIS
+  EMERGENCY
+}
+
+enum MembershipTier {
+  NONE
+  STANDARD
+  PLUS
+}
+
+enum ExpertiseBand {
+  EXCEPTIONAL
+  ADVANCED
+  COMPETENT
+  LIMITED_HISTORY
+  INSUFFICIENT_DATA
+}
+
+enum DataProvenance {
+  VERIFIED_TRANSACTION
+  COMPUTED
+  DEMO_FIXTURE
+  INTEGRATION
 }
 
 model User {
@@ -202,6 +441,7 @@ model User {
   mechanicProfile MechanicProfile?
 
   vehicles           Vehicle[]
+  assets             Asset[]
   serviceRequests    ServiceRequest[] @relation("CustomerRequests")
   jobsAsCustomer     Job[]            @relation("CustomerJobs")
   jobsAsMechanic     Job[]            @relation("MechanicJobs")
@@ -222,6 +462,23 @@ model User {
   payouts            Payout[]
   payments           Payment[]
   subscriptions      Subscription[]
+  auditEvents        AuditEvent[]
+  inspectionsAsInspector VerificationInspection[] @relation("InspectorVisits")
+  customerRecommendedWork RecommendedWork[] @relation("CustomerRecommendedWork")
+  authorizations     RepairAuthorization[]
+  supportTickets     SupportTicket[] @relation("TicketRequester")
+  assignedTickets    SupportTicket[] @relation("TicketAssignee")
+  technicianProfile  TechnicianProfile?
+  fleetMemberships   FleetMembership[]
+  ownedFleets        FleetAccount[]          @relation("FleetOwner")
+  assetSharesGiven   AssetShare[]            @relation("ShareGrantor")
+  assetSharesReceived AssetShare[]           @relation("ShareRecipient")
+  wallet             WalletAccount?
+  membership         Membership?
+  roadsideRequests   RoadsideRequest[]
+  repairOutcomes     RepairOutcome[]
+  assetTransfersFrom AssetTransfer[]         @relation("TransferFrom")
+  assetTransfersTo   AssetTransfer[]         @relation("TransferTo")
 
   @@index([role, status])
   @@index([email])
@@ -271,6 +528,16 @@ model MechanicProfile {
   acceptsNewJobs           Boolean @default(true)
   stripeConnectAccountId   String?
   stripeChargesEnabled     Boolean @default(false)
+  lastVerifiedAt           DateTime?
+  isSelect                 Boolean @default(false)
+  isFoundingProvider       Boolean @default(false)
+  foundingNumber           Int?
+  foundingApprovedAt       DateTime?
+  subscriptionFeeWaived    Boolean @default(false)
+  foundingProgramVersion   String?
+  marketplaceEligible      Boolean @default(true)
+  verificationPipeline     VerificationPipelineStatus @default(NOT_STARTED)
+  operatingModel           OperatingModel?
 
   averageRating       Float @default(0)
   reviewCount         Int   @default(0)
@@ -297,6 +564,19 @@ model MechanicProfile {
   jobs           Job[]
   reviews        Review[]
   savedBy        SavedMechanic[]
+  recommendedWork RecommendedWork[]
+  verificationApplications VerificationApplication[]
+  verificationInspections VerificationInspection[]
+  industries         ProviderIndustry[]
+  offerings          ProviderOffering[]
+  technicianProfiles TechnicianProfile[]
+  locations          ProviderLocation[]
+  resources          ProviderResource[]
+  scheduleBlocks     ScheduleBlock[]
+  waitlist           WaitlistEntry[]
+  verificationContent VerificationContent[]
+  preferredBy        AssetPreferredProvider[]
+  partsQuotes        PartsQuote[]
 
   @@index([mechanicScore])
   @@index([shopState, shopCity])
@@ -342,6 +622,8 @@ model Vehicle {
   drivetrain  String?
   mileage     Int
   vin         String?
+  plate       String?
+  color       String?
   nickname    String?
   notes       String?
   photoUrl    String?
@@ -354,6 +636,9 @@ model Vehicle {
   serviceRequests ServiceRequest[]
   jobs            Job[]
   repairRecords   RepairRecord[]
+  inspections     VehicleInspection[]
+  recommendedWork RecommendedWork[]
+  asset           Asset?
 
   @@index([customerId])
 }
@@ -462,7 +747,11 @@ model ZipCode {
 model ServiceRequest {
   id                   String               @id @default(uuid()) @db.Uuid
   customerId           String               @db.Uuid
-  vehicleId            String               @db.Uuid
+  vehicleId            String?              @db.Uuid
+  assetId              String?              @db.Uuid
+  industryId           String?              @db.Uuid
+  requestKind          RequestKind          @default(REPAIR)
+  taxonomyKey          String?
   mechanicProfileId    String?              @db.Uuid
   status               ServiceRequestStatus @default(OPEN)
   problemText          String
@@ -478,11 +767,23 @@ model ServiceRequest {
   budgetCents          Int?
   mobilePreferred      Boolean              @default(true)
   photoUrls            String[]             @default([])
+  videoUrls            String[]             @default([])
+  whenItHappens        String?
+  noticedWhen          String[]             @default([])
+  startedWhen          String?
+  warningLights        String?
+  drivability          String?
+  summary              String?
+  urgencyMode          UrgencyMode          @default(NORMAL)
+  symptoms             String[]             @default([])
+  operatingConditions  String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
   customer User             @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
-  vehicle  Vehicle          @relation(fields: [vehicleId], references: [id])
+  vehicle  Vehicle?         @relation(fields: [vehicleId], references: [id])
+  asset    Asset?           @relation(fields: [assetId], references: [id])
+  industry Industry?        @relation(fields: [industryId], references: [id])
   jobs     Job[]
   thread   MessageThread?
 
@@ -496,7 +797,8 @@ model Job {
   customerId        String        @db.Uuid
   mechanicUserId    String        @db.Uuid
   mechanicProfileId String        @db.Uuid
-  vehicleId         String        @db.Uuid
+  vehicleId         String?       @db.Uuid
+  assetId           String?       @db.Uuid
   status            JobStatus     @default(REQUESTED)
   scheduledAt       DateTime?
   arrivedAt         DateTime?
@@ -508,6 +810,11 @@ model Job {
   commissionPercent      Float?
   totalCents             Int           @default(0)
   scheduledConfirmedAt   DateTime?
+  urgencyMode            UrgencyMode   @default(NORMAL)
+  partsStatus            PartsStatus   @default(UNKNOWN)
+  promisedReadyAt        DateTime?
+  customerWaiting        Boolean       @default(false)
+  technicianProfileId    String?       @db.Uuid
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -515,7 +822,8 @@ model Job {
   customer        User             @relation("CustomerJobs", fields: [customerId], references: [id])
   mechanicUser    User             @relation("MechanicJobs", fields: [mechanicUserId], references: [id])
   mechanicProfile MechanicProfile  @relation(fields: [mechanicProfileId], references: [id])
-  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  vehicle         Vehicle?         @relation(fields: [vehicleId], references: [id])
+  asset           Asset?           @relation(fields: [assetId], references: [id])
   estimates       Estimate[]
   events          JobEvent[]
   photos          JobPhoto[]
@@ -525,6 +833,15 @@ model Job {
   disputes        Dispute[]
   payouts         Payout[]
   payments        Payment[]
+  repairGroups    RepairGroup[]
+  authorizations  RepairAuthorization[]
+  inspections     VehicleInspection[]
+  recommendedWork RecommendedWork[]
+  outcome         RepairOutcome?
+  warranties      RepairWarranty[]
+  scheduleBlocks  ScheduleBlock[]
+  partsQuotes     PartsQuote[]
+  technicianProfile TechnicianProfile? @relation(fields: [technicianProfileId], references: [id], onDelete: SetNull)
 
   @@index([customerId, status])
   @@index([mechanicProfileId, status])
@@ -564,6 +881,8 @@ model Estimate {
   children  Estimate[]         @relation("EstimateRevisions")
   lineItems EstimateLineItem[]
   approvals EstimateApproval[]
+  repairGroups RepairGroup[]
+  authorizations RepairAuthorization[]
 
   @@index([jobId, status])
 }
@@ -576,10 +895,12 @@ model EstimateLineItem {
   quantity    Float                @default(1)
   unitCents   Int
   totalCents  Int
+  repairGroupId String?            @db.Uuid
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
   estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  repairGroup RepairGroup? @relation(fields: [repairGroupId], references: [id], onDelete: SetNull)
 }
 
 model EstimateApproval {
@@ -650,7 +971,8 @@ model JobPhoto {
 model RepairRecord {
   id              String   @id @default(uuid()) @db.Uuid
   jobId           String   @unique @db.Uuid
-  vehicleId       String   @db.Uuid
+  vehicleId       String?  @db.Uuid
+  assetId         String?  @db.Uuid
   title           String
   diagnosis       String?
   workPerformed   String?
@@ -663,8 +985,10 @@ model RepairRecord {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  job        Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  vehicle    Vehicle?         @relation(fields: [vehicleId], references: [id])
+  asset      Asset?           @relation(fields: [assetId], references: [id])
+  warranties RepairWarranty[]
 
   @@index([vehicleId, createdAt])
 }
@@ -681,6 +1005,7 @@ model Review {
   timelinessRating      Int
   qualityRating         Int
   wouldUseAgain         Boolean
+  resolvedOriginalProblem RepairOutcomeKind?
   body                  String
   repairSummary         String?
   priceCents            Int?
@@ -735,6 +1060,8 @@ model Dispute {
   description String
   photoUrls   String[]        @default([])
   resolution  String?
+  exposureCents Int?
+  adminNotes  String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -796,6 +1123,7 @@ model Payment {
   commissionCents     Int
   mechanicPayoutCents Int
   status              PaymentStatus @default(PENDING)
+  kind                PaymentKind   @default(FINAL)
   provider            String        @default("mock")
   providerIntentId    String?
   providerChargeId    String?
@@ -876,9 +1204,15 @@ model PlatformConfig {
   id                  String @id @default("default")
   commissionPercent   Float  @default(10)
   mechanicProMonthlyCents Int @default(4900)
+  marketplaceFeePercent   Float @default(3)
+  processorFeePercent     Float @default(0)
   rankingWeights      Json
   verificationLevels  Json
+  selectCriteria      Json?
+  verificationStandards Json?
   marketplaceName     String @default("Pocket Mechanic")
+  revenueStreams      Json?
+  visionDemoEnabled   Boolean @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -891,4 +1225,823 @@ model PlatformStat {
   statesCovered      Int      @default(50)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model RepairGroup {
+  id            String          @id @default(uuid()) @db.Uuid
+  estimateId    String          @db.Uuid
+  jobId         String          @db.Uuid
+  findingId     String?         @db.Uuid
+  title         String
+  recommendation String         @default("RECOMMENDED")
+  urgency       String          @default("normal")
+  status        GroupAuthStatus @default(PENDING)
+  totalCents    Int             @default(0)
+  sortOrder     Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  estimate Estimate            @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  job      Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  lineItems EstimateLineItem[]
+  decisions RepairAuthorizationDecision[]
+  recommendedWork RecommendedWork[]
+
+  @@index([estimateId, status])
+  @@index([jobId])
+}
+
+model RepairAuthorization {
+  id              String   @id @default(uuid()) @db.Uuid
+  estimateId      String   @db.Uuid
+  jobId           String   @db.Uuid
+  customerId      String   @db.Uuid
+  originalCents   Int
+  approvedCents   Int
+  declinedCents   Int
+  pendingCents    Int      @default(0)
+  authorizedCents Int
+  ipAddress       String?
+  userAgent       String?
+  submittedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  estimate  Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  customer  User     @relation(fields: [customerId], references: [id])
+  decisions RepairAuthorizationDecision[]
+
+  @@index([jobId, submittedAt])
+}
+
+model RepairAuthorizationDecision {
+  id              String         @id @default(uuid()) @db.Uuid
+  authorizationId String         @db.Uuid
+  repairGroupId   String         @db.Uuid
+  action          ApprovalAction
+  createdAt       DateTime       @default(now())
+
+  authorization RepairAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+  repairGroup   RepairGroup         @relation(fields: [repairGroupId], references: [id], onDelete: Cascade)
+}
+
+model RecommendedWork {
+  id                String   @id @default(uuid()) @db.Uuid
+  customerId        String   @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  vehicleId         String?  @db.Uuid
+  assetId           String?  @db.Uuid
+  jobId             String?  @db.Uuid
+  estimateId        String?  @db.Uuid
+  repairGroupId     String?  @db.Uuid
+  title             String
+  estimatedCents    Int
+  urgency           String   @default("normal")
+  notes             String?
+  declineDate       DateTime?
+  followUpDate      DateTime?
+  status            String   @default("OPEN")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customer User            @relation("CustomerRecommendedWork", fields: [customerId], references: [id], onDelete: Cascade)
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  asset    Asset?          @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  job      Job?            @relation(fields: [jobId], references: [id])
+  repairGroup RepairGroup? @relation(fields: [repairGroupId], references: [id])
+
+  @@index([mechanicProfileId, status])
+  @@index([customerId, status])
+}
+
+model VehicleInspection {
+  id             String   @id @default(uuid()) @db.Uuid
+  jobId          String   @db.Uuid
+  vehicleId      String?  @db.Uuid
+  assetId        String?  @db.Uuid
+  componentId    String?  @db.Uuid
+  templateKey    String   @default("AUTO_DVI")
+  mechanicUserId String   @db.Uuid
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  job       Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle?             @relation(fields: [vehicleId], references: [id])
+  asset     Asset?               @relation(fields: [assetId], references: [id])
+  component AssetComponent?      @relation(fields: [componentId], references: [id])
+  findings  InspectionFinding[]
+}
+
+model InspectionFinding {
+  id            String        @id @default(uuid()) @db.Uuid
+  inspectionId  String        @db.Uuid
+  section       String
+  status        FindingStatus
+  explanation   String?
+  recommendation String?
+  urgency       String        @default("normal")
+  photoUrls     String[]      @default([])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  inspection VehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+}
+
+model VerificationApplication {
+  id                String                     @id @default(uuid()) @db.Uuid
+  mechanicProfileId String                     @db.Uuid
+  industryId        String?                    @db.Uuid
+  status            VerificationPipelineStatus @default(APPLICATION_RECEIVED)
+  kind              InspectionKind             @default(MOBILE)
+  notes             String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  mechanic    MechanicProfile            @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  industry    Industry?                  @relation(fields: [industryId], references: [id])
+  inspections VerificationInspection[]
+  events      VerificationEvent[]
+}
+
+model VerificationInspection {
+  id                String                     @id @default(uuid()) @db.Uuid
+  applicationId     String                     @db.Uuid
+  mechanicProfileId String                     @db.Uuid
+  inspectorId       String?                    @db.Uuid
+  kind              InspectionKind             @default(SHOP)
+  scheduledAt       DateTime?
+  completedAt       DateTime?
+  status            VerificationPipelineStatus @default(VISIT_SCHEDULED)
+  score             Int?
+  passed            Boolean?
+  notes             String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  mechanic    MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  application VerificationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  inspector   User?            @relation("InspectorVisits", fields: [inspectorId], references: [id])
+  items       VerificationChecklistItem[]
+}
+
+model VerificationChecklistItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  inspectionId  String   @db.Uuid
+  category      String
+  score         Int?
+  passed        Boolean?
+  notes         String?
+  notApplicable Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  inspection VerificationInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+}
+
+model VerificationEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  actorId       String?
+  fromStatus    String?
+  toStatus      String
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  application VerificationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  targetType String
+  targetId   String
+  reason     String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+model SupportTicket {
+  id          String   @id @default(uuid()) @db.Uuid
+  requesterId String   @db.Uuid
+  assigneeId  String?  @db.Uuid
+  topic       String
+  body        String
+  status      String   @default("OPEN")
+  jobId       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User  @relation("TicketRequester", fields: [requesterId], references: [id])
+  assignee  User? @relation("TicketAssignee", fields: [assigneeId], references: [id])
+}
+
+model Industry {
+  id                String    @id @default(uuid()) @db.Uuid
+  key               String    @unique
+  name              String
+  consumerLabel     String
+  intakePrompt      String
+  intakePlaceholder String
+  defaultUsageUnit  UsageUnit @default(MILES)
+  sortOrder         Int       @default(0)
+  active            Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  assetTypes               AssetType[]
+  assets                   Asset[]
+  serviceRequests          ServiceRequest[]
+  taxonomies               ServiceTaxonomy[]
+  inspectionTemplates      InspectionTemplate[]
+  maintenanceRules         MaintenanceRule[]
+  providerIndustries       ProviderIndustry[]
+  offerings                ProviderOffering[]
+  verificationApplications VerificationApplication[]
+}
+
+model AssetType {
+  id         String   @id @default(uuid()) @db.Uuid
+  industryId String   @db.Uuid
+  key        String
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  assets   Asset[]
+
+  @@unique([industryId, key])
+}
+
+model Asset {
+  id             String    @id @default(uuid()) @db.Uuid
+  ownerId        String    @db.Uuid
+  industryId     String    @db.Uuid
+  assetTypeId    String    @db.Uuid
+  vehicleId      String?   @unique @db.Uuid
+  year           Int?
+  manufacturer   String?
+  model          String?
+  trim           String?
+  nickname       String?
+  photoUrl       String?
+  usageValue     Float?
+  usageUnit      UsageUnit @default(MILES)
+  location       String?
+  metadata       Json?
+  status         String    @default("ACTIVE")
+  isDemoFixture  Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  owner           User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  industry        Industry           @relation(fields: [industryId], references: [id])
+  assetType       AssetType          @relation(fields: [assetTypeId], references: [id])
+  vehicle         Vehicle?           @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  identifiers     AssetIdentifier[]
+  components      AssetComponent[]
+  serviceRequests ServiceRequest[]
+  jobs            Job[]
+  repairRecords   RepairRecord[]
+  inspections     VehicleInspection[]
+  recommendedWork RecommendedWork[]
+  documents       AssetDocument[]
+  transfers       AssetTransfer[]
+  shares          AssetShare[]
+  preferredProviders AssetPreferredProvider[]
+  maintenanceItems MaintenanceItem[]
+  downtimeEvents  DowntimeEvent[]
+  fleetAssignments FleetAssignment[]
+  outcomes        RepairOutcome[]
+  warranties      RepairWarranty[]
+
+  @@index([ownerId])
+  @@index([industryId])
+}
+
+model AssetIdentifier {
+  id        String         @id @default(uuid()) @db.Uuid
+  assetId   String         @db.Uuid
+  kind      IdentifierKind
+  value     String
+  label     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([value])
+  @@index([assetId, kind])
+}
+
+model AssetComponent {
+  id        String   @id @default(uuid()) @db.Uuid
+  assetId   String   @db.Uuid
+  name      String
+  kind      String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset       Asset                @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  inspections VehicleInspection[]
+}
+
+model ProviderIndustry {
+  id                String             @id @default(uuid()) @db.Uuid
+  mechanicProfileId String             @db.Uuid
+  industryId        String             @db.Uuid
+  verified          Boolean            @default(false)
+  verifiedAt        DateTime?
+  verificationLevel VerificationLevel  @default(UNVERIFIED)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  industry Industry        @relation(fields: [industryId], references: [id])
+
+  @@unique([mechanicProfileId, industryId])
+}
+
+model ProviderOffering {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  industryId        String   @db.Uuid
+  taxonomyKey       String
+  specialtyLabel    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  industry Industry        @relation(fields: [industryId], references: [id])
+
+  @@unique([mechanicProfileId, industryId, taxonomyKey])
+}
+
+model ServiceTaxonomy {
+  id         String   @id @default(uuid()) @db.Uuid
+  industryId String   @db.Uuid
+  key        String
+  label      String
+  helper     String   @default("")
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+
+  @@unique([industryId, key])
+}
+
+model InspectionTemplate {
+  id         String   @id @default(uuid()) @db.Uuid
+  industryId String   @db.Uuid
+  key        String   @unique
+  name       String
+  kind       String   @default("STANDARD")
+  sections   Json
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+}
+
+model MaintenanceRule {
+  id            String    @id @default(uuid()) @db.Uuid
+  industryId    String    @db.Uuid
+  title         String
+  intervalValue Float
+  intervalUnit  UsageUnit
+  taxonomyKey   String
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+}
+
+model FinancingOffer {
+  id          String                 @id @default(uuid()) @db.Uuid
+  jobId       String?                @db.Uuid
+  customerId  String                 @db.Uuid
+  partnerName String                 @default("regulated_partner")
+  amountCents Int
+  status      FinancingPartnerStatus @default(NOT_OFFERED)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+}
+
+model RepairOutcome {
+  id              String            @id @default(uuid()) @db.Uuid
+  jobId           String            @unique @db.Uuid
+  customerId      String            @db.Uuid
+  mechanicProfileId String          @db.Uuid
+  assetId         String?           @db.Uuid
+  technicianProfileId String?       @db.Uuid
+  originalProblem String
+  category        ServiceCategory
+  taxonomyKey     String?
+  resolved        RepairOutcomeKind
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  job      Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  customer User              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  asset    Asset?            @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  technician TechnicianProfile? @relation(fields: [technicianProfileId], references: [id], onDelete: SetNull)
+
+  @@index([mechanicProfileId, resolved])
+  @@index([assetId])
+}
+
+model RepairWarranty {
+  id                String    @id @default(uuid()) @db.Uuid
+  jobId             String    @db.Uuid
+  repairRecordId    String?   @db.Uuid
+  assetId           String?   @db.Uuid
+  mechanicProfileId String    @db.Uuid
+  title             String
+  partsCoverage     String?
+  laborCoverage     String?
+  providerName      String
+  startDate         DateTime  @default(now())
+  expiresAt         DateTime?
+  usageLimit        Float?
+  usageUnit         UsageUnit?
+  exclusions        String?
+  documentUrl       String?
+  receiptUrl        String?
+  isDemoFixture     Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  job          Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  repairRecord RepairRecord? @relation(fields: [repairRecordId], references: [id], onDelete: SetNull)
+  asset        Asset?        @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([assetId, expiresAt])
+  @@index([jobId])
+}
+
+model AssetDocument {
+  id        String       @id @default(uuid()) @db.Uuid
+  assetId   String       @db.Uuid
+  kind      DocumentKind @default(OTHER)
+  title     String
+  url       String?
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model AssetTransfer {
+  id              String         @id @default(uuid()) @db.Uuid
+  assetId         String         @db.Uuid
+  fromOwnerId     String         @db.Uuid
+  toOwnerId       String?        @db.Uuid
+  toEmail         String?
+  status          TransferStatus @default(PENDING)
+  includeHistory  Boolean        @default(true)
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  asset     Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  fromOwner User  @relation("TransferFrom", fields: [fromOwnerId], references: [id])
+  toOwner   User? @relation("TransferTo", fields: [toOwnerId], references: [id])
+}
+
+model AssetShare {
+  id          String    @id @default(uuid()) @db.Uuid
+  assetId     String    @db.Uuid
+  grantorId   String    @db.Uuid
+  memberId    String    @db.Uuid
+  role        ShareRole @default(VIEW)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  asset   Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  grantor User  @relation("ShareGrantor", fields: [grantorId], references: [id])
+  member  User  @relation("ShareRecipient", fields: [memberId], references: [id])
+
+  @@unique([assetId, memberId])
+}
+
+model AssetPreferredProvider {
+  id                String  @id @default(uuid()) @db.Uuid
+  assetId           String  @db.Uuid
+  mechanicProfileId String  @db.Uuid
+  taxonomyKey       String  @default("")
+  createdAt         DateTime @default(now())
+
+  asset    Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, mechanicProfileId, taxonomyKey])
+}
+
+model MaintenanceItem {
+  id              String                @id @default(uuid()) @db.Uuid
+  assetId         String                @db.Uuid
+  title           String
+  taxonomyKey     String
+  status          MaintenanceItemStatus @default(UPCOMING)
+  source          String                @default("RULE")
+  dueUsage        Float?
+  dueAt           DateTime?
+  remainingUsage  Float?
+  notes           String?
+  isDemoFixture   Boolean               @default(false)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, status])
+}
+
+model TechnicianProfile {
+  id                String         @id @default(uuid()) @db.Uuid
+  mechanicProfileId String         @db.Uuid
+  userId            String?        @unique @db.Uuid
+  displayName       String
+  title             String?
+  active            Boolean        @default(true)
+  duty              TechnicianDuty @default(BOTH)
+  hoursStart        String         @default("08:00")
+  hoursEnd          String         @default("18:00")
+  specialties       String[]       @default([])
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  mechanic     MechanicProfile     @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  user         User?               @relation(fields: [userId], references: [id])
+  jobs         Job[]
+  blocks       ScheduleBlock[]
+  outcomes     RepairOutcome[]
+  skills       TechnicianSkill[]
+}
+
+model TechnicianSkill {
+  id                  String        @id @default(uuid()) @db.Uuid
+  technicianProfileId String        @db.Uuid
+  industryKey         String
+  taxonomyKey         String?
+  manufacturer        String?
+  band                ExpertiseBand @default(INSUFFICIENT_DATA)
+  verifiedCount       Int           @default(0)
+  provenance          DataProvenance @default(COMPUTED)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  technician TechnicianProfile @relation(fields: [technicianProfileId], references: [id], onDelete: Cascade)
+}
+
+model ProviderLocation {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  name              String
+  address           String?
+  city              String?
+  state             String?
+  zip               String?
+  latitude          Float?
+  longitude         Float?
+  isPrimary         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic  MechanicProfile    @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  resources ProviderResource[]
+  blocks    ScheduleBlock[]
+}
+
+model ProviderResource {
+  id                String       @id @default(uuid()) @db.Uuid
+  mechanicProfileId String       @db.Uuid
+  locationId        String?      @db.Uuid
+  kind              ResourceKind @default(OTHER)
+  name              String
+  active            Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  mechanic MechanicProfile  @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  location ProviderLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  blocks   ScheduleBlock[]
+}
+
+model ScheduleBlock {
+  id                  String            @id @default(uuid()) @db.Uuid
+  mechanicProfileId   String            @db.Uuid
+  jobId               String?           @db.Uuid
+  technicianProfileId String?           @db.Uuid
+  resourceId          String?           @db.Uuid
+  locationId          String?           @db.Uuid
+  kind                ScheduleBlockKind @default(WORK)
+  title               String
+  startsAt            DateTime
+  endsAt              DateTime
+  status              String            @default("SCHEDULED")
+  notes               String?
+  overrideReason      String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  mechanic   MechanicProfile    @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  job        Job?               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  technician TechnicianProfile? @relation(fields: [technicianProfileId], references: [id], onDelete: SetNull)
+  resource   ProviderResource?  @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  location   ProviderLocation?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([mechanicProfileId, startsAt])
+  @@index([jobId])
+}
+
+model WaitlistEntry {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  customerId        String   @db.Uuid
+  assetId           String?  @db.Uuid
+  jobId             String?  @db.Uuid
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+}
+
+model FleetAccount {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  ownerId     String   @db.Uuid
+  city        String?
+  state       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User              @relation("FleetOwner", fields: [ownerId], references: [id])
+  memberships FleetMembership[]
+  assignments FleetAssignment[]
+  downtime    DowntimeEvent[]
+}
+
+model FleetMembership {
+  id            String          @id @default(uuid()) @db.Uuid
+  fleetId       String          @db.Uuid
+  userId        String          @db.Uuid
+  role          FleetMemberRole @default(DRIVER)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  fleet FleetAccount @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([fleetId, userId])
+}
+
+model FleetAssignment {
+  id        String   @id @default(uuid()) @db.Uuid
+  fleetId   String   @db.Uuid
+  assetId   String   @db.Uuid
+  label     String?
+  createdAt DateTime @default(now())
+
+  fleet FleetAccount @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  asset Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([fleetId, assetId])
+}
+
+model DowntimeEvent {
+  id        String    @id @default(uuid()) @db.Uuid
+  fleetId   String?   @db.Uuid
+  assetId   String    @db.Uuid
+  jobId     String?   @db.Uuid
+  reason    String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  fleet FleetAccount? @relation(fields: [fleetId], references: [id])
+  asset Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model PartsQuote {
+  id                String      @id @default(uuid()) @db.Uuid
+  jobId             String      @db.Uuid
+  mechanicProfileId String      @db.Uuid
+  title             String
+  source            String
+  amountCents       Int
+  etaLabel          String?
+  selected          Boolean     @default(false)
+  provenance        DataProvenance @default(DEMO_FIXTURE)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+}
+
+model RoadsideRequest {
+  id         String       @id @default(uuid()) @db.Uuid
+  customerId String       @db.Uuid
+  assetId    String?      @db.Uuid
+  kind       RoadsideKind @default(EMERGENCY)
+  status     String       @default("OPEN")
+  notes      String?
+  zip        String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  customer User @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model WalletAccount {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries WalletLedger[]
+}
+
+model WalletLedger {
+  id        String           @id @default(uuid()) @db.Uuid
+  walletId  String           @db.Uuid
+  kind      WalletLedgerKind
+  amountCents Int
+  note      String?
+  jobId     String?
+  provenance DataProvenance  @default(DEMO_FIXTURE)
+  createdAt DateTime         @default(now())
+
+  wallet WalletAccount @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Membership {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @unique @db.Uuid
+  tier      MembershipTier @default(NONE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationContent {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  title             String
+  kind              String
+  url               String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+}
+
+model HqAlert {
+  id          String   @id @default(uuid()) @db.Uuid
+  kind        String
+  title       String
+  body        String
+  href        String?
+  severity    String   @default("warning")
+  provenance  DataProvenance @default(COMPUTED)
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PriceBenchmark {
+  id           String          @id @default(uuid()) @db.Uuid
+  industryKey  String
+  taxonomyKey  String
+  region       String          @default("UT")
+  minCents     Int
+  maxCents     Int
+  sampleSize   Int
+  provenance   DataProvenance  @default(DEMO_FIXTURE)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([industryKey, taxonomyKey, region, provenance])
 }

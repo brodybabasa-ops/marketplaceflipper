@@ -15,12 +15,12 @@ export function JobPhotoGallery({
 }) {
   return (
     <Card className="p-5">
-      <h2 className="font-semibold text-navy">Photo documentation</h2>
+      <h2 className="font-semibold text-ink">Photo documentation</h2>
       <p className="mt-1 text-sm text-muted">Before, diagnosis, parts, and after photos stay with the job record.</p>
       {photos.length ? (
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
           {photos.map((photo) => (
-            <figure key={photo.id} className="overflow-hidden rounded-xl border border-line bg-paper">
+            <figure key={photo.id} className="overflow-hidden rounded-xl border border-line bg-navy-soft">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo.url} alt={photo.caption ?? photo.kind} className="h-32 w-full object-cover" />
               <figcaption className="px-2 py-1.5 text-xs text-muted">

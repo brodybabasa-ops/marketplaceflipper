@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { MechanicCard } from "@/components/mechanics/mechanic-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
@@ -23,6 +23,7 @@ export default async function SavedPage() {
           specialties: true,
           makeExpertise: { include: { make: true } },
           availability: true,
+          industries: { include: { industry: true } },
         },
       },
     },
@@ -30,8 +31,8 @@ export default async function SavedPage() {
   });
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/saved" />
-      <h1 className="text-3xl font-bold text-navy">Saved mechanics</h1>
+      <CustomerAppNav current="/saved" />
+      <h1 className="text-3xl font-bold text-ink">Saved mechanics</h1>
       <p className="mt-2 text-sm text-muted">Keep the people you'd call again. Favorites are yours — they do not change ranking.</p>
       <div className="mt-6 space-y-4">
         {saved.length === 0 ? (
@@ -52,6 +53,7 @@ export default async function SavedPage() {
                     distanceMiles: origin ? haversineMiles(origin, mechanic) : 0,
                     reasons: [],
                     isBestMatch: false,
+                    precisionNote: null,
                   }}
                 />
                 <form action={toggleSavedMechanicAction} className="mt-2">

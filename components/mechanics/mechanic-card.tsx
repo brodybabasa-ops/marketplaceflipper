@@ -6,36 +6,73 @@ import { formatCents } from "@/lib/money";
 import { formatDistance } from "@/lib/geo";
 import { responseTimeLabel } from "@/services/matching";
 import type { MechanicMatch } from "@/services/matching";
-import { ShieldCheck } from "lucide-react";
+import { addToCompareAction } from "@/app/actions/master";
+import { TrustBadges } from "@/components/mechanics/trust-badges";
+import { RequestProviderButton } from "@/components/mechanics/request-provider-button";
 
-export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href?: string }) {
-  const profileHref = href ?? `/mechanics/${mechanic.slug}`;
-  const verified = mechanic.verificationLevel !== "UNVERIFIED";
+export function MechanicCard({
+  mechanic,
+  href,
+  requestId,
+}: {
+  mechanic: MechanicMatch;
+  href?: string;
+  requestId?: string;
+}) {
+  const profileHref = requestId
+    ? `${href ?? `/mechanics/${mechanic.slug}`}?request=${requestId}`
+    : (href ?? `/mechanics/${mechanic.slug}`);
   return (
-    <article className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow)]">
+    <article className="rounded-2xl border border-line bg-card p-5 shadow-[var(--shadow)]">
       <div className="flex gap-4">
         <Avatar name={mechanic.businessName} src={mechanic.profilePhotoUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-semibold text-navy">{mechanic.businessName}</h3>
-            {verified ? (
-              <Badge tone="accent" className="gap-1">
-                <ShieldCheck className="h-3 w-3" />
-                Verified
-              </Badge>
-            ) : null}
+            <h3 className="text-lg font-semibold text-ink">{mechanic.businessName}</h3>
+            <TrustBadges
+              verificationLevel={mechanic.verificationLevel}
+              lastVerifiedAt={mechanic.lastVerifiedAt}
+              isSelect={mechanic.isSelect}
+              isFoundingProvider={mechanic.isFoundingProvider}
+              foundingNumber={mechanic.foundingNumber}
+              verifiedIndustries={mechanic.verifiedIndustryKeys.map((key) =>
+                key
+                  .toLowerCase()
+                  .split("_")
+                  .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                  .join(" "),
+              )}
+            />
             {mechanic.serviceMode !== "SHOP" ? <Badge tone="muted">Mobile mechanic</Badge> : null}
+            {mechanic.industryKeys.filter((key) => key !== "AUTOMOTIVE").map((key) => (
+              <Badge key={key} tone="muted">
+                {key.replaceAll("_", " ").toLowerCase()}
+              </Badge>
+            ))}
             {mechanic.isSponsored ? <Badge tone="warning">Sponsored</Badge> : null}
           </div>
           <p className="text-sm text-muted">
             {mechanic.firstName} {mechanic.lastName}
           </p>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {mechanic.completedJobsCount >= 8 ? (
+              <p className="number text-lg font-bold text-accent">{Math.round(mechanic.mechanicScore)}% match</p>
+            ) : (
+              <p className="text-sm font-semibold text-ink">Recommended</p>
+            )}
             <Rating value={mechanic.averageRating} />
           </div>
+          {mechanic.completedJobsCount >= 8 ? (
+            <p className="mt-1 text-[11px] text-muted">From verified Pocket Mechanic history — not a diagnosis and not a purchased rank.</p>
+          ) : mechanic.precisionNote ? (
+            <p className="mt-1 text-[11px] text-muted">{mechanic.precisionNote}</p>
+          ) : null}
           <p className="mt-1 text-sm text-muted">
-            {mechanic.completedJobsCount.toLocaleString()} Pocket Mechanic jobs · {formatDistance(mechanic.distanceMiles)}
+            {mechanic.completedJobsCount.toLocaleString()} verified Pocket Mechanic jobs · {formatDistance(mechanic.distanceMiles)}
           </p>
+          {mechanic.reasons.length ? (
+            <p className="mt-2 text-xs text-muted">{mechanic.reasons.join(" · ")}</p>
+          ) : null}
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -52,12 +89,27 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
       </div>
       <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="number text-xl font-semibold text-navy">{formatCents(mechanic.startingPriceCents, { from: true })}</p>
+          <p className="number text-xl font-semibold text-ink">{formatCents(mechanic.startingPriceCents, { from: true })}</p>
           <p className="text-sm text-muted">{responseTimeLabel(mechanic.avgResponseMinutes)}</p>
         </div>
-        <Button asChild>
-          <Link href={profileHref}>View Profile</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link href={profileHref}>View Profile</Link>
+          </Button>
+          {requestId ? (
+            <RequestProviderButton requestId={requestId} mechanicProfileId={mechanic.id} />
+          ) : (
+            <Button asChild variant="secondary">
+              <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It</Link>
+            </Button>
+          )}
+          <form action={addToCompareAction}>
+            <input type="hidden" name="mechanicProfileId" value={mechanic.id} />
+            <Button type="submit" variant="secondary">
+              Compare
+            </Button>
+          </form>
+        </div>
       </div>
     </article>
   );

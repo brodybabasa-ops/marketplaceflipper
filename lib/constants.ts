@@ -2,7 +2,8 @@ import type { ServiceCategory, VerificationLevel } from "@prisma/client";
 
 export const APP_NAME = "Pocket Mechanic";
 export const TAGLINE = "Find a mechanic you can trust.";
-export const SUPPORTING_PHRASE = "Your vehicle. Your mechanic. Your peace of mind.";
+export const BRAND_TAGLINE = "FIND. FIX. DRIVE ON.";
+export const SUPPORTING_PHRASE = "Tell us what’s happening with your vehicle.";
 
 export const PLATFORM_DISCLAIMER =
   "Pocket Mechanic connects customers with independent automotive service providers. Mechanics are independent service providers and are responsible for the services they perform.";
@@ -61,7 +62,7 @@ export const VERIFICATION_LEVELS: {
   {
     value: "POCKET_VERIFIED",
     label: "Pocket Verified",
-    description: "Highest trust tier based on credentials, insurance, and completed Pocket Mechanic jobs.",
+    description: "A Pocket Mechanic representative personally visited and evaluated this provider.",
   },
 ];
 
@@ -136,9 +137,12 @@ export const JOB_STATUS_ORDER = [
   "SCHEDULED",
   "EN_ROUTE",
   "ARRIVED",
+  "CHECKED_IN",
   "DIAGNOSING",
   "AWAITING_APPROVAL",
   "IN_PROGRESS",
+  "QUALITY_CHECK",
+  "READY",
   "COMPLETED",
 ] as const;
 

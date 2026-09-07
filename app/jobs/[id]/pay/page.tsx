@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { payJobAction } from "@/app/actions/phase2";
@@ -19,8 +19,8 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/jobs" />
-      <h1 className="text-3xl font-bold text-navy">Pay for this repair</h1>
+      <CustomerAppNav current="/jobs" />
+      <h1 className="text-3xl font-bold text-ink">Pay for this repair</h1>
       <p className="mt-2 text-sm text-muted">
         You pay the approved estimate. Pocket Mechanic’s marketplace fee comes out of the mechanic payout, not as an extra charge on your bill.
       </p>
@@ -42,6 +42,9 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
             ? "Charged through Stripe Connect."
             : "Demo mode: this completes a mock Stripe Connect charge. No real card is collected or stored."}
         </p>
+        <p className="text-xs text-muted">
+          Repair financing, if offered later, is through integrated regulated partners. Pocket Mechanic is not the lender.
+        </p>
       </Card>
       {alreadyPaid ? (
         <p className="mt-6 text-sm text-success">This job is already paid.</p>
@@ -53,7 +56,7 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
           </Button>
         </form>
       )}
-      <Link href={`/jobs/${id}`} className="mt-4 inline-block text-sm font-semibold text-navy">
+      <Link href={`/jobs/${id}`} className="mt-4 inline-block text-sm font-semibold text-ink">
         Back to job
       </Link>
     </div>

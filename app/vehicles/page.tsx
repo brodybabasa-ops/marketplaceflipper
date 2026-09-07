@@ -1,49 +1,50 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
-import { VehicleCard } from "@/components/jobs/vehicle-card";
+import { CustomerAppNav } from "@/components/layout/app-nav";
+import { GarageCard } from "@/components/jobs/garage-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
-import { prisma } from "@/lib/db";
+import { garageCardCopy, listGarage } from "@/services/assets";
 
-export const metadata = { title: "My vehicles" };
+export const metadata = { title: "My Garage" };
 
 export default async function VehiclesPage() {
   const session = await requireSession("CUSTOMER");
-  const vehicles = await prisma.vehicle.findMany({
-    where: { customerId: session.id },
-    include: { make: true, model: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const { assets, headline } = await listGarage(session.id);
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/vehicles" />
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-navy">My vehicles</h1>
+      <CustomerAppNav current="/vehicles" />
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-ink">{headline.title}</h1>
+          <p className="mt-1 text-sm text-muted">{headline.body}</p>
+        </div>
         <Button asChild>
-          <Link href="/vehicles/new">Add vehicle</Link>
+          <Link href="/vehicles/new">{headline.addLabel}</Link>
         </Button>
       </div>
-      {vehicles.length === 0 ? (
+      {assets.length === 0 ? (
         <div className="mt-6">
-          <EmptyState title="No vehicles yet" body="Add the vehicle that needs help. Nickname optional." />
+          <EmptyState title="Nothing in your garage yet" body="Add what you own — car, boat, bike, RV, or equipment. Year, make, and model is enough.">
+            <Button asChild>
+              <Link href="/vehicles/new">Add to garage</Link>
+            </Button>
+          </EmptyState>
         </div>
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {vehicles.map((vehicle) => (
-            <VehicleCard
-              key={vehicle.id}
-              vehicle={{
-                id: vehicle.id,
-                year: vehicle.year,
-                make: vehicle.make.name,
-                model: vehicle.model.name,
-                mileage: vehicle.mileage,
-                nickname: vehicle.nickname,
-              }}
-              ctaHref={`/request?vehicle=${vehicle.id}`}
-            />
-          ))}
+          {assets.map((asset) => {
+            const card = garageCardCopy(asset);
+            return (
+              <GarageCard
+                key={asset.id}
+                card={card}
+                href={`/vehicles/${asset.vehicleId ?? asset.id}`}
+                ctaHref={`/fix?asset=${asset.id}`}
+          ctaLabel="Fix It"
+              />
+            );
+          })}
         </div>
       )}
     </div>

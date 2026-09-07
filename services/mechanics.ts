@@ -9,6 +9,7 @@ const mechanicCardInclude = {
   specialties: true,
   makeExpertise: { include: { make: true } },
   availability: true,
+  industries: { include: { industry: true } },
 } satisfies Prisma.MechanicProfileInclude;
 
 export function toMatchableMechanic(
@@ -24,6 +25,10 @@ export function toMatchableMechanic(
     yearsExperience: profile.yearsExperience,
     serviceMode: profile.serviceMode,
     verificationLevel: profile.verificationLevel,
+    isSelect: profile.isSelect,
+    isFoundingProvider: profile.isFoundingProvider,
+    foundingNumber: profile.foundingNumber,
+    lastVerifiedAt: profile.lastVerifiedAt,
     averageRating: profile.averageRating,
     reviewCount: profile.reviewCount,
     completedJobsCount: profile.completedJobsCount,
@@ -38,12 +43,14 @@ export function toMatchableMechanic(
     makeNames: profile.makeExpertise.map((item) => item.make.name),
     availabilityDays: profile.availability.map((item) => item.dayOfWeek),
     isSponsored: profile.isSponsored,
+    industryKeys: profile.industries.map((item) => item.industry.key),
+    verifiedIndustryKeys: profile.industries.filter((item) => item.verified).map((item) => item.industry.key),
   };
 }
 
 export async function listMechanicsForMatching() {
   const profiles = await prisma.mechanicProfile.findMany({
-    where: { user: { status: "ACTIVE" } },
+    where: { user: { status: "ACTIVE" }, marketplaceEligible: true },
     include: mechanicCardInclude,
   });
   return profiles.map(toMatchableMechanic);
@@ -59,6 +66,7 @@ export async function getMechanicBySlug(slug: string) {
       serviceAreas: true,
       availability: true,
       makeExpertise: { include: { make: true } },
+      industries: { include: { industry: true } },
       reviews: {
         where: { hidden: false },
         include: { customer: true, response: true, job: { include: { vehicle: { include: { make: true, model: true } } } } },
@@ -102,12 +110,15 @@ export async function getPublicStats() {
 export const ALLOWED_JOB_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   REQUESTED: ["ACCEPTED", "CANCELLED"],
   ACCEPTED: ["SCHEDULED", "CANCELLED"],
-  SCHEDULED: ["EN_ROUTE", "CANCELLED"],
-  EN_ROUTE: ["ARRIVED", "CANCELLED"],
-  ARRIVED: ["DIAGNOSING", "CANCELLED"],
+  SCHEDULED: ["EN_ROUTE", "CHECKED_IN", "CANCELLED"],
+  EN_ROUTE: ["ARRIVED", "CHECKED_IN", "CANCELLED"],
+  ARRIVED: ["CHECKED_IN", "DIAGNOSING", "CANCELLED"],
+  CHECKED_IN: ["DIAGNOSING", "CANCELLED"],
   DIAGNOSING: ["AWAITING_APPROVAL", "IN_PROGRESS", "CANCELLED"],
   AWAITING_APPROVAL: ["IN_PROGRESS", "CANCELLED", "DISPUTED"],
-  IN_PROGRESS: ["AWAITING_APPROVAL", "COMPLETED", "DISPUTED", "CANCELLED"],
+  IN_PROGRESS: ["AWAITING_APPROVAL", "QUALITY_CHECK", "READY", "COMPLETED", "DISPUTED", "CANCELLED"],
+  QUALITY_CHECK: ["READY", "IN_PROGRESS", "CANCELLED"],
+  READY: ["COMPLETED", "CANCELLED"],
   COMPLETED: ["DISPUTED"],
   CANCELLED: [],
   DISPUTED: ["COMPLETED", "CANCELLED"],

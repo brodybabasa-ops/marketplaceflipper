@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/guards";
 import { mechanicOnboardingSchema } from "@/lib/validations";
 import { slugify } from "@/lib/utils";
+import { attachProviderIndustries } from "@/services/assets";
 
 export async function saveMechanicProfileAction(formData: FormData) {
   const session = await requireSession("MECHANIC");
@@ -21,14 +22,16 @@ export async function saveMechanicProfileAction(formData: FormData) {
     diagnosticPriceCents: Math.round(Number(formData.get("diagnosticPrice") ?? 0) * 100),
     laborRateCents: Math.round(Number(formData.get("laborRate") ?? 0) * 100),
     mobileFeeCents: Math.round(Number(formData.get("mobileFee") ?? 0) * 100),
+    industryKeys: formData.getAll("industryKey").map(String).filter(Boolean),
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check your profile details.");
   const zip = await prisma.zipCode.findUnique({ where: { zip: parsed.data.shopZip.slice(0, 5) } });
   const slug = slugify(parsed.data.businessName);
-  await prisma.mechanicProfile.update({
+  const { industryKeys, ...profileData } = parsed.data;
+  const profile = await prisma.mechanicProfile.update({
     where: { userId: session.id },
     data: {
-      ...parsed.data,
+      ...profileData,
       slug,
       startingPriceCents: parsed.data.diagnosticPriceCents,
       latitude: zip?.latitude ?? 40.7608,
@@ -37,6 +40,7 @@ export async function saveMechanicProfileAction(formData: FormData) {
       onboardingStep: 13,
     },
   });
+  await attachProviderIndustries(profile.id, industryKeys?.length ? industryKeys : ["AUTOMOTIVE"]);
   revalidatePath("/mechanic");
   redirect("/mechanic");
 }

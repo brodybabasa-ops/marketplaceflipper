@@ -1,19 +1,21 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Card, EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { assetLabel, vehicleLabel } from "@/lib/asset-display";
 
 export const metadata = { title: "Repair history" };
 
 export default async function HistoryPage() {
   const session = await requireSession("CUSTOMER");
-  const vehicles = await prisma.vehicle.findMany({
-    where: { customerId: session.id },
+  const assets = await prisma.asset.findMany({
+    where: { ownerId: session.id },
     include: {
-      make: true,
-      model: true,
+      industry: true,
+      vehicle: { include: { make: true, model: true } },
       repairRecords: {
         include: {
           job: {
@@ -27,26 +29,39 @@ export default async function HistoryPage() {
         orderBy: { createdAt: "desc" },
       },
     },
+    orderBy: { createdAt: "desc" },
   });
+  const mixed = new Set(assets.map((item) => item.industry.key)).size > 1;
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/history" />
-      <h1 className="text-3xl font-bold text-navy">Repair history</h1>
-      <p className="mt-2 text-sm text-muted">A permanent record on the vehicle, not a paper invoice in the glovebox.</p>
+      <CustomerAppNav current="/history" />
+      <h1 className="text-3xl font-bold text-ink">Repair history</h1>
+      <p className="mt-2 text-sm text-muted">
+        {mixed ? "One service record for everything you own." : "A permanent record on the vehicle, not a paper invoice in the glovebox."}
+      </p>
       <div className="mt-8 space-y-8">
-        {vehicles.length === 0 ? (
-          <EmptyState title="No vehicles yet" body="Add a vehicle to start building history." />
+        {assets.length === 0 ? (
+          <EmptyState title="No service history yet" body="Completed Pocket Mechanic repairs land here, including photos, invoices, and warranties.">
+            <Button asChild>
+              <Link href="/vehicles">Open garage</Link>
+            </Button>
+          </EmptyState>
         ) : (
-          vehicles.map((vehicle) => (
-            <section key={vehicle.id}>
-              <h2 className="text-xl font-semibold text-navy">
-                {vehicle.year} {vehicle.make.name} {vehicle.model.name}
+          assets.map((asset) => (
+            <section key={asset.id}>
+              <h2 className="text-xl font-semibold text-ink">
+                {asset.vehicle ? vehicleLabel(asset.vehicle) : assetLabel(asset)}
               </h2>
+              {mixed ? <p className="text-xs uppercase tracking-wide text-muted">{asset.industry.name}</p> : null}
               <div className="mt-3 space-y-3">
-                {vehicle.repairRecords.length === 0 ? (
-                  <p className="text-sm text-muted">No documented repairs yet.</p>
+                {asset.repairRecords.length === 0 ? (
+                  <EmptyState title="No documented repairs yet" body="When a Pocket Mechanic job is completed, the record stays with this asset.">
+                    <Button asChild>
+                      <Link href={`/fix?asset=${asset.id}`}>Fix It</Link>
+                    </Button>
+                  </EmptyState>
                 ) : (
-                  vehicle.repairRecords.map((record) => {
+                  asset.repairRecords.map((record) => {
                     const payment = record.job.payments[0];
                     return (
                       <Link key={record.id} href={`/jobs/${record.jobId}`} className="block">
@@ -54,7 +69,7 @@ export default async function HistoryPage() {
                           <p className="text-sm text-muted">
                             {record.createdAt.toLocaleString("en-US", { month: "short", year: "numeric" })}
                           </p>
-                          <p className="font-semibold text-navy">{record.title}</p>
+                          <p className="font-semibold text-ink">{record.title}</p>
                           <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
                           <p className="number mt-1 font-semibold">{formatCents(record.job.totalCents)}</p>
                           <p className="mt-1 text-xs capitalize text-muted">
