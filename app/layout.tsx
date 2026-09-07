@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getSession();
   const unreadCount = user ? await unreadNotificationCount(user.id) : 0;
   return (
-    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
+    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`} data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col bg-paper font-sans text-ink">
         <SiteHeader user={user} unreadCount={unreadCount} />
         <main className="flex-1">{children}</main>

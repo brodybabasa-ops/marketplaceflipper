@@ -7,13 +7,13 @@ import { formatCents } from "@/lib/money";
 
 export const metadata = { title: "Analytics" };
 
-function Bar({ value, max, label }: { value: number; max: number; label: string }) {
+function Bar({ value, max, label, display }: { value: number; max: number; label: string; display?: string }) {
   const width = max ? Math.max(6, Math.round((value / max) * 100)) : 0;
   return (
     <div>
       <div className="mb-1 flex justify-between text-xs text-muted">
         <span>{label}</span>
-        <span className="number">{value}</span>
+        <span className="number">{display ?? value}</span>
       </div>
       <div className="h-2 rounded-full bg-paper">
         <div className="h-2 rounded-full bg-navy" style={{ width: `${width}%` }} />
@@ -62,7 +62,13 @@ export default async function MechanicAnalyticsPage() {
         <Card className="space-y-3 p-5">
           <h2 className="font-semibold text-navy">Volume by month</h2>
           {analytics.byMonth.map((item) => (
-            <Bar key={item.label} label={`${item.label} ${formatCents(item.revenueCents)}`} value={item.revenueCents} max={maxRevenue} />
+            <Bar
+              key={item.label}
+              label={item.label}
+              value={item.revenueCents}
+              max={maxRevenue}
+              display={formatCents(item.revenueCents)}
+            />
           ))}
         </Card>
       </div>

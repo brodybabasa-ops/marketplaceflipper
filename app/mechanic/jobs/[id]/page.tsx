@@ -61,7 +61,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           jobId={job.id}
           scheduledAt={job.scheduledAt}
           confirmedAt={job.scheduledConfirmedAt}
-          canPropose
+          canPropose={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
         />
         <Card className="p-5">
           <h2 className="font-semibold text-navy">Payment</h2>

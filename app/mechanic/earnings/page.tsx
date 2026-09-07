@@ -12,7 +12,7 @@ export default async function EarningsPage() {
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const config = await prisma.platformConfig.findUnique({ where: { id: "default" } });
-  const [jobs, payouts] = await Promise.all([
+  const [jobs, payouts, payoutTotals] = await Promise.all([
     prisma.job.findMany({
       where: { mechanicProfileId: profile.id, status: "COMPLETED" },
       select: { totalCents: true, paymentStatus: true },
@@ -23,9 +23,13 @@ export default async function EarningsPage() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
+    prisma.payout.aggregate({
+      where: { mechanicUserId: session.id, status: "PAID" },
+      _sum: { amountCents: true },
+    }),
   ]);
   const gross = jobs.reduce((sum, job) => sum + job.totalCents, 0);
-  const paid = payouts.filter((item) => item.status === "PAID").reduce((sum, item) => sum + item.amountCents, 0);
+  const paid = payoutTotals._sum.amountCents ?? 0;
   const commission = Math.round(gross * ((config?.commissionPercent ?? 10) / 100));
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">

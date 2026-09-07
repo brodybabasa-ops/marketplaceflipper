@@ -51,7 +51,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             jobId={job.id}
             scheduledAt={job.scheduledAt}
             confirmedAt={job.scheduledConfirmedAt}
-            canPropose
+            canPropose={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
           />
           {job.estimates.map((estimate) => (
             <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />

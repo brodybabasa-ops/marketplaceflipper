@@ -5,7 +5,7 @@ export async function getMechanicAnalytics(mechanicProfileId: string, mechanicUs
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [profile, jobs, reviews, payouts, requests] = await Promise.all([
+  const [profile, jobs, reviews, payouts, requests, completedAll] = await Promise.all([
     prisma.mechanicProfile.findUniqueOrThrow({ where: { id: mechanicProfileId } }),
     prisma.job.findMany({
       where: { mechanicProfileId, createdAt: { gte: sixMonthsAgo } },
@@ -28,6 +28,7 @@ export async function getMechanicAnalytics(mechanicProfileId: string, mechanicUs
       _sum: { amountCents: true, commissionCents: true },
     }),
     prisma.job.count({ where: { mechanicProfileId } }),
+    prisma.job.count({ where: { mechanicProfileId, status: "COMPLETED" } }),
   ]);
 
   const completed = jobs.filter((job) => job.status === "COMPLETED");
@@ -60,8 +61,8 @@ export async function getMechanicAnalytics(mechanicProfileId: string, mechanicUs
     profile,
     totals: {
       requests,
-      completed: profile.completedJobsCount,
-      conversion: requests ? Math.round((profile.completedJobsCount / requests) * 100) : 0,
+      completed: completedAll,
+      conversion: requests ? Math.round((completedAll / requests) * 100) : 0,
       monthJobs: monthJobs.length,
       monthRevenueCents: monthRevenue,
       paidOutCents: payouts._sum.amountCents ?? 0,
