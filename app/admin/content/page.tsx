@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
@@ -9,7 +9,7 @@ export default async function HqContentPage() {
   await requireSession(staffRoles());
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/content" />
+      <HqAppNav current="/admin/content" />
       <h1 className="text-3xl font-bold text-ink">Content</h1>
       <p className="mt-2 text-sm text-muted">
         Meet the Mechanic, shop tours, and spotlights live here. Content participation never determines verification.

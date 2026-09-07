@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { GarageCard } from "@/components/jobs/garage-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
@@ -13,7 +13,7 @@ export default async function VehiclesPage() {
   const { assets, headline } = await listGarage(session.id);
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/vehicles" />
+      <CustomerAppNav current="/vehicles" />
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-ink">{headline.title}</h1>
@@ -36,7 +36,8 @@ export default async function VehiclesPage() {
                 key={asset.id}
                 card={card}
                 href={`/vehicles/${asset.vehicleId ?? asset.id}`}
-                ctaHref={`/intake?asset=${asset.id}`}
+                ctaHref={`/fix?asset=${asset.id}`}
+          ctaLabel="Fix It"
               />
             );
           })}

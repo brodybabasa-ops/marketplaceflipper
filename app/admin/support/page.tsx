@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
@@ -15,7 +15,7 @@ export default async function HqSupportPage() {
   });
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/support" />
+      <HqAppNav current="/admin/support" />
       <h1 className="text-3xl font-bold text-ink">Support</h1>
       <p className="mt-2 text-sm text-muted">Jump from a ticket to the customer, provider, or job record.</p>
       <div className="mt-6 space-y-3">

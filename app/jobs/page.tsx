@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
@@ -18,7 +18,7 @@ export default async function JobsPage() {
   });
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/jobs" />
+      <CustomerAppNav current="/jobs" />
       <h1 className="text-3xl font-bold text-ink">My jobs</h1>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (

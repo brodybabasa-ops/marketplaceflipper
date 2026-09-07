@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { RepairGroupEstimate } from "@/components/jobs/repair-group-estimate";
 import { EstimateCard } from "@/components/jobs/estimate-card";
@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea, Input } from "@/components/ui/input";
 import { createDisputeAction, createReviewAction, sendMessageAction } from "@/app/actions/marketplace";
+import { submitOutcomeAction } from "@/app/actions/vision";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
 import { JobPhotoGallery } from "@/components/jobs/job-photos";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
 import { jobAssetLabel, jobUsageLabel } from "@/lib/asset-display";
+import { fairPriceFor } from "@/services/price-intel";
 import Link from "next/link";
 
 export const metadata = { title: "Job" };
@@ -24,9 +26,17 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const job = await getJobForUser(id, session.id, session.role);
   if (!job) notFound();
   const latestPayment = job.payments[0];
+  const priced = job.estimates.find((item) => item.status === "SENT" || item.status === "APPROVED");
+  const priceIntel = priced
+    ? await fairPriceFor({
+        industryKey: job.serviceRequest.industry?.key ?? job.asset?.industry.key ?? "AUTOMOTIVE",
+        taxonomyKey: job.serviceRequest.taxonomyKey ?? job.serviceRequest.category,
+        estimateCents: priced.totalCents,
+      })
+    : null;
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/jobs" /> : null}
+      {session.role === "CUSTOMER" ? <CustomerAppNav current="/jobs" /> : null}
       <p className="text-sm text-muted">{job.mechanicProfile.businessName}</p>
       <h1 className="text-3xl font-bold text-ink">{job.serviceRequest.problemText}</h1>
       <p className="mt-1 text-muted">
@@ -69,6 +79,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
             ),
           )}
+          {priceIntel?.available ? (
+            <Card className="p-5">
+              <h2 className="font-semibold text-ink">Price context</h2>
+              <p className="mt-2 text-sm">
+                Mechanic estimate {formatCents(priceIntel.estimateCents)} · typical comparable range {formatCents(priceIntel.minCents)}–{formatCents(priceIntel.maxCents)}
+              </p>
+              <p className="mt-1 text-sm text-muted">{priceIntel.headline}. {priceIntel.explanation}</p>
+              <p className="mt-2 text-xs text-muted">{priceIntel.badge} · {priceIntel.sampleSize} comparable repairs · {priceIntel.region}</p>
+            </Card>
+          ) : priceIntel && !priceIntel.available ? (
+            <p className="text-xs text-muted">{priceIntel.reason}</p>
+          ) : null}
           <JobPhotoGallery photos={job.photos} jobId={job.id} canUpload />
           {job.repairRecord ? (
             <Card className="p-5">
@@ -86,6 +108,31 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 Payment: {job.paymentStatus.toLowerCase()}
                 {latestPayment ? ` · ${formatCents(latestPayment.amountCents)} via ${latestPayment.provider}` : ""}
               </p>
+            </Card>
+          ) : null}
+          {job.status === "COMPLETED" && session.role === "CUSTOMER" && !job.outcome ? (
+            <Card className="p-5">
+              <h2 className="font-semibold text-ink">Did this repair solve your original problem?</h2>
+              <p className="mt-1 text-sm text-muted">{job.serviceRequest.problemText}</p>
+              <form action={submitOutcomeAction} className="mt-4 flex flex-wrap gap-2">
+                <input type="hidden" name="jobId" value={job.id} />
+                <Button name="resolved" value="YES" type="submit">
+                  Yes
+                </Button>
+                <Button name="resolved" value="PARTIALLY" type="submit" variant="secondary">
+                  Partially
+                </Button>
+                <Button name="resolved" value="NO" type="submit" variant="secondary">
+                  No
+                </Button>
+              </form>
+            </Card>
+          ) : null}
+          {job.outcome ? (
+            <Card className="p-5">
+              <h2 className="font-semibold text-ink">Repair outcome</h2>
+              <p className="mt-2 text-sm">Original problem: {job.outcome.originalProblem}</p>
+              <p className="text-sm text-muted">Solved: {job.outcome.resolved.toLowerCase()}</p>
             </Card>
           ) : null}
           {job.status === "COMPLETED" && !job.review && session.role === "CUSTOMER" ? (

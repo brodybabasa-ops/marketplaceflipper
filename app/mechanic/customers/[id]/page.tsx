@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Card, KpiCard } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -25,7 +25,7 @@ export default async function MechanicCustomer360({ params }: { params: Promise<
   const spend = completed.reduce((sum, job) => sum + job.totalCents, 0);
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/customers" />
+      <MechanicAppNav current="/mechanic/customers" />
       <Link href="/mechanic/customers" className="text-sm text-accent">
         Back to customers
       </Link>

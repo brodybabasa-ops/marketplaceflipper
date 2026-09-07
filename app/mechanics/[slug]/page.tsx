@@ -7,6 +7,7 @@ import { Rating, Avatar } from "@/components/ui/rating";
 import { ReviewCard } from "@/components/jobs/review-card";
 import { getMechanicBySlug } from "@/services/mechanics";
 import { PRICING_DISCLAIMER, VERIFICATION_LEVELS } from "@/lib/constants";
+import { providerTrustGraph, bandLabel } from "@/services/trust-graph";
 import { formatCents } from "@/lib/money";
 import { US_STATES } from "@/lib/constants";
 import { prisma } from "@/lib/db";
@@ -43,9 +44,11 @@ export default async function MechanicSlugPage({ params }: { params: Promise<{ s
             }),
           )
         : false;
+    const graph = await providerTrustGraph(mechanic.id);
     return (
       <MechanicProfile
         mechanic={mechanic}
+        graph={graph}
         canSave={Boolean(canSave)}
         isSaved={isSaved}
         signedIn={Boolean(session)}
@@ -104,11 +107,13 @@ function SeoList({
 
 function MechanicProfile({
   mechanic,
+  graph,
   canSave,
   isSaved,
   signedIn,
 }: {
   mechanic: NonNullable<Awaited<ReturnType<typeof getMechanicBySlug>>>;
+  graph: Awaited<ReturnType<typeof providerTrustGraph>>;
   canSave: boolean;
   isSaved: boolean;
   signedIn: boolean;
@@ -144,7 +149,7 @@ function MechanicProfile({
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button asChild>
-              <Link href={`/request?mechanic=${mechanic.id}`}>Request Service</Link>
+              <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It with this provider</Link>
             </Button>
             {canSave ? (
               <form action={toggleSavedMechanicAction}>
@@ -171,6 +176,27 @@ function MechanicProfile({
         <h2 className="text-xl font-semibold text-ink">About</h2>
         <p className="mt-2 max-w-3xl text-ink">{mechanic.bio}</p>
         {level ? <p className="mt-3 text-sm text-muted">{level.description}</p> : null}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold text-ink">Expertise from verified work</h2>
+        <p className="mt-1 text-sm text-muted">
+          {graph.completedVerifiedRepairs} completed Pocket Mechanic repairs
+          {graph.resolutionRate != null ? ` · ${(graph.resolutionRate * 100).toFixed(0)}% said the original problem was solved` : " · repair-outcome history still building"}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {graph.makeExpertise.slice(0, 6).map((item) => (
+            <Badge key={item.key} tone={item.band === "INSUFFICIENT_DATA" || item.band === "LIMITED_HISTORY" ? "muted" : "accent"}>
+              {item.label}: {bandLabel(item.band)}
+            </Badge>
+          ))}
+          {graph.categoryExpertise.slice(0, 6).map((item) => (
+            <Badge key={item.key} tone="muted">
+              {item.label}: {bandLabel(item.band)} ({item.count})
+            </Badge>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-muted">Organic ranking cannot be purchased. Bands stay hidden behind “insufficient data” until there are enough verified jobs.</p>
       </section>
 
       <section className="mt-8">

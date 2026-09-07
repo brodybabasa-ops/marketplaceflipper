@@ -5,6 +5,7 @@ import { REVENUE_STREAMS } from "../lib/catalog";
 import { computeMechanicScore } from "../services/ranking";
 import { classifyNeed } from "../services/problem-classifier";
 import { attachProviderIndustries, createAutomotiveAsset, createGenericAsset, seedIndustryCatalog } from "../services/assets";
+import { seedVisionLayer } from "./vision-seed";
 
 const prisma = new PrismaClient();
 
@@ -279,6 +280,31 @@ async function main() {
     prisma.recommendedWork.deleteMany(),
     prisma.inspectionFinding.deleteMany(),
     prisma.vehicleInspection.deleteMany(),
+    prisma.scheduleBlock.deleteMany(),
+    prisma.technicianSkill.deleteMany(),
+    prisma.repairOutcome.deleteMany(),
+    prisma.repairWarranty.deleteMany(),
+    prisma.partsQuote.deleteMany(),
+    prisma.waitlistEntry.deleteMany(),
+    prisma.providerResource.deleteMany(),
+    prisma.providerLocation.deleteMany(),
+    prisma.technicianProfile.deleteMany(),
+    prisma.assetDocument.deleteMany(),
+    prisma.assetShare.deleteMany(),
+    prisma.assetPreferredProvider.deleteMany(),
+    prisma.assetTransfer.deleteMany(),
+    prisma.maintenanceItem.deleteMany(),
+    prisma.downtimeEvent.deleteMany(),
+    prisma.fleetAssignment.deleteMany(),
+    prisma.fleetMembership.deleteMany(),
+    prisma.fleetAccount.deleteMany(),
+    prisma.walletLedger.deleteMany(),
+    prisma.walletAccount.deleteMany(),
+    prisma.membership.deleteMany(),
+    prisma.roadsideRequest.deleteMany(),
+    prisma.verificationContent.deleteMany(),
+    prisma.hqAlert.deleteMany(),
+    prisma.priceBenchmark.deleteMany(),
     prisma.verificationEvent.deleteMany(),
     prisma.verificationChecklistItem.deleteMany(),
     prisma.verificationInspection.deleteMany(),
@@ -513,6 +539,8 @@ async function main() {
             cancellationRate: seed.cancel,
             profileCompletePct: 100,
             onboardingStep: 13,
+            verificationPipeline: "NOT_STARTED",
+            operatingModel: seed.mode === "MOBILE" ? "MOBILE_ONLY" : seed.mode === "SHOP" ? "SHOP_ONLY" : "HYBRID",
             specialties: { create: dieselSafeSpecialties(seed.specialties).map((category) => ({ category })) },
             makeExpertise: {
               create: seed.makes.filter((name) => makeByName[name]).map((name) => ({ vehicleMakeId: makeByName[name].id })),
@@ -1315,13 +1343,22 @@ async function main() {
     ],
   });
 
+  await seedVisionLayer(prisma, {
+    passwordHash,
+    alexId: customers[0].id,
+    mikeProfileId: mike.id,
+    mikeUserId: mikeUser.id,
+    sarahProfileId: mechanicProfiles.find((profile) => profile.slug === "precision-auto-care")?.id,
+    marineProfileId: mechanicProfiles.find((profile) => profile.slug === "great-salt-lake-marine")?.id,
+  });
+
   console.log("Seed complete.");
   console.log("Customer:  customer@demo.pocketmechanic.app / Demo1234!");
   console.log("Mechanic:  mechanic@demo.pocketmechanic.app / Demo1234!");
   console.log("Admin:     admin@demo.pocketmechanic.app / Demo1234!");
   console.log("Inspector: inspector@demo.pocketmechanic.app / Demo1234!");
   console.log("Support:   support@demo.pocketmechanic.app / Demo1234!");
-  console.log("Finance:   finance@demo.pocketmechanic.app / Demo1234!");
+  console.log("Fleet:     fleet@demo.pocketmechanic.app / Demo1234!");
   console.log(`Unpaid demo job: /jobs/${unpaidJob.id}/pay`);
   console.log(`Grouped estimate job: /jobs/${groupedJob.id}`);
 }

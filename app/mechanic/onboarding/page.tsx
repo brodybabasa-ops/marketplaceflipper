@@ -1,4 +1,4 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { saveMechanicProfileAction } from "@/app/actions/mechanic";
@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
   const selected = new Set(profile.industries.map((item) => item.industry.key));
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/profile" />
+      <MechanicAppNav current="/mechanic/profile" />
       <h1 className="text-3xl font-bold text-ink">Set up your mechanic profile</h1>
       <p className="mt-2 text-sm text-muted">Profile {profile.profileCompletePct}% complete. Customers see this before they request service.</p>
       <form action={saveMechanicProfileAction} className="mt-6 space-y-4">

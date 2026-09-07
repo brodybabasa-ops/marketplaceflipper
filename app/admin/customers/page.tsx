@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
@@ -17,7 +17,7 @@ export default async function HqCustomersPage() {
   });
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/customers" />
+      <HqAppNav current="/admin/customers" />
       <h1 className="text-3xl font-bold text-ink">Customers</h1>
       <table className="mt-6 min-w-full text-left text-sm">
         <thead className="text-muted">

@@ -121,7 +121,7 @@ export function SiteFooter() {
 const CUSTOMER_BOTTOM = [
   { href: "/home", label: "Home", icon: LayoutDashboard },
   { href: "/vehicles", label: "Garage", icon: Car },
-  { href: "/intake", label: "Get Help", icon: Wrench },
+  { href: "/fix", label: "Fix It", icon: Wrench },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/account", label: "Profile", icon: UserRound },
 ];
@@ -274,7 +274,7 @@ export function AppChrome({
   const path = usePathname();
   const customerApp =
     user?.role === "CUSTOMER" &&
-    ["/home", "/vehicles", "/jobs", "/messages", "/history", "/account", "/request", "/intake", "/saved", "/disputes", "/notifications", "/estimates", "/compare"].some(
+    ["/home", "/vehicles", "/jobs", "/messages", "/history", "/account", "/request", "/intake", "/fix", "/inspect", "/help-now", "/fleet", "/wallet", "/saved", "/disputes", "/notifications", "/estimates", "/compare"].some(
       (item) => path === item || path.startsWith(`${item}/`),
     );
 

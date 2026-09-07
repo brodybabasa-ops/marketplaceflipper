@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { signOutAction } from "@/app/actions/auth";
@@ -15,7 +15,7 @@ export default async function AccountPage() {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/account" /> : null}
+      {session.role === "CUSTOMER" ? <CustomerAppNav current="/account" /> : null}
       <h1 className="text-3xl font-bold text-ink">Profile</h1>
       <Card className="mt-6 p-5">
         <p className="font-semibold text-ink">

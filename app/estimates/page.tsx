@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { RepairGroupEstimate } from "@/components/jobs/repair-group-estimate";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { requireSession } from "@/lib/guards";
@@ -23,7 +23,7 @@ export default async function CustomerEstimatesPage() {
   });
   return (
     <div>
-      <AppNav items={CUSTOMER_NAV} current="/estimates" />
+      <CustomerAppNav current="/estimates" />
       <h1 className="text-3xl font-bold text-ink">Estimates</h1>
       <p className="mt-2 text-sm text-muted">Approve or decline each repair. Approved work cannot be silently changed.</p>
       <div className="mt-6 space-y-4">

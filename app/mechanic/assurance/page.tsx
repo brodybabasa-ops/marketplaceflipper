@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -14,7 +14,7 @@ export default async function MechanicAssurancePage() {
   });
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/assurance" />
+      <MechanicAppNav current="/mechanic/assurance" />
       <h1 className="text-3xl font-bold text-ink">Pocket Assurance</h1>
       <p className="mt-2 text-sm text-muted">Dispute workflow for Pocket Mechanic jobs. This is not insurance.</p>
       <div className="mt-6 space-y-3">

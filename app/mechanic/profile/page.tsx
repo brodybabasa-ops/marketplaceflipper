@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Rating } from "@/components/ui/rating";
@@ -19,7 +19,7 @@ export default async function MechanicProfileSettingsPage() {
   const level = VERIFICATION_LEVELS.find((item) => item.value === profile.verificationLevel);
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/profile" />
+      <MechanicAppNav current="/mechanic/profile" />
       <h1 className="text-3xl font-bold text-ink">{profile.businessName}</h1>
       <p className="mt-2 text-muted">{level?.label}</p>
       <Rating value={profile.averageRating} count={profile.reviewCount} />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
@@ -16,7 +16,7 @@ export default async function MechanicJobsList({ title, href, statuses }: { titl
   });
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current={href} />
+      <MechanicAppNav current={href} />
       <h1 className="text-3xl font-bold text-ink">{title}</h1>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (

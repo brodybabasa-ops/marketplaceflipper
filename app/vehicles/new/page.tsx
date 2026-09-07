@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createGenericAssetAction, createVehicleAction } from "@/app/actions/marketplace";
@@ -27,7 +27,7 @@ export default async function NewVehiclePage({
   if (other) {
     return (
       <div className="mx-auto max-w-xl px-4 py-8">
-        <AppNav items={CUSTOMER_NAV} current="/vehicles" />
+        <CustomerAppNav current="/vehicles" />
         <h1 className="text-3xl font-bold text-ink">Add equipment</h1>
         <p className="mt-2 text-sm text-muted">Boats, bikes, RVs, and machines use the same garage — with the right identifiers for each.</p>
         <form action={createGenericAssetAction} className="mt-6 space-y-4">
@@ -84,7 +84,7 @@ export default async function NewVehiclePage({
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/vehicles" />
+      <CustomerAppNav current="/vehicles" />
       <h1 className="text-3xl font-bold text-ink">Add a vehicle</h1>
       <p className="mt-2 text-sm text-muted">Start with year, make, and model. Everything else is optional.</p>
       <form action={createVehicleAction} className="mt-6 space-y-4">

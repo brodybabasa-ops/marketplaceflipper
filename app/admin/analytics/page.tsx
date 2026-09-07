@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { getPlatformAnalytics } from "@/services/analytics";
@@ -29,7 +29,7 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/analytics" />
+      <HqAppNav current="/admin/analytics" />
       <h1 className="text-3xl font-bold text-ink">Platform analytics</h1>
       <p className="mt-2 text-sm text-muted">Users, jobs, disputes, and marketplace volume. Ranking is never sold.</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Card, EmptyState } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/guards";
@@ -33,7 +33,7 @@ export default async function HistoryPage() {
   const mixed = new Set(assets.map((item) => item.industry.key)).size > 1;
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/history" />
+      <CustomerAppNav current="/history" />
       <h1 className="text-3xl font-bold text-ink">Repair history</h1>
       <p className="mt-2 text-sm text-muted">
         {mixed ? "One service record for everything you own." : "A permanent record on the vehicle, not a paper invoice in the glovebox."}

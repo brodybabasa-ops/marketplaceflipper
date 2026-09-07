@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -11,7 +11,7 @@ export default async function AdminSettingsPage() {
   const config = await prisma.platformConfig.findUnique({ where: { id: "default" } });
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/settings" />
+      <HqAppNav current="/admin/settings" />
       <h1 className="text-3xl font-bold text-ink">Platform settings</h1>
       <Card className="mt-6 space-y-2 p-5 text-sm">
         <p>Marketplace transaction fee: {config?.marketplaceFeePercent ?? 3}%</p>

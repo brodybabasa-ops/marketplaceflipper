@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Card, KpiCard } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
@@ -17,7 +17,7 @@ export default async function HqPaymentsPage() {
   ]);
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/payments" />
+      <HqAppNav current="/admin/payments" />
       <h1 className="text-3xl font-bold text-ink">Payments</h1>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="GMV" value={formatCents(paid._sum.amountCents ?? 0)} />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Badge, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -24,7 +24,7 @@ export default async function AdminVerificationPage() {
   const canInspect = can(session.role, "verification.inspect") || session.role === "ADMIN";
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/verification" />
+      <HqAppNav current="/admin/verification" />
       <h1 className="text-3xl font-bold text-ink">Verification Center</h1>
       <p className="mt-2 text-sm text-muted">
         Pocket Mechanic Verified requires an in-person visit. Founding status and advertising cannot purchase this badge.

@@ -24,6 +24,7 @@ export async function createServiceRequest(input: {
   drivability?: string;
   summary?: string;
   requestKind?: RequestKind;
+  urgencyMode?: "NORMAL" | "URGENT";
 }) {
   const vehicle = input.vehicleId
     ? await prisma.vehicle.findFirst({
@@ -95,6 +96,7 @@ export async function createServiceRequest(input: {
       warningLights: input.warningLights,
       drivability: input.drivability,
       summary: input.summary,
+      urgencyMode: input.urgencyMode ?? "NORMAL",
     },
   });
 
@@ -114,6 +116,7 @@ export async function createServiceRequest(input: {
       vehicleId: vehicle?.id ?? asset?.vehicleId,
       assetId: asset?.id,
       status: "REQUESTED",
+      urgencyMode: input.urgencyMode ?? "NORMAL",
       events: { create: { status: "REQUESTED", note: "Customer requested service." } },
     },
   });
@@ -226,8 +229,10 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       estimates: { include: { lineItems: true, approvals: true, repairGroups: { include: { lineItems: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "asc" } },
       photos: true,
-      repairRecord: true,
+      repairRecord: { include: { warranties: true } },
       review: { include: { response: true } },
+      outcome: true,
+      warranties: true,
       thread: { include: { messages: { include: { sender: true }, orderBy: { createdAt: "asc" } } } },
       disputes: true,
       payments: { orderBy: { createdAt: "desc" } },

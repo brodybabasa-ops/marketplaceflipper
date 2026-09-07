@@ -1,4 +1,4 @@
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { IntakeForm } from "@/components/intake/intake-form";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -27,7 +27,7 @@ export default async function IntakePage({
 
   return (
     <div>
-      <AppNav items={CUSTOMER_NAV} current="/intake" />
+      <CustomerAppNav current="/intake" />
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Issue intake</p>
       <h1 className="mt-2 text-3xl font-bold text-ink">{mixed ? "What’s going on?" : copy.intakePrompt}</h1>
       <p className="mt-2 max-w-xl text-sm text-muted">

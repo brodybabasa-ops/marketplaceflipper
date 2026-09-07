@@ -1,4 +1,4 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { ReviewCard } from "@/components/jobs/review-card";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
@@ -16,7 +16,7 @@ export default async function MechanicReviewsPage() {
   });
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/reviews" />
+      <MechanicAppNav current="/mechanic/reviews" />
       <h1 className="text-3xl font-bold text-ink">Reviews</h1>
       <div className="mt-6 space-y-4">
         {reviews.length === 0 ? (

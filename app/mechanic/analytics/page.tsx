@@ -1,4 +1,4 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -31,7 +31,7 @@ export default async function MechanicAnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/analytics" />
+      <MechanicAppNav current="/mechanic/analytics" />
       <h1 className="text-3xl font-bold text-ink">Performance</h1>
       <p className="mt-2 text-sm text-muted">These numbers feed Pocket Score. Advertising cannot buy a higher rank.</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

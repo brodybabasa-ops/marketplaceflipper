@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
@@ -16,7 +16,7 @@ export default async function CrmTodayPage() {
   const queue = crm.customers.filter((item) => item.nextAction !== "None");
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/customers" />
+      <MechanicAppNav current="/mechanic/customers" />
       <h1 className="text-3xl font-bold text-ink">{queue.length} customers need attention</h1>
       <p className="mt-2 text-sm text-muted">Work one actionable customer at a time.</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { payJobAction } from "@/app/actions/phase2";
@@ -19,7 +19,7 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/jobs" />
+      <CustomerAppNav current="/jobs" />
       <h1 className="text-3xl font-bold text-ink">Pay for this repair</h1>
       <p className="mt-2 text-sm text-muted">
         You pay the approved estimate. Pocket Mechanic’s marketplace fee comes out of the mechanic payout, not as an extra charge on your bill.

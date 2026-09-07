@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
@@ -17,7 +17,7 @@ export default async function MechanicEstimatesPage() {
   });
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/estimates" />
+      <MechanicAppNav current="/mechanic/estimates" />
       <h1 className="text-3xl font-bold text-ink">Estimates</h1>
       <div className="mt-6 space-y-3">
         {estimates.map((estimate) => (

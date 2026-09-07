@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { RepairGroupEstimate } from "@/components/jobs/repair-group-estimate";
@@ -64,7 +64,7 @@ export default async function MechanicJobPage({
 
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/jobs" />
+      <MechanicAppNav current="/mechanic/jobs" />
       <p className="text-sm text-muted">
         {job.customer.firstName} {job.customer.lastName} · {jobAssetLabel(job)}
       </p>

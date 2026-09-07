@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
@@ -14,7 +14,7 @@ export default async function AdminMechanicsPage() {
   });
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/mechanics" />
+      <HqAppNav current="/admin/mechanics" />
       <h1 className="text-3xl font-bold text-ink">Mechanics</h1>
       <div className="mt-6 space-y-3">
         {mechanics.map((mechanic) => (

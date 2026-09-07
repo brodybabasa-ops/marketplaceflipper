@@ -1,4 +1,4 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
@@ -33,7 +33,7 @@ export default async function EarningsPage() {
   const commission = Math.round(gross * ((config?.commissionPercent ?? 10) / 100));
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/earnings" />
+      <MechanicAppNav current="/mechanic/earnings" />
       <h1 className="text-3xl font-bold text-ink">Earnings</h1>
       <p className="mt-2 text-sm text-muted">
         Stripe Connect destination charges: the customer pays the approved total. Pocket Mechanic keeps a configurable

@@ -11,6 +11,7 @@ import {
   type IndustryKey,
 } from "@/lib/catalog";
 import { assetLabel, formatUsage, vehicleLabel } from "@/lib/asset-display";
+import { evaluateMaintenance } from "@/services/maintenance";
 
 const catalogInclude = {
   industry: true,
@@ -270,9 +271,15 @@ export function garageCardCopy(asset: GarageAsset) {
     nickname: asset.nickname,
     usage: formatUsage(asset.usageValue, asset.usageUnit),
     health,
-    upcoming: dueMaintenance(asset.usageValue, asset.usageUnit, []).length
-      ? "Service interval reached"
-      : null,
+    upcoming:
+      evaluateMaintenance({
+        industryKey: asset.industry.key,
+        usageValue: asset.usageValue,
+        usageUnit: asset.usageUnit,
+        createdAt: asset.createdAt,
+      }).some((item) => item.status !== "UPCOMING")
+        ? "Service interval approaching"
+        : null,
     openRecommendations: asset.recommendedWork.length,
     activeRepair: openJob ? openJob.mechanicProfile.businessName : null,
     lastService: lastService?.title ?? null,

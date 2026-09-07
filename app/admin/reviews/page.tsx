@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { hideReviewAction } from "@/app/actions/admin";
 import { requireSession } from "@/lib/guards";
@@ -16,7 +16,7 @@ export default async function AdminReviewsPage() {
   });
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/reviews" />
+      <HqAppNav current="/admin/reviews" />
       <h1 className="text-3xl font-bold text-ink">Reviews</h1>
       <div className="mt-6 space-y-3">
         {reviews.map((review) => (

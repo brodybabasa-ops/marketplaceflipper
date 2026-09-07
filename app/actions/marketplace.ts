@@ -112,7 +112,8 @@ export async function createRequestAction(formData: FormData) {
     startedWhen: formData.get("startedWhen") || undefined,
     warningLights: formData.get("warningLights") || undefined,
     drivability: formData.get("drivability") || undefined,
-    requestKind: formData.get("prePurchase") === "on" ? "PRE_PURCHASE" : "REPAIR",
+    requestKind: formData.get("prePurchase") === "on" ? "PRE_PURCHASE" : formData.get("requestKind") || "REPAIR",
+    urgencyMode: formData.get("urgencyMode") || "NORMAL",
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check your request.");
   const result = await createServiceRequest({
@@ -259,7 +260,7 @@ export async function saveRepairRecordAction(formData: FormData) {
   const jobId = String(formData.get("jobId"));
   const job = await getJobForUser(jobId, session.id, session.role);
   if (!job || job.mechanicUserId !== session.id) throw new Error("Not authorized.");
-  await prisma.repairRecord.upsert({
+  const record = await prisma.repairRecord.upsert({
     where: { jobId },
     update: {
       title: String(formData.get("title")),
@@ -287,5 +288,28 @@ export async function saveRepairRecordAction(formData: FormData) {
       notes: String(formData.get("notes") ?? ""),
     },
   });
+  const warrantySummary = String(formData.get("warrantySummary") ?? "").trim();
+  if (warrantySummary) {
+    const existing = await prisma.repairWarranty.findFirst({ where: { jobId } });
+    if (existing) {
+      await prisma.repairWarranty.update({
+        where: { id: existing.id },
+        data: { title: record.title, laborCoverage: warrantySummary },
+      });
+    } else {
+      await prisma.repairWarranty.create({
+        data: {
+          jobId,
+          repairRecordId: record.id,
+          assetId: job.assetId,
+          mechanicProfileId: job.mechanicProfileId,
+          title: record.title,
+          laborCoverage: warrantySummary,
+          providerName: job.mechanicProfile.businessName,
+        },
+      });
+    }
+  }
   revalidatePath(`/mechanic/jobs/${jobId}`);
+  revalidatePath(`/jobs/${jobId}`);
 }

@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { setAccountStatusAction } from "@/app/actions/admin";
 import { requireSession } from "@/lib/guards";
@@ -11,7 +11,7 @@ export default async function AdminUsersPage() {
   const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 80 });
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/users" />
+      <HqAppNav current="/admin/users" />
       <h1 className="text-3xl font-bold text-ink">Users</h1>
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-card">
         <table className="w-full min-w-[720px] text-left text-sm">

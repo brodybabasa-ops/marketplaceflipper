@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
@@ -19,7 +19,7 @@ export default async function IndustriesHqPage() {
   });
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/industries" />
+      <HqAppNav current="/admin/industries" />
       <h1 className="text-3xl font-bold text-ink">Industries & taxonomy</h1>
       <p className="mt-2 max-w-2xl text-sm text-muted">
         Configurable catalogs — not a rebuild. Automotive remains the consumer default. Add types and inspection templates here as the network grows.

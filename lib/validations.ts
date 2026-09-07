@@ -50,7 +50,8 @@ export const serviceRequestSchema = z
     warningLights: z.string().max(200).optional(),
     drivability: z.string().max(80).optional(),
     summary: z.string().max(500).optional(),
-    requestKind: z.enum(["REPAIR", "MAINTENANCE", "DIAGNOSTIC", "PRE_PURCHASE", "INSPECTION", "FLEET_PM"]).optional(),
+    requestKind: z.enum(["REPAIR", "MAINTENANCE", "DIAGNOSTIC", "PRE_PURCHASE", "INSPECTION", "FLEET_PM", "ROADSIDE"]).optional(),
+    urgencyMode: z.enum(["NORMAL", "URGENT"]).optional(),
   })
   .refine((value) => Boolean(value.vehicleId || value.assetId), { message: "Choose something from your garage." });
 

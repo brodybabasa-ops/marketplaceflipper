@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Badge } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -31,7 +31,7 @@ export default async function JobBoardPage() {
   });
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/board" />
+      <MechanicAppNav current="/mechanic/board" />
       <h1 className="text-3xl font-bold text-ink">Job board</h1>
       <p className="mt-2 text-sm text-muted">Same job truth as the customer sees. Drag-and-drop can wait — open a job to move status.</p>
       <div className="mt-6 flex gap-3 overflow-x-auto pb-4">

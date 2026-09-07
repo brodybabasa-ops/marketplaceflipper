@@ -1,4 +1,4 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
+import { HqAppNav } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
@@ -19,7 +19,7 @@ export default async function MarketplaceHqPage() {
   const coverage = await marketplaceCoverage();
   return (
     <div>
-      <AppNav items={ADMIN_NAV} current="/admin/marketplace" />
+      <HqAppNav current="/admin/marketplace" />
       <h1 className="text-3xl font-bold text-ink">Marketplace health</h1>
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {[

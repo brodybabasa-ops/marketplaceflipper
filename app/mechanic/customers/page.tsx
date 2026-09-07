@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { MechanicAppNav } from "@/components/layout/app-nav";
 import { Badge, Card, KpiCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ export default async function MechanicCustomersPage({
 
   return (
     <div>
-      <AppNav items={MECHANIC_NAV} current="/mechanic/customers" />
+      <MechanicAppNav current="/mechanic/customers" />
       <h1 className="text-3xl font-bold text-ink">Customers</h1>
       <p className="mt-2 text-sm text-muted">Jobs populate this list automatically. You should not have to manage a CRM.</p>
       <Button asChild className="mt-4">

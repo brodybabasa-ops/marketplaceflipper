@@ -3,25 +3,34 @@ import type { UserRole } from "@prisma/client";
 export const CUSTOMER_NAV = [
   { href: "/home", label: "Home" },
   { href: "/vehicles", label: "Garage" },
-  { href: "/intake", label: "Get Help" },
-  { href: "/mechanics", label: "Find a Mechanic" },
+  { href: "/fix", label: "Fix It" },
   { href: "/jobs", label: "Jobs" },
+];
+
+export const CUSTOMER_MORE = [
+  { href: "/inspect", label: "Inspect before buying" },
+  { href: "/help-now", label: "Urgent help" },
   { href: "/estimates", label: "Estimates" },
-  { href: "/saved", label: "Saved" },
   { href: "/messages", label: "Messages" },
   { href: "/history", label: "History" },
+  { href: "/fleet", label: "Fleet" },
+  { href: "/wallet", label: "Wallet" },
   { href: "/account", label: "Profile" },
 ];
 
 export const MECHANIC_NAV = [
-  { href: "/mechanic", label: "Dashboard" },
+  { href: "/mechanic", label: "Attention" },
   { href: "/mechanic/requests", label: "Requests" },
-  { href: "/mechanic/board", label: "Job Board" },
-  { href: "/mechanic/schedule", label: "Schedule" },
-  { href: "/mechanic/messages", label: "Messages" },
+  { href: "/mechanic/jobs", label: "Jobs" },
   { href: "/mechanic/customers", label: "Customers" },
-  { href: "/mechanic/estimates", label: "Estimates" },
+  { href: "/mechanic/schedule", label: "Schedule" },
   { href: "/mechanic/earnings", label: "Payments" },
+];
+
+export const MECHANIC_MORE = [
+  { href: "/mechanic/board", label: "Job board" },
+  { href: "/mechanic/messages", label: "Messages" },
+  { href: "/mechanic/estimates", label: "Estimates" },
   { href: "/mechanic/analytics", label: "Performance" },
   { href: "/mechanic/profile", label: "Profile" },
   { href: "/mechanic/assurance", label: "Pocket Assurance" },
@@ -29,17 +38,21 @@ export const MECHANIC_NAV = [
   { href: "/mechanic/help", label: "Help" },
 ];
 
-export const MECHANIC_SIDEBAR = MECHANIC_NAV;
+export const MECHANIC_SIDEBAR = [...MECHANIC_NAV, ...MECHANIC_MORE];
 
 export const HQ_NAV = [
-  { href: "/admin", label: "Dashboard" },
+  { href: "/admin", label: "Attention" },
   { href: "/admin/marketplace", label: "Marketplace" },
-  { href: "/admin/industries", label: "Industries" },
   { href: "/admin/customers", label: "Customers" },
   { href: "/admin/mechanics", label: "Providers" },
   { href: "/admin/verification", label: "Verification" },
   { href: "/admin/jobs", label: "Jobs" },
   { href: "/admin/disputes", label: "Pocket Assurance" },
+];
+
+export const HQ_MORE = [
+  { href: "/admin/recruiting", label: "Providers needed" },
+  { href: "/admin/industries", label: "Industries" },
   { href: "/admin/payments", label: "Payments" },
   { href: "/admin/reviews", label: "Reviews & Trust" },
   { href: "/admin/support", label: "Support" },
@@ -52,18 +65,18 @@ export const HQ_NAV = [
 export const ADMIN_NAV = HQ_NAV;
 
 export function hqNavFor(role: UserRole) {
-  if (role === "ADMIN") return HQ_NAV;
+  const all = [...HQ_NAV, ...HQ_MORE];
+  if (role === "ADMIN") return all;
   if (role === "INSPECTOR") {
-    return HQ_NAV.filter((item) => ["/admin", "/admin/mechanics", "/admin/verification", "/admin/jobs"].includes(item.href));
+    return all.filter((item) => ["/admin", "/admin/mechanics", "/admin/verification", "/admin/jobs"].includes(item.href));
   }
   if (role === "FINANCE") {
-    return HQ_NAV.filter((item) => ["/admin", "/admin/jobs", "/admin/payments", "/admin/analytics"].includes(item.href));
+    return all.filter((item) => ["/admin", "/admin/jobs", "/admin/payments", "/admin/analytics"].includes(item.href));
   }
   if (role === "SUPPORT") {
-    return HQ_NAV.filter((item) =>
+    return all.filter((item) =>
       ["/admin", "/admin/marketplace", "/admin/customers", "/admin/mechanics", "/admin/jobs", "/admin/disputes", "/admin/support"].includes(item.href),
     );
   }
-  return HQ_NAV;
+  return all;
 }
-

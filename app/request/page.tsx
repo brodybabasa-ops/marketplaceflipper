@@ -1,4 +1,4 @@
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav } from "@/components/layout/app-nav";
 import { IntakeForm } from "@/components/intake/intake-form";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -25,7 +25,7 @@ export default async function RequestPage({
   const copy = industryByKey(defaultAsset?.industry.key ?? "AUTOMOTIVE");
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/request" />
+      <CustomerAppNav current="/request" />
       <h1 className="text-3xl font-bold text-ink">{copy.intakePrompt}</h1>
       <p className="mt-2 text-sm text-muted">Use everyday language. Pocket Mechanic matches providers — it does not diagnose.</p>
       {assets.length ? (
