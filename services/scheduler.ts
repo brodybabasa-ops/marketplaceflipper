@@ -118,12 +118,15 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
   );
 
   const enrichedBlocks = blocks.map((block) => {
-    const risk = delayRisk({
-      endsAt: block.endsAt,
-      now,
-      jobStatus: block.job?.status,
-      promisedReadyAt: block.job?.promisedReadyAt,
-    });
+    const workLike = ["WORK", "QC", "ROAD_TEST", "WATER_TEST"].includes(block.kind);
+    const risk = workLike
+      ? delayRisk({
+          endsAt: block.endsAt,
+          now,
+          jobStatus: block.job?.status,
+          promisedReadyAt: block.job?.promisedReadyAt,
+        })
+      : { behind: false, promiseAtRisk: false, scheduleStatus: "ON_TRACK" as const, minutesBehind: 0 };
     const durationMin = Math.max(15, minutesBetween(block.startsAt, block.endsAt));
     const checkIn = checkInState({
       now,
