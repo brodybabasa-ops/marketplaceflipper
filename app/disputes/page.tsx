@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav, MechanicAppNav } from "@/components/layout/app-nav";
 import { Card, EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -15,7 +15,7 @@ export default async function DisputesPage() {
   });
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={session.role === "MECHANIC" ? MECHANIC_NAV : CUSTOMER_NAV} current="/disputes" />
+      {session.role === "MECHANIC" ? <MechanicAppNav current="/disputes" /> : <CustomerAppNav current="/disputes" />}
       <h1 className="text-3xl font-bold text-ink">Disputes</h1>
       <p className="mt-2 text-sm text-muted">
         A case gathers the job, estimate, approvals, messages, photos, and repair record for admin review.

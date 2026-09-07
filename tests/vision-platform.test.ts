@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { assistIntake } from "../lib/intake-assistant";
-import { expertiseBand, matchExplanation } from "../services/trust-graph";
+import { expertiseBand, matchExplanation, repairConfidence } from "../services/trust-graph";
 import { evaluateMaintenance } from "../services/maintenance";
 import { operatingViews, resolveOperatingModel, operatingModelFromForm } from "../lib/operating-model";
 import { totalsForGroups } from "../services/repair-groups";
@@ -51,6 +51,21 @@ test("authorization math stays canonical after vision work", () => {
     { status: "APPROVED", totalCents: 12900 },
   ]);
   assert.equal(totals.authorizedCents, 80900);
+});
+
+test("matching never invents a percentage when similar-repair history is thin", () => {
+  const explanation = matchExplanation({ reasons: ["Pocket Mechanic Verified", "4.9 rating", "3 miles away"], completedSimilar: 1 });
+  assert.ok(explanation.precisionNote);
+  assert.doesNotMatch(explanation.chips.join(" "), /%/);
+});
+
+test("repair confidence withholds a label without evidence and is never a guarantee", () => {
+  const weak = repairConfidence({ similarCompleted: 1, hasInspectionPhotos: false, priceInRange: null, resolutionRate: null });
+  assert.equal(weak.level, null);
+  assert.match(weak.note, /never a guarantee/i);
+  const strong = repairConfidence({ similarCompleted: 62, hasInspectionPhotos: true, priceInRange: true, resolutionRate: 0.97 });
+  assert.equal(strong.level, "HIGH");
+  assert.match(strong.note, /not a guarantee/i);
 });
 
 test("fair price withholds a range when there is no comparable set", () => {

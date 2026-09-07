@@ -52,6 +52,7 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
           {mechanic.reasons.length ? (
             <p className="mt-2 text-xs text-muted">{mechanic.reasons.join(" · ")}</p>
           ) : null}
+          {mechanic.precisionNote ? <p className="mt-1 text-xs text-muted">{mechanic.precisionNote}</p> : null}
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -76,7 +77,7 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
             <Link href={profileHref}>View Profile</Link>
           </Button>
           <Button asChild variant="secondary">
-            <Link href={`/intake?mechanic=${mechanic.id}`}>Request Service</Link>
+            <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It</Link>
           </Button>
           <form action={addToCompareAction}>
             <input type="hidden" name="mechanicProfileId" value={mechanic.id} />

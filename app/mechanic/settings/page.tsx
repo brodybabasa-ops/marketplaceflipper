@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { updateNotificationPrefsAction } from "@/app/actions/phase2";
 import { saveOperatingModelAction } from "@/app/actions/vision";
 import { resolveOperatingModel, operatingViews } from "@/lib/operating-model";
+import { FutureSurface } from "@/components/ui/vision";
 
 export const metadata = { title: "Settings" };
 
@@ -78,6 +79,12 @@ export default async function MechanicSettingsPage() {
           <Button type="submit">Save preferences</Button>
         </form>
       </Card>
+      <div className="mt-6">
+        <FutureSurface
+          title="Technician profiles"
+          body="Individual technicians can eventually carry verified repair history between shops, subject to privacy rules. Reputation cannot be purchased. Recruiting stays a separate business line."
+        />
+      </div>
     </div>
   );
 }

@@ -7,12 +7,16 @@ import { updateNotificationPrefsAction } from "@/app/actions/phase2";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { prisma } from "@/lib/db";
+import { FutureSurface } from "@/components/ui/vision";
+import { isVisionDemoEnabled } from "@/lib/vision";
+import { visionFixtures } from "@/lib/vision-fixtures";
 
 export const metadata = { title: "Profile" };
 
 export default async function AccountPage() {
   const session = await requireSession();
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
+  const fixtures = session.role === "CUSTOMER" && isVisionDemoEnabled() ? visionFixtures() : null;
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       {session.role === "CUSTOMER" ? <CustomerAppNav current="/account" /> : null}
@@ -28,6 +32,7 @@ export default async function AccountPage() {
             <Link href="/saved">Saved mechanics</Link>
             <Link href="/disputes">Disputes</Link>
             <Link href="/history">Repair history</Link>
+            <Link href="/wallet">Wallet</Link>
           </div>
         ) : null}
       </Card>
@@ -52,6 +57,26 @@ export default async function AccountPage() {
           <Button type="submit">Save preferences</Button>
         </form>
       </Card>
+      {session.role === "CUSTOMER" ? (
+        <div className="mt-6 space-y-4">
+          <FutureSurface
+            title="Family Garage"
+            body="Household members can share Assets with controlled permissions for appointments, estimates, payments, and history. Core trust features stay available without a paid membership."
+          />
+          <FutureSurface
+            title="Optional membership"
+            body="Priority support, roadside routing, and enhanced reports could sit here later. Pocket Mechanic Verified, matching, and service history are not paywalled."
+          >
+            {fixtures ? (
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+                {fixtures.membershipBenefits.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </FutureSurface>
+        </div>
+      ) : null}
       <form action={signOutAction} className="mt-6">
         <Button type="submit" variant="secondary">
           Sign out

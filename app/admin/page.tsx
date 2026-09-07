@@ -6,7 +6,6 @@ import { getHqDashboard } from "@/services/hq";
 import { hqAttentionCenter } from "@/services/attention";
 import { formatCents } from "@/lib/money";
 import { staffRoles } from "@/lib/permissions";
-import { DemoBanner } from "@/components/ui/vision";
 
 export const metadata = { title: "HQ Attention Center" };
 

@@ -109,6 +109,33 @@ export function matchExplanation(input: {
   };
 }
 
+export function repairConfidence(input: {
+  similarCompleted: number;
+  hasInspectionPhotos: boolean;
+  priceInRange: boolean | null;
+  resolutionRate: number | null;
+}) {
+  const why: string[] = [];
+  if (input.similarCompleted >= 8) why.push(`Provider completed ${input.similarCompleted} similar verified repairs`);
+  if (input.hasInspectionPhotos) why.push("Inspection includes supporting photos");
+  if (input.priceInRange) why.push("Estimate falls within typical local range");
+  if (input.resolutionRate != null && input.resolutionRate >= 0.9 && input.similarCompleted >= 8) {
+    why.push("Provider has a strong repair-resolution history");
+  }
+  if (why.length < 2) {
+    return {
+      level: null as const,
+      why,
+      note: "Not enough evidence yet to show a repair-confidence label. This is never a guarantee.",
+    };
+  }
+  return {
+    level: why.length >= 3 ? ("HIGH" as const) : ("MODERATE" as const),
+    why,
+    note: "Repair confidence explains the evidence on this job. It is not a guarantee.",
+  };
+}
+
 export async function similarRepairCount(mechanicProfileId: string, category: ServiceCategory, manufacturer?: string | null) {
   return prisma.job.count({
     where: {

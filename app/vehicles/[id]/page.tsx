@@ -110,6 +110,14 @@ export default async function GarageItemPage({
           {asset.preferredProviders[0] ? (
             <p className="text-sm text-muted">My mechanic: {asset.preferredProviders[0].mechanic.businessName}</p>
           ) : null}
+          <FutureSurface
+            title="Recalls & campaigns"
+            body="When manufacturer data is connected, Pocket Mechanic will surface recalls, service campaigns, and repairs that may be covered at no charge. Trust beats monetizing every job. No recall feed is connected yet."
+          />
+          <FutureSurface
+            title="Should I fix this?"
+            body="Repair vs replace needs a legitimate valuation partner plus verified repair costs and upcoming maintenance. Pocket Mechanic will explain the tradeoff — it will not make an absolute decision or invent a value."
+          />
         </div>
       ) : null}
 

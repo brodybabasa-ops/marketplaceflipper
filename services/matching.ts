@@ -1,6 +1,7 @@
 import type { ServiceCategory, ServiceMode, VerificationLevel } from "@prisma/client";
 import { haversineMiles, type Coordinates } from "@/lib/geo";
 import { compareMechanics, type MechanicSort } from "@/services/ranking";
+import { matchExplanation } from "@/services/trust-graph";
 
 export type MatchableMechanic = {
   id: string;
@@ -38,6 +39,7 @@ export type MechanicMatch = MatchableMechanic & {
   distanceMiles: number;
   reasons: string[];
   isBestMatch: boolean;
+  precisionNote: string | null;
 };
 
 export type MatchFilters = {
@@ -146,12 +148,24 @@ export function matchMechanics(mechanics: MatchableMechanic[], filters: MatchFil
     });
 
   const ranked = filtered
-    .map(({ mechanic, distanceMiles }) => ({
-      ...mechanic,
-      distanceMiles,
-      reasons: recommendationReasons(mechanic, distanceMiles, filters),
-      isBestMatch: false,
-    }))
+    .map(({ mechanic, distanceMiles }) => {
+      const reasons = recommendationReasons(mechanic, distanceMiles, filters);
+      const explanation = matchExplanation({
+        reasons,
+        verified: Boolean(verificationLabel(mechanic.verificationLevel, filters.industryKey, mechanic.verifiedIndustryKeys)),
+        select: mechanic.isSelect,
+        rating: mechanic.averageRating,
+        distanceMiles,
+        responseMinutes: mechanic.avgResponseMinutes,
+      });
+      return {
+        ...mechanic,
+        distanceMiles,
+        reasons: explanation.chips,
+        precisionNote: explanation.precisionNote,
+        isBestMatch: false,
+      };
+    })
     .sort(compareMechanics(sort));
 
   const bestCount = Math.min(3, ranked.length);

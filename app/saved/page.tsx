@@ -53,6 +53,7 @@ export default async function SavedPage() {
                     distanceMiles: origin ? haversineMiles(origin, mechanic) : 0,
                     reasons: [],
                     isBestMatch: false,
+                    precisionNote: null,
                   }}
                 />
                 <form action={toggleSavedMechanicAction} className="mt-2">

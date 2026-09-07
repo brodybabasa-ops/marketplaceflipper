@@ -102,6 +102,7 @@ export default async function MechanicsSearchPage({
                           <li key={reason}>✓ {reason}</li>
                         ))}
                       </ul>
+                      {mechanic.precisionNote ? <p className="mt-3 text-xs text-muted">{mechanic.precisionNote}</p> : null}
                     </Card>
                   ) : null}
                 </div>

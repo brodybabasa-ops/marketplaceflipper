@@ -11,6 +11,7 @@ import { applyVerificationAction } from "@/app/actions/master";
 import { providerAttention } from "@/services/attention";
 import { getMechanicCrm } from "@/services/crm";
 import { resolveOperatingModel, operatingViews } from "@/lib/operating-model";
+import { FutureSurface } from "@/components/ui/vision";
 
 export const metadata = { title: "What needs my attention?" };
 
@@ -124,6 +125,12 @@ export default async function MechanicDashboardPage() {
           ))}
         </div>
       </section>
+      <div className="mt-10">
+        <FutureSurface
+          title="Pocket Mechanic AI — provider"
+          body="An advisor can later summarize inspections, turn tech notes into customer language, and surface declined work. AI assists. The provider remains responsible for diagnosis and repair decisions."
+        />
+      </div>
     </div>
   );
 }

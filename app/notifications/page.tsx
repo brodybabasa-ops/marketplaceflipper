@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV, MECHANIC_NAV } from "@/components/layout/app-nav";
+import { CustomerAppNav, MechanicAppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState } from "@/components/ui/card";
 import { markNotificationsReadAction } from "@/app/actions/phase2";
@@ -17,7 +17,7 @@ export default async function NotificationsPage() {
   });
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <AppNav items={session.role === "MECHANIC" ? MECHANIC_NAV : CUSTOMER_NAV} current="/notifications" />
+      {session.role === "MECHANIC" ? <MechanicAppNav current="/notifications" /> : <CustomerAppNav current="/notifications" />}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-bold text-ink">Notifications</h1>
         <form action={markNotificationsReadAction}>

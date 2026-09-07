@@ -16,6 +16,9 @@ import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
 import { jobAssetLabel, jobUsageLabel } from "@/lib/asset-display";
 import { fairPriceFor } from "@/services/price-intel";
+import { repairConfidence, similarRepairCount } from "@/services/trust-graph";
+import { FutureSurface } from "@/components/ui/vision";
+import { prisma } from "@/lib/db";
 import Link from "next/link";
 
 export const metadata = { title: "Job" };
@@ -34,6 +37,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         estimateCents: priced.totalCents,
       })
     : null;
+  const manufacturer = job.asset?.manufacturer ?? job.vehicle?.make?.name ?? null;
+  const similarCompleted = await similarRepairCount(job.mechanicProfileId, job.serviceRequest.category, manufacturer);
+  const outcomes = await prisma.repairOutcome.count({ where: { mechanicProfileId: job.mechanicProfileId } });
+  const resolved = await prisma.repairOutcome.count({
+    where: { mechanicProfileId: job.mechanicProfileId, resolved: "YES" },
+  });
+  const confidence = repairConfidence({
+    similarCompleted,
+    hasInspectionPhotos: job.photos.length > 0,
+    priceInRange: priceIntel && "within" in priceIntel ? priceIntel.within : null,
+    resolutionRate: outcomes ? resolved / outcomes : null,
+  });
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       {session.role === "CUSTOMER" ? <CustomerAppNav current="/jobs" /> : null}
@@ -90,6 +105,36 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </Card>
           ) : priceIntel && !priceIntel.available ? (
             <p className="text-xs text-muted">{priceIntel.reason}</p>
+          ) : null}
+          {priced ? (
+            <Card className="p-5">
+              <h2 className="font-semibold text-ink">Repair confidence</h2>
+              {confidence.level ? (
+                <>
+                  <p className="mt-2 text-sm font-semibold uppercase tracking-[0.12em] text-accent">{confidence.level}</p>
+                  <ul className="mt-2 space-y-1 text-sm text-muted">
+                    {confidence.why.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-muted">{confidence.note}</p>
+              )}
+              {confidence.level ? <p className="mt-2 text-xs text-muted">{confidence.note}</p> : null}
+            </Card>
+          ) : null}
+          {priced ? (
+            <FutureSurface
+              title="Financing"
+              body="Pay now or view offers from regulated partners at authorization. Pocket Mechanic is not the lender. Financing is tracked separately from repair approval."
+            />
+          ) : null}
+          {job.authorizations.length ? (
+            <FutureSurface
+              title="Source parts"
+              body="After approval, providers can source OEM, premium, or economy parts using this asset’s identifiers. Availability is not shown until a parts partner is connected."
+            />
           ) : null}
           <JobPhotoGallery photos={job.photos} jobId={job.id} canUpload />
           {job.repairRecord ? (

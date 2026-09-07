@@ -12,6 +12,7 @@ export const CUSTOMER_MORE = [
   { href: "/help-now", label: "Urgent help" },
   { href: "/estimates", label: "Estimates" },
   { href: "/messages", label: "Messages" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/history", label: "History" },
   { href: "/fleet", label: "Fleet" },
   { href: "/wallet", label: "Wallet" },
@@ -30,6 +31,7 @@ export const MECHANIC_NAV = [
 export const MECHANIC_MORE = [
   { href: "/mechanic/board", label: "Job board" },
   { href: "/mechanic/messages", label: "Messages" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/mechanic/estimates", label: "Estimates" },
   { href: "/mechanic/analytics", label: "Performance" },
   { href: "/mechanic/profile", label: "Profile" },

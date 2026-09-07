@@ -18,11 +18,11 @@ export default async function LandingPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">{BRAND_TAGLINE}</p>
           <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight md:text-6xl">{TAGLINE}</h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
-            Tell us what’s happening with your vehicle and Pocket Mechanic will help you find the right person for the job.
-            No automotive jargon required.
+            Tell us what’s happening. Pocket Mechanic helps get it fixed — cars, boats, bikes, RVs, and equipment.
+            You don’t need to know what is wrong.
           </p>
           <Card className="mx-auto mt-10 max-w-2xl p-5 text-left">
-            <p className="text-sm font-semibold text-ink">What’s going on with your vehicle?</p>
+            <p className="text-sm font-semibold text-ink">What’s going on?</p>
             <HeroSearch />
             <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted">
               <span className="inline-flex items-center gap-1">
@@ -68,9 +68,12 @@ export default async function LandingPage() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/intake">Get help</Link>
+            <Link href="/fix">Fix It</Link>
           </Button>
           <Button asChild variant="secondary">
+            <Link href="/mechanics">Find a mechanic</Link>
+          </Button>
+          <Button asChild variant="ghost">
             <Link href="/for-mechanics">I’m a mechanic</Link>
           </Button>
         </div>
