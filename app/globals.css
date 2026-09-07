@@ -77,9 +77,9 @@ body {
 .pm-now-line {
   pointer-events: none;
   z-index: 20;
-  height: 2px;
-  background: #ef4444;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.55);
+  height: 0;
+  border-top: 2px dashed #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
 .pm-job-active {

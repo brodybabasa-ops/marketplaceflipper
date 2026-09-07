@@ -243,6 +243,13 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
     utilization: shopCapacity.pct,
     waitingCustomers: jobs.filter((job) => job.customerWaiting).length,
     arrivingSoon: enrichedBlocks.filter((block) => block.checkIn === "ARRIVING_SOON").length,
+    averageHours: (() => {
+      const work = enrichedBlocks.filter((block) => ["WORK", "QC"].includes(block.kind));
+      if (!work.length) return 0;
+      return Math.round((work.reduce((sum, block) => sum + block.durationMin, 0) / work.length / 60) * 10) / 10;
+    })(),
+    technicianCount: techs.filter((tech) => tech.id !== "solo" || profile.technicianProfiles.length === 0).length,
+    onSite: 0,
   };
 
   const arrivals = enrichedBlocks
@@ -284,6 +291,7 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
       off,
     };
   });
+  header.onSite = techRows.filter((tech) => !tech.off).length;
 
   const upcoming = jobs
     .filter((job) => job.scheduledAt && job.scheduledAt >= end && job.scheduledAt.getTime() < end.getTime() + 7 * 86400000)

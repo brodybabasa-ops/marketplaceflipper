@@ -89,6 +89,12 @@ function clock(value: Date) {
   return value.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+function hourLabel(hour: number) {
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const h = hour % 12 || 12;
+  return `${h}:00 ${suffix}`;
+}
+
 function snapMinutes(min: number, step: number) {
   return Math.round(min / step) * step;
 }
@@ -110,6 +116,7 @@ export function CommandBoard({
   monthDays,
   fillOpenHours,
   jobs,
+  view = "day",
 }: {
   date: string;
   shopStart: number;
@@ -128,6 +135,9 @@ export function CommandBoard({
     utilization: number;
     waitingCustomers: number;
     arrivingSoon: number;
+    averageHours: number;
+    technicianCount: number;
+    onSite: number;
   };
   attention: { href: string; label: string; tone: string; filter?: string; blockId?: string | null }[];
   techs: CommandTech[];
@@ -139,17 +149,18 @@ export function CommandBoard({
   monthDays: { date: string; pct: number }[];
   fillOpenHours: number;
   jobs: { id: string; label: string }[];
+  view?: string;
 }) {
   const router = useRouter();
   const scroller = useRef<HTMLDivElement>(null);
   const nowLine = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => new Date());
   const [density, setDensity] = useState<Density>("standard");
-  const [colorMode, setColorMode] = useState<ColorMode>("status");
-  const [laneMode, setLaneMode] = useState<"techs" | "bays">(showBays && !showTravel ? "techs" : "techs");
+  const [colorMode, setColorMode] = useState<ColorMode>("type");
+  const [laneMode, setLaneMode] = useState<"techs" | "bays" | "combined">(showBays ? "combined" : "techs");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
-  const [legendOpen, setLegendOpen] = useState(true);
   const [composer, setComposer] = useState<{ hour: number; minute: number; laneId: string; kind?: string } | null>(null);
   const [toast, setToast] = useState<{ text: string; undo?: { id: string; startsAt: string; endsAt: string; technicianProfileId: string | null; resourceId: string | null } } | null>(null);
   const [conflict, setConflict] = useState<{ message: string; retry: FormData } | null>(null);
@@ -221,31 +232,34 @@ export function CommandBoard({
   }, [router, shopStart, techs]);
 
   const lanes = useMemo(() => {
-    if (laneMode === "bays" && resources.length) {
-      return resources.map((item) => ({
-        id: item.id,
-        name: item.name,
-        subtitle: item.kind.replaceAll("_", " ").toLowerCase(),
-        kind: "resource" as const,
-        pct: null as number | null,
-        current: (() => {
-          const liveTitle = cards.find((card) => card.resourceId === item.id && new Date(card.startsAt) <= now && new Date(card.endsAt) > now)?.title;
-          return liveTitle ? displayTitle(liveTitle) : null;
-        })(),
-        off: false,
-        hours: "",
-      }));
-    }
-    return techs.map((tech) => ({
+    const techLanes = techs.map((tech) => ({
       id: tech.id,
-      name: tech.name,
-      subtitle: tech.off ? "Time off" : tech.currentTitle ? `Current: ${tech.currentTitle}` : tech.title || tech.duty.replaceAll("_", " ").toLowerCase(),
+      name: tech.name.split(" ")[0] ?? tech.name,
+      fullName: tech.name,
+      subtitle: tech.off ? "Time off" : tech.title || tech.duty.replaceAll("_", " ").toLowerCase(),
       kind: "tech" as const,
       pct: tech.pct,
       current: tech.currentTitle,
       off: tech.off,
       hours: `${tech.hoursStart}–${tech.hoursEnd}`,
     }));
+    const bayLanes = resources.map((item) => ({
+      id: item.id,
+      name: item.name,
+      fullName: item.name,
+      subtitle: item.kind.replaceAll("_", " ").toLowerCase(),
+      kind: "resource" as const,
+      pct: null as number | null,
+      current: (() => {
+        const liveTitle = cards.find((card) => card.resourceId === item.id && new Date(card.startsAt) <= now && new Date(card.endsAt) > now)?.title;
+        return liveTitle ? displayTitle(liveTitle) : null;
+      })(),
+      off: false,
+      hours: "",
+    }));
+    if (laneMode === "bays" && bayLanes.length) return bayLanes;
+    if (laneMode === "combined" && bayLanes.length) return [...techLanes, ...bayLanes];
+    return techLanes;
   }, [laneMode, resources, techs, cards, now]);
 
   const visibleCards = cards.filter((card) => {
@@ -359,34 +373,39 @@ export function CommandBoard({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">Live operations</p>
-          <h1 className="mt-1 text-3xl font-bold text-ink">How the operation is running</h1>
+          <h1 className="text-3xl font-bold text-ink">Schedule</h1>
           <p className="mt-1 text-sm text-muted">
-            {showTravel && !showBays ? "You travel to customers / assets." : showBays && !showTravel ? "Customers bring assets to your location." : "Shop and off-site work."}{" "}
-            Pocket Mechanic never silently auto-books or rearranges confirmed work.
+            {showTravel && !showBays
+              ? "Manage appointments, jobs, and field workload."
+              : "Manage appointments, jobs, and technician workload."}
           </p>
         </div>
-        <LiveClock now={now} />
+        <div className="flex items-center gap-3">
+          <LiveClock now={now} />
+          <Button type="button" onClick={() => setComposer({ hour: shopStart, minute: 0, laneId: techs[0]?.id ?? "solo" })}>
+            + New Appointment
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
-        <Metric label="Appointments" value={header.appointments} />
-        <Metric label="In progress" value={header.inProgress} tone="success" />
-        <Metric label="Waiting on parts" value={header.waitingOnParts} tone="warning" />
-        <Metric label="Waiting approval" value={header.awaitingApproval} tone="warning" />
-        <Metric label="Running late" value={header.behind} tone="danger" />
-        <Metric label="Ready" value={header.ready} tone="success" />
-        <Metric label="Arriving soon" value={header.arrivingSoon} />
-        <Metric label="Shop utilization" value={`${header.utilization}%`} hint={`${header.openHours}h open`} />
-        <Metric label="Est. revenue" value={moneyLabel(header.expectedCents) || "—"} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Metric label="Today’s Appointments" value={header.appointments} />
+        <Metric label="Jobs In Progress" value={header.inProgress} tone="success" />
+        <Metric label="Average Job Time" value={`${header.averageHours || 0} hrs`} />
+        <Metric label="Shop Utilization" value={`${header.utilization}%`}>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-navy-soft">
+            <div className={cn("h-full rounded-full", header.utilization > 100 ? "bg-danger" : header.utilization > 85 ? "bg-warning" : "bg-success")} style={{ width: `${Math.min(100, header.utilization)}%` }} />
+          </div>
+        </Metric>
+        <Metric label="Technicians" value={header.technicianCount || techs.length} hint={`${header.onSite} on site`} />
       </div>
 
       {attention.length ? (
         <div className="flex flex-wrap gap-2">
           <span className="self-center text-[11px] font-semibold uppercase tracking-[0.14em] text-warning">Needs attention</span>
-          {attention.slice(0, 8).map((item) => (
+          {attention.slice(0, 5).map((item) => (
             <button
               key={item.href + item.label}
               type="button"
@@ -406,77 +425,102 @@ export function CommandBoard({
         <Button asChild size="sm" variant={date === todayKey ? "primary" : "secondary"}>
           <Link href="/mechanic/schedule">Today</Link>
         </Button>
+        <Button asChild size="sm" variant="secondary">
+          <Link href={`/mechanic/schedule?date=${shiftDate(date, -1)}`} aria-label="Previous day">
+            ‹
+          </Link>
+        </Button>
+        <span className="min-w-40 text-center text-sm font-semibold text-ink">
+          {new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+        </span>
+        <Button asChild size="sm" variant="secondary">
+          <Link href={`/mechanic/schedule?date=${shiftDate(date, 1)}`} aria-label="Next day">
+            ›
+          </Link>
+        </Button>
         <Button size="sm" variant="secondary" type="button" onClick={scrollNow}>
           Now
         </Button>
-        <Button asChild size="sm" variant="secondary">
-          <Link href={`/mechanic/schedule?date=${shiftDate(date, -1)}`}>Previous</Link>
-        </Button>
-        <Button asChild size="sm" variant="secondary">
-          <Link href={`/mechanic/schedule?date=${shiftDate(date, 1)}`}>Next</Link>
-        </Button>
-        <span className="text-sm font-semibold text-ink">
-          {new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
-        </span>
+        <div className="flex rounded-xl border border-line bg-navy/40 p-0.5">
+          {(["day", "week", "month", "list"] as const).map((item) => (
+            <Link
+              key={item}
+              href={`/mechanic/schedule?date=${date}&view=${item}`}
+              className={cn("rounded-lg px-3 py-1.5 text-xs font-semibold capitalize", view === item ? "bg-accent text-white" : "text-muted hover:text-ink")}
+            >
+              {item}
+            </Link>
+          ))}
+          {showTravel && !showBays ? (
+            <Link href={`/mechanic/schedule?date=${date}&view=routes`} className={cn("rounded-lg px-3 py-1.5 text-xs font-semibold", view === "routes" ? "bg-accent text-white" : "text-muted hover:text-ink")}>
+              Routes
+            </Link>
+          ) : null}
+        </div>
         <span className="ml-auto" />
-        {filter !== "all" ? (
-          <Button size="sm" variant="secondary" type="button" onClick={() => setFilter("all")}>
-            Clear filters
-          </Button>
-        ) : null}
-        <Select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-9 w-40">
-          <option value="all">All work</option>
-          <option value="late">Running late</option>
-          <option value="waiting">Waiting</option>
-          <option value="parts">Parts</option>
-          <option value="marketplace">Marketplace</option>
-          {showTravel ? <option value="mobile">Mobile / field</option> : null}
-          <option value="fleet">Fleet</option>
-        </Select>
-        <Select
-          value={colorMode}
-          onChange={(event) => {
-            const value = event.target.value as ColorMode;
-            setColorMode(value);
-            window.localStorage.setItem("pm-schedule-color", value);
-          }}
-          className="h-9 w-40"
-        >
-          <option value="status">Color by status</option>
-          <option value="type">Color by service</option>
-        </Select>
-        <Select
-          value={density}
-          onChange={(event) => {
-            const value = event.target.value as Density;
-            setDensity(value);
-            window.localStorage.setItem("pm-schedule-density", value);
-          }}
-          className="h-9 w-32"
-        >
-          <option value="compact">Compact</option>
-          <option value="standard">Standard</option>
-          <option value="detailed">Detailed</option>
-        </Select>
+        <Button size="sm" variant="secondary" type="button" onClick={() => setFiltersOpen((open) => !open)}>
+          Filters
+        </Button>
         {showBays ? (
           <div className="flex rounded-xl border border-line">
+            <button type="button" className={cn("px-3 py-1.5 text-xs font-semibold", laneMode === "combined" ? "bg-accent text-white" : "text-muted")} onClick={() => setLaneMode("combined")}>
+              All
+            </button>
             <button type="button" className={cn("px-3 py-1.5 text-xs font-semibold", laneMode === "techs" ? "bg-accent text-white" : "text-muted")} onClick={() => setLaneMode("techs")}>
               Technicians
             </button>
             <button type="button" className={cn("px-3 py-1.5 text-xs font-semibold", laneMode === "bays" ? "bg-accent text-white" : "text-muted")} onClick={() => setLaneMode("bays")}>
-              Service bays
+              Bays
             </button>
           </div>
         ) : null}
-        <Button size="sm" type="button" onClick={() => setComposer({ hour: shopStart, minute: 0, laneId: techs[0]?.id ?? "solo" })}>
-          + New
-        </Button>
-        <Button size="sm" variant="secondary" type="button" onClick={() => setComposer({ hour: 12, minute: 0, laneId: techs[0]?.id ?? "solo", kind: "BREAK" })}>
-          Block time
-        </Button>
       </div>
 
-      <ul className="space-y-2 xl:hidden">
+      {filtersOpen ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-card px-3 py-2">
+          {filter !== "all" ? (
+            <Button size="sm" variant="secondary" type="button" onClick={() => setFilter("all")}>
+              Clear filters
+            </Button>
+          ) : null}
+          <Select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-9 w-40">
+            <option value="all">All work</option>
+            <option value="late">Running late</option>
+            <option value="waiting">Waiting</option>
+            <option value="parts">Parts</option>
+            <option value="marketplace">Marketplace</option>
+            {showTravel ? <option value="mobile">Mobile / field</option> : null}
+            <option value="fleet">Fleet</option>
+          </Select>
+          <Select
+            value={colorMode}
+            onChange={(event) => {
+              const value = event.target.value as ColorMode;
+              setColorMode(value);
+              window.localStorage.setItem("pm-schedule-color", value);
+            }}
+            className="h-9 w-44"
+          >
+            <option value="type">Color by service</option>
+            <option value="status">Color by status</option>
+          </Select>
+          <Select
+            value={density}
+            onChange={(event) => {
+              const value = event.target.value as Density;
+              setDensity(value);
+              window.localStorage.setItem("pm-schedule-density", value);
+            }}
+            className="h-9 w-32"
+          >
+            <option value="compact">Compact</option>
+            <option value="standard">Standard</option>
+            <option value="detailed">Detailed</option>
+          </Select>
+        </div>
+      ) : null}
+
+      <ul className="space-y-2 lg:hidden">
         {visibleCards
           .slice()
           .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
@@ -495,26 +539,22 @@ export function CommandBoard({
           ))}
       </ul>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_19rem]">
-        <Card className="hidden overflow-hidden p-0 xl:block">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <Card className="hidden overflow-hidden p-0 lg:block">
           <div ref={scroller} className="relative max-h-[78vh] overflow-auto">
-            <div className="sticky top-0 z-30 grid border-b border-line bg-navy/95 backdrop-blur" style={{ gridTemplateColumns: `4.5rem repeat(${Math.max(lanes.length, 1)}, minmax(11rem, 1fr))` }}>
+            <div className="sticky top-0 z-30 grid border-b border-line bg-navy/95 backdrop-blur" style={{ gridTemplateColumns: `4.25rem repeat(${Math.max(lanes.length, 1)}, minmax(8.5rem, 1fr))` }}>
               <div className="px-2 py-3 text-[10px] uppercase tracking-wide text-muted">Time</div>
               {lanes.map((lane) => (
-                <div key={lane.id} className="border-l border-line px-3 py-2">
+                <div key={lane.id} className="border-l border-line px-2 py-2">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate text-xs font-bold">{lane.name.slice(0, 2).toUpperCase()}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-ink">{lane.name}</p>
-                      <p className="text-[11px] text-muted">{lane.subtitle}</p>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate text-[11px] font-bold">
+                      {lane.kind === "resource" ? "B" : lane.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-ink">{lane.name}</p>
+                      <p className="truncate text-[10px] capitalize text-muted">{lane.subtitle}</p>
                     </div>
                   </div>
-                  {lane.pct != null ? (
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-navy-soft">
-                      <div className={cn("h-full rounded-full", lane.pct > 100 ? "bg-danger" : lane.pct > 85 ? "bg-warning" : "bg-accent")} style={{ width: `${Math.min(100, lane.pct)}%` }} />
-                    </div>
-                  ) : null}
-                  {lane.pct != null ? <p className="mt-1 text-[10px] text-muted">{lane.off ? "Off" : `${lane.pct}% booked · ${lane.hours}`}</p> : null}
                 </div>
               ))}
             </div>
@@ -523,7 +563,7 @@ export function CommandBoard({
                 const closed = hour < shopStart || hour >= shopEnd;
                 return (
                   <div key={hour} className={cn("absolute right-0 left-0 border-t border-line/80", closed && "bg-navy/50")} style={{ top: (hour - timelineStart) * hourPx, height: hourPx }}>
-                    <span className="number absolute left-2 top-1 text-[11px] text-muted">{hour}:00</span>
+                    <span className="number absolute left-1 top-1 text-[10px] text-muted">{hourLabel(hour)}</span>
                   </div>
                 );
               })}
@@ -532,7 +572,7 @@ export function CommandBoard({
                   <span className="absolute -top-3 left-1 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">{clock(now)}</span>
                 </div>
               ) : null}
-              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `4.5rem repeat(${Math.max(lanes.length, 1)}, minmax(11rem, 1fr))` }}>
+              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `4.25rem repeat(${Math.max(lanes.length, 1)}, minmax(8.5rem, 1fr))` }}>
                 <div />
                 {lanes.map((lane) => (
                   <div
@@ -557,7 +597,7 @@ export function CommandBoard({
                   >
                     {visibleCards
                       .filter((card) => {
-                        if (laneMode === "bays") return card.resourceId === lane.id || (!card.resourceId && lane.id === resources[0]?.id && !card.technicianProfileId);
+                        if (lane.kind === "resource") return card.resourceId === lane.id;
                         if (lane.id === "solo") return true;
                         if (card.technicianProfileId) return card.technicianProfileId === lane.id;
                         return lane.id === lanes[0]?.id;
@@ -665,113 +705,121 @@ export function CommandBoard({
           <MiniCalendar date={date} todayKey={todayKey} days={monthDays} />
 
           <Card className="p-4">
-            <h2 className="font-semibold text-ink">Availability</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {techs.map((tech) => (
-                <li key={tech.id} className="flex items-center justify-between gap-2">
-                  <span>
-                    {tech.name}
-                    <span className="block text-[11px] text-muted">
-                      {tech.off ? "Time off" : `${tech.hoursStart}–${tech.hoursEnd}`}
-                    </span>
-                  </span>
-                  <span className={cn("text-[11px] font-semibold uppercase", tech.off ? "text-danger" : "text-success")}>{tech.off ? "Off" : "Available"}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="p-4">
-            <h2 className="font-semibold text-ink">Arrivals</h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {arrivals.length === 0 ? <li className="text-muted">No arrivals on the board.</li> : null}
-              {arrivals.map((item) => (
-                <li key={item.id} className="flex justify-between gap-2">
-                  <span>
-                    <span className="number text-muted">{clock(new Date(item.time))}</span> {item.customerName}
-                    <span className="block text-[11px] text-muted">{item.assetLabel}</span>
-                  </span>
-                  <span className="text-[11px] uppercase text-muted">{item.checkIn.replaceAll("_", " ")}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="p-4">
-            <h2 className="font-semibold text-ink">Unscheduled</h2>
-            <p className="text-[11px] text-muted">{fillOpenHours} hours open. Drag onto a lane. Customers are not booked automatically.</p>
+            <h2 className="font-semibold text-ink">Today’s Appointments</h2>
             <ul className="mt-3 space-y-2">
-              {unscheduled.map((item) => (
-                <li
-                  key={item.jobId}
-                  draggable
-                  onDragStart={(event) => {
-                    event.dataTransfer.setData("application/json", JSON.stringify({ type: "job", id: item.jobId, title: item.title, durationMin: item.hours * 60 }));
-                  }}
-                  className="cursor-grab rounded-xl border border-line bg-navy p-2 text-sm active:cursor-grabbing"
-                >
-                  <p className="font-semibold">{displayTitle(item.title)}</p>
-                  <p className="text-[11px] text-muted">
-                    {item.customer} · {item.asset}
-                  </p>
-                  <p className="text-[11px] text-muted">
-                    {item.source} · {item.hours}h · {item.recommendedTech}
-                    {item.parts === "DELAYED" ? " · waiting parts" : ""}
-                  </p>
-                  <Link className="text-xs font-semibold text-accent" href={item.fitHref}>
-                    Smart Fit
-                  </Link>
-                </li>
-              ))}
+              {cards
+                .filter((card) => card.kind === "WORK" || card.kind === "QC" || card.kind === "DROP_OFF")
+                .slice()
+                .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+                .slice(0, 8)
+                .map((card) => {
+                  const start = new Date(card.startsAt);
+                  const live = !isBlockedKind(card.kind) && intersectsNow(start, new Date(card.endsAt), now);
+                  const badge = card.behind ? { label: "Late", tone: "text-danger bg-danger/15" } : live ? { label: "In Progress", tone: "text-warning bg-warning/15" } : start > now ? { label: "Upcoming", tone: "text-muted bg-navy" } : { label: "On Time", tone: "text-accent bg-accent/15" };
+                  return (
+                    <li key={card.id}>
+                      <button type="button" onClick={() => setSelectedId(card.id)} className="flex w-full items-start justify-between gap-2 rounded-xl px-1 py-1 text-left hover:bg-navy/60">
+                        <span>
+                          <span className="number text-xs text-muted">{clock(start)}</span>
+                          <span className="ml-2 text-sm font-semibold text-ink">{displayTitle(card.title)}</span>
+                          <span className="block text-[11px] text-muted">
+                            {card.assetLabel} {card.customerName ? `· ${card.customerName}` : ""}
+                          </span>
+                        </span>
+                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", badge.tone)}>{badge.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
             </ul>
+            <Link href={`/mechanic/schedule?date=${date}&view=list`} className="mt-3 inline-block text-xs font-semibold text-accent">
+              View all appointments
+            </Link>
           </Card>
 
           <Card className="p-4">
-            <h2 className="font-semibold text-ink">Upcoming — 7 days</h2>
-            <ul className="mt-2 space-y-2 text-sm text-muted">
-              {upcoming.length === 0 ? <li>Nothing committed past today.</li> : null}
-              {upcoming.map((item) => (
-                <li key={item.id}>
-                  <Link href={`/mechanic/jobs/${item.id}`} className="text-ink">
-                    {item.assetLabel}
-                  </Link>
-                  <span className="block text-[11px]">
-                    {new Date(item.when).toLocaleDateString()} · {item.title}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="p-4">
-            <button type="button" className="text-sm font-semibold text-ink" onClick={() => setLegendOpen((open) => !open)}>
-              Legend {legendOpen ? "▾" : "▸"}
-            </button>
-            {legendOpen ? (
-              <ul className="mt-2 space-y-1 text-xs text-muted">
-                <li><span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent" /> Blue — scheduled</li>
-                <li><span className="mr-2 inline-block h-2 w-2 rounded-full bg-purple" /> Purple — diagnostics</li>
-                <li><span className="mr-2 inline-block h-2 w-2 rounded-full bg-warning" /> Amber — waiting</li>
-                <li><span className="mr-2 inline-block h-2 w-2 rounded-full bg-success" /> Green — in progress / ready</li>
-                <li><span className="mr-2 inline-block h-2 w-2 rounded-full bg-danger" /> Red — late / urgent</li>
-                <li><span className="mr-2 inline-block h-2 w-2 rounded-full bg-muted" /> Gray — lunch / blocked / travel</li>
-              </ul>
-            ) : null}
-          </Card>
-
-          <Card className="p-4">
-            <h2 className="font-semibold text-ink">Day notes</h2>
-            <textarea
-              className="mt-2 min-h-24 w-full rounded-xl border border-line bg-navy p-2 text-sm"
-              value={notes}
-              onChange={(event) => {
-                setNotes(event.target.value);
-                window.localStorage.setItem(`pm-day-notes-${date}`, event.target.value);
-              }}
-              placeholder="Mike leaves at 3. Parts truck at 10:30."
-            />
+            <h2 className="font-semibold text-ink">Quick Actions</h2>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button size="sm" type="button" onClick={() => setComposer({ hour: shopStart, minute: 0, laneId: techs[0]?.id ?? "solo" })}>
+                New Appointment
+              </Button>
+              <Button size="sm" variant="secondary" type="button" onClick={() => setComposer({ hour: 12, minute: 0, laneId: techs[0]?.id ?? "solo", kind: "BREAK" })}>
+                Block Time
+              </Button>
+              <Button size="sm" variant="secondary" type="button" onClick={() => setComposer({ hour: shopStart, minute: 0, laneId: techs.find((tech) => tech.off)?.id ?? techs[0]?.id ?? "solo", kind: "PTO" })}>
+                Time Off
+              </Button>
+              <Button size="sm" variant="secondary" type="button" onClick={() => window.print()}>
+                Print Schedule
+              </Button>
+            </div>
           </Card>
         </aside>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="p-4">
+          <h2 className="font-semibold text-ink">Unscheduled Jobs</h2>
+          <p className="text-[11px] text-muted">Drag onto the board. Customers are not booked automatically.</p>
+          <ul className="mt-3 space-y-2">
+            {unscheduled.length === 0 ? <li className="text-sm text-muted">Nothing waiting to schedule.</li> : null}
+            {unscheduled.slice(0, 5).map((item) => (
+              <li
+                key={item.jobId}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData("application/json", JSON.stringify({ type: "job", id: item.jobId, title: item.title, durationMin: item.hours * 60 }));
+                }}
+                className="cursor-grab rounded-xl border border-line bg-navy p-2 text-sm active:cursor-grabbing"
+              >
+                <p className="font-semibold">{displayTitle(item.title)}</p>
+                  <p className="text-[11px] text-muted">
+                    {item.asset} · {item.source.toLowerCase()}
+                    {fillOpenHours ? ` · ${fillOpenHours}h open` : ""}
+                  </p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card className="p-4">
+          <h2 className="font-semibold text-ink">Upcoming (Next 7 Days)</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {upcoming.length === 0 ? <li className="text-muted">Nothing committed past today.</li> : null}
+            {upcoming.map((item) => (
+              <li key={item.id}>
+                <Link href={`/mechanic/jobs/${item.id}`} className="font-semibold text-ink">
+                  {item.assetLabel}
+                </Link>
+                <span className="block text-[11px] text-muted">
+                  {new Date(item.when).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {item.title}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card className="p-4">
+          <h2 className="font-semibold text-ink">Availability</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {techs.map((tech) => (
+              <li key={tech.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {tech.name}
+                  <span className="block text-[11px] text-muted">{tech.off ? "Time off" : `${tech.hoursStart} – ${tech.hoursEnd}`}</span>
+                </span>
+                <span className={cn("text-[11px] font-semibold", tech.off ? "text-danger" : "text-success")}>{tech.off ? "Time Off" : "Available"}</span>
+              </li>
+            ))}
+          </ul>
+          <textarea
+            className="mt-3 min-h-16 w-full rounded-xl border border-line bg-navy p-2 text-xs"
+            value={notes}
+            onChange={(event) => {
+              setNotes(event.target.value);
+              window.localStorage.setItem(`pm-day-notes-${date}`, event.target.value);
+            }}
+            placeholder="Day notes"
+          />
+        </Card>
       </div>
 
       {composer ? (
@@ -795,8 +843,8 @@ export function CommandBoard({
               name="endsAt"
               value={new Date(new Date(`${date}T${String(composer.hour).padStart(2, "0")}:${String(composer.minute).padStart(2, "0")}:00`).getTime() + 90 * 60000).toISOString()}
             />
-            {composer.laneId !== "solo" && laneMode === "techs" ? <input type="hidden" name="technicianProfileId" value={composer.laneId} /> : null}
-            {laneMode === "bays" ? <input type="hidden" name="resourceId" value={composer.laneId} /> : null}
+            {composer.laneId !== "solo" && lanes.find((lane) => lane.id === composer.laneId)?.kind !== "resource" ? <input type="hidden" name="technicianProfileId" value={composer.laneId} /> : null}
+            {lanes.find((lane) => lane.id === composer.laneId)?.kind === "resource" ? <input type="hidden" name="resourceId" value={composer.laneId} /> : null}
             <Input name="title" required placeholder="Brake service" />
             <Select name="jobId" defaultValue="">
               <option value="">No linked job yet</option>
@@ -889,25 +937,25 @@ export function CommandBoard({
   );
 }
 
-function Metric({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: string; tone?: "success" | "warning" | "danger" }) {
+function Metric({ label, value, hint, tone, children }: { label: string; value: ReactNode; hint?: string; tone?: "success" | "warning" | "danger"; children?: ReactNode }) {
   return (
-    <Card className="p-3">
-      <p className="text-[11px] text-muted">{label}</p>
-      <p className={cn("number mt-1 text-xl font-bold", tone === "danger" && "text-danger", tone === "warning" && "text-warning", tone === "success" && "text-success")}>{value}</p>
-      {hint ? <p className="text-[11px] text-muted">{hint}</p> : null}
+    <Card className="p-4">
+      <p className="text-xs text-muted">{label}</p>
+      <p className={cn("number mt-1 text-2xl font-bold", tone === "danger" && "text-danger", tone === "warning" && "text-warning", tone === "success" && "text-success")}>{value}</p>
+      {hint ? <p className="mt-1 text-[11px] text-muted">{hint}</p> : null}
+      {children}
     </Card>
   );
 }
 
 function LiveClock({ now }: { now: Date }) {
   return (
-    <div className="rounded-2xl border border-line bg-card px-4 py-3 text-right">
+    <div className="hidden text-right sm:block">
       <p className="flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.14em] text-muted">
         <span className="pm-live-dot inline-block h-2 w-2 rounded-full bg-danger" />
-        Shop time
+        {now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
       </p>
-      <p className="number text-2xl font-bold text-ink">{clock(now)}</p>
-      <p className="text-xs text-muted">{now.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
+      <p className="number text-xl font-bold text-ink">{clock(now)}</p>
     </div>
   );
 }
@@ -953,7 +1001,6 @@ function JobBlock({
     urgent: card.urgencyMode === "URGENT",
   });
   const live = !isBlockedKind(card.kind) && intersectsNow(start, end, now) && !card.behind;
-  const value = card.authorizedCents >= 250000 ? moneyLabel(card.authorizedCents) : "";
   return (
     <article
       draggable
@@ -971,31 +1018,13 @@ function JobBlock({
       )}
       style={{ top, height }}
     >
+      <p className="truncate text-[10px] text-muted">{clock(start)} – {clock(end)}</p>
       <p className="truncate font-semibold leading-tight">{displayTitle(card.title)}</p>
-      {compact ? (
-        <p className="truncate text-[10px] text-muted">
-          {clock(start)} {card.assetLabel}
-        </p>
-      ) : (
+      {compact ? null : (
         <>
-          {card.assetLabel ? <p className="truncate text-[11px] text-muted">{card.assetLabel}{card.customerName ? ` · ${card.customerName}` : ""}</p> : null}
-          <p className="text-[10px] uppercase tracking-wide text-muted">
-            {clock(start)}–{clock(end)}
-            {card.source === "MARKETPLACE" || card.source === "FLEET" ? ` · ${card.source.toLowerCase()}` : ""}
-            {value ? ` · ${value}` : ""}
-          </p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {card.behind ? <span className="rounded bg-danger px-1.5 py-0.5 text-[9px] font-bold text-white">Running late +{card.minutesBehind} min</span> : null}
-            {live ? <span className="rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">In progress {card.progressPct}%</span> : null}
-            {!live && !card.behind ? <span className="rounded bg-navy/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink/80">{visual.label}</span> : null}
-            {card.jobStatus === "AWAITING_APPROVAL" ? <span className="rounded bg-warning px-1.5 py-0.5 text-[9px] font-bold text-navy">Waiting approval</span> : null}
-            {["ORDERED", "ARRIVING", "DELAYED"].includes(card.partsStatus) ? <span className="rounded bg-warning/80 px-1.5 py-0.5 text-[9px] font-bold text-navy">Waiting parts</span> : null}
-          </div>
-          {(card.kind === "WORK" || live || card.inProgress) && height > 72 ? (
-            <div className="mt-1 h-1 overflow-hidden rounded-full bg-navy/40">
-              <div className="h-full bg-white/70" style={{ width: `${card.progressPct}%` }} />
-            </div>
-          ) : null}
+          {card.assetLabel ? <p className="truncate text-[11px] text-muted">{card.assetLabel}</p> : null}
+          {card.customerName && height > 64 ? <p className="truncate text-[11px] text-muted">{card.customerName}</p> : null}
+          {card.behind ? <p className="text-[10px] font-semibold text-danger">Late</p> : null}
         </>
       )}
       <button

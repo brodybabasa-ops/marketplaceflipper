@@ -45,16 +45,20 @@ export default async function MechanicSchedulePage({
 
   return (
     <div className="mx-auto max-w-[96rem]">
-      <MechanicAppNav current="/mechanic/schedule" />
-      <div className="mb-4 flex flex-wrap gap-2">
-        {tabs.map((item) => (
-          <Button key={item} asChild size="sm" variant={view === item ? "primary" : "secondary"}>
-            <Link href={`/mechanic/schedule?date=${dateKey}&view=${item}`}>
-              {item === "day" ? "Day" : item === "week" ? "Week" : item === "month" ? "Month" : item === "list" ? "List" : item === "load" ? "Load" : item === "huddle" ? "Morning huddle" : "Routes"}
-            </Link>
-          </Button>
-        ))}
-      </div>
+      {view !== "day" && view !== "routes" ? (
+        <>
+          <MechanicAppNav current="/mechanic/schedule" />
+          <div className="mb-4 flex flex-wrap gap-2">
+            {tabs.map((item) => (
+              <Button key={item} asChild size="sm" variant={view === item ? "primary" : "secondary"}>
+                <Link href={`/mechanic/schedule?date=${dateKey}&view=${item}`}>
+                  {item === "day" ? "Day" : item === "week" ? "Week" : item === "month" ? "Month" : item === "list" ? "List" : item === "load" ? "Load" : item === "huddle" ? "Morning huddle" : "Routes"}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       {view === "day" || view === "routes" ? (
         <CommandBoard
@@ -117,6 +121,7 @@ export default async function MechanicSchedulePage({
           monthDays={board.monthDays}
           fillOpenHours={fill.openHours}
           jobs={board.jobs.map((job) => ({ id: job.id, label: jobAssetLabel(job) }))}
+          view={view}
         />
       ) : null}
 

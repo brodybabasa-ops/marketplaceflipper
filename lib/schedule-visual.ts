@@ -133,13 +133,13 @@ export function visualTone(input: {
 }
 
 export const TONE_CLASS: Record<VisualTone, string> = {
-  blue: "border-[#0A84FF]/50 bg-[#0A84FF]/18 text-ink",
-  purple: "border-purple/50 bg-purple/18 text-ink",
-  green: "border-success/50 bg-success/16 text-ink",
-  amber: "border-warning/50 bg-warning/16 text-ink",
-  red: "border-danger/60 bg-danger/18 text-ink",
-  gray: "border-line bg-slate/80 text-muted",
-  teal: "border-teal/50 bg-teal/16 text-ink",
+  blue: "border-[#0A84FF]/45 bg-[#0A84FF]/22 text-ink",
+  purple: "border-purple/45 bg-purple/22 text-ink",
+  green: "border-success/45 bg-success/20 text-ink",
+  amber: "border-warning/50 bg-warning/18 text-ink",
+  red: "border-danger/55 bg-danger/20 text-ink",
+  gray: "border-line bg-[#2a3344] text-muted",
+  teal: "border-teal/45 bg-teal/20 text-ink",
 };
 
 export function pxPerHour(density: Density) {
