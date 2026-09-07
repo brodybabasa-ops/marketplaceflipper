@@ -313,4 +313,241 @@ export async function seedVisionLayer(prisma: PrismaClient, ctx: Ctx) {
     where: { id: "default" },
     data: { visionDemoEnabled: true },
   });
+
+  await seedTodayOperations(prisma);
+}
+
+function atHour(day: Date, hour: number, minute = 0) {
+  const next = new Date(day);
+  next.setHours(hour, minute, 0, 0);
+  return next;
+}
+
+export async function seedTodayOperations(prisma: PrismaClient) {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const dayStart = new Date(today);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const mike = await prisma.mechanicProfile.findFirst({
+    where: { user: { email: "mechanic@demo.pocketmechanic.app" } },
+    include: { technicianProfiles: true, resources: true, user: true },
+  });
+  if (mike) {
+    const todayBlocks = await prisma.scheduleBlock.count({
+      where: { mechanicProfileId: mike.id, startsAt: { gte: dayStart, lt: atHour(today, 23) }, title: { startsWith: "Demo:" } },
+    });
+    if (todayBlocks === 0) {
+      const alex = mike.technicianProfiles.find((tech) => tech.displayName.includes("Alex")) ?? mike.technicianProfiles[0];
+      const tyler = mike.technicianProfiles.find((tech) => tech.displayName.includes("Tyler")) ?? mike.technicianProfiles[1] ?? alex;
+      if (!mike.resources.length) {
+        await prisma.providerResource.create({
+          data: { mechanicProfileId: mike.id, kind: "SERVICE_TRUCK", name: "Van 1" },
+        });
+      }
+      const jobs = await prisma.job.findMany({
+        where: { mechanicProfileId: mike.id, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+        include: { serviceRequest: true },
+        orderBy: { updatedAt: "desc" },
+      });
+      const inProgress = jobs.find((job) => job.status === "IN_PROGRESS") ?? jobs[0];
+      const enRoute = jobs.find((job) => job.status === "EN_ROUTE") ?? jobs[1];
+      const delayed = jobs.find((job) => job.status === "REQUESTED") ?? jobs[2];
+      const waiting = jobs.find((job) => job.status === "ACCEPTED") ?? jobs[3];
+      if (inProgress) {
+        await prisma.job.update({
+          where: { id: inProgress.id },
+          data: { customerWaiting: false, partsStatus: "READY", promisedReadyAt: atHour(today, 13) },
+        });
+        await prisma.scheduleBlock.create({
+          data: {
+            mechanicProfileId: mike.id,
+            jobId: inProgress.id,
+            technicianProfileId: alex?.id,
+            kind: "WORK",
+            title: "Demo: On-site diagnosis",
+            startsAt: atHour(today, 8, 30),
+            endsAt: atHour(today, 10, 30),
+          },
+        });
+      }
+      if (enRoute && tyler) {
+        await prisma.scheduleBlock.createMany({
+          data: [
+            {
+              mechanicProfileId: mike.id,
+              jobId: enRoute.id,
+              technicianProfileId: tyler.id,
+              kind: "TRAVEL",
+              title: "Demo: Travel to customer",
+              startsAt: atHour(today, 10, 30),
+              endsAt: atHour(today, 11),
+            },
+            {
+              mechanicProfileId: mike.id,
+              jobId: enRoute.id,
+              technicianProfileId: tyler.id,
+              kind: "WORK",
+              title: "Demo: Field repair",
+              startsAt: atHour(today, 11),
+              endsAt: atHour(today, 13),
+            },
+          ],
+        });
+      }
+      if (delayed) {
+        await prisma.job.update({ where: { id: delayed.id }, data: { partsStatus: "DELAYED" } });
+      }
+      if (waiting) {
+        await prisma.job.update({ where: { id: waiting.id }, data: { customerWaiting: true } });
+      }
+    }
+  }
+
+  const sarah = await prisma.mechanicProfile.findFirst({
+    where: { user: { email: "sarah.chen@demo.pocketmechanic.app" } },
+    include: { technicianProfiles: true, resources: true, user: true },
+  });
+  if (!sarah) return;
+  const sarahToday = await prisma.scheduleBlock.count({
+    where: { mechanicProfileId: sarah.id, startsAt: { gte: dayStart }, title: { startsWith: "Demo:" } },
+  });
+  if (sarahToday > 0) return;
+
+  if (sarah.technicianProfiles.length < 2) {
+    await prisma.technicianProfile.create({
+      data: {
+        mechanicProfileId: sarah.id,
+        displayName: "Jordan Hale",
+        title: "Shop technician",
+        duty: "SHOP",
+        specialties: ["BRAKES", "MAINTENANCE"],
+      },
+    });
+  }
+  const techs = await prisma.technicianProfile.findMany({ where: { mechanicProfileId: sarah.id, active: true } });
+  const dana = techs.find((tech) => tech.displayName.includes("Dana")) ?? techs[0];
+  const jordan = techs.find((tech) => tech.displayName.includes("Jordan")) ?? techs[1] ?? dana;
+  const bay1 = sarah.resources.find((item) => item.name === "Bay 1") ?? sarah.resources[0];
+  const rack = sarah.resources.find((item) => item.kind === "ALIGNMENT_RACK");
+  const customer = await prisma.user.findUnique({ where: { email: "customer@demo.pocketmechanic.app" } });
+  const vehicle = customer
+    ? await prisma.vehicle.findFirst({ where: { customerId: customer.id }, include: { asset: true } })
+    : null;
+  if (!customer || !vehicle || !dana) return;
+
+  async function shopJob(input: {
+    problem: string;
+    category: "BRAKES" | "MAINTENANCE" | "SUSPENSION" | "ENGINE";
+    status: "IN_PROGRESS" | "SCHEDULED" | "AWAITING_APPROVAL" | "CHECKED_IN";
+    totalCents: number;
+    partsStatus?: "READY" | "DELAYED" | "ORDERED";
+    waiting?: boolean;
+  }) {
+    const request = await prisma.serviceRequest.create({
+      data: {
+        customerId: customer!.id,
+        vehicleId: vehicle!.id,
+        assetId: vehicle!.asset?.id,
+        mechanicProfileId: sarah!.id,
+        status: "ACCEPTED",
+        problemText: input.problem,
+        category: input.category,
+        zip: "84070",
+        city: "Sandy",
+        state: "UT",
+        mobilePreferred: false,
+      },
+    });
+    return prisma.job.create({
+      data: {
+        serviceRequestId: request.id,
+        customerId: customer!.id,
+        mechanicUserId: sarah!.userId,
+        mechanicProfileId: sarah!.id,
+        vehicleId: vehicle!.id,
+        assetId: vehicle!.asset?.id,
+        status: input.status,
+        totalCents: input.totalCents,
+        partsStatus: input.partsStatus ?? "UNKNOWN",
+        customerWaiting: Boolean(input.waiting),
+        scheduledAt: today,
+        promisedReadyAt: atHour(today, 16, 30),
+        technicianProfileId: dana!.id,
+        events: { create: [{ status: input.status, note: "Demo: shop operations fixture" }] },
+      },
+    });
+  }
+
+  const brakes = await shopJob({
+    problem: "Front brakes grind on the F-250",
+    category: "BRAKES",
+    status: "IN_PROGRESS",
+    totalCents: 68000,
+    partsStatus: "READY",
+    waiting: true,
+  });
+  const alignment = await shopJob({
+    problem: "Pulls right after tire replacement",
+    category: "SUSPENSION",
+    status: "SCHEDULED",
+    totalCents: 12900,
+    partsStatus: "READY",
+  });
+  await shopJob({
+    problem: "Estimate waiting on Tahoe oil leak",
+    category: "ENGINE",
+    status: "AWAITING_APPROVAL",
+    totalCents: 84000,
+  });
+  await shopJob({
+    problem: "Centurion waiting on a delayed pump",
+    category: "MAINTENANCE",
+    status: "CHECKED_IN",
+    totalCents: 42000,
+    partsStatus: "DELAYED",
+  });
+
+  await prisma.scheduleBlock.createMany({
+    data: [
+      {
+        mechanicProfileId: sarah.id,
+        jobId: brakes.id,
+        technicianProfileId: dana.id,
+        resourceId: bay1?.id,
+        kind: "DROP_OFF",
+        title: "Demo: Customer drop-off",
+        startsAt: atHour(today, 8),
+        endsAt: atHour(today, 8, 15),
+      },
+      {
+        mechanicProfileId: sarah.id,
+        jobId: brakes.id,
+        technicianProfileId: dana.id,
+        resourceId: bay1?.id,
+        kind: "WORK",
+        title: "Demo: Brake job",
+        startsAt: atHour(today, 9, 30),
+        endsAt: atHour(today, 11, 30),
+      },
+      {
+        mechanicProfileId: sarah.id,
+        jobId: brakes.id,
+        kind: "PICKUP",
+        title: "Demo: Promised pickup",
+        startsAt: atHour(today, 16, 30),
+        endsAt: atHour(today, 16, 45),
+      },
+      {
+        mechanicProfileId: sarah.id,
+        jobId: alignment.id,
+        technicianProfileId: jordan.id,
+        resourceId: rack?.id,
+        kind: "WORK",
+        title: "Demo: Alignment",
+        startsAt: atHour(today, 13),
+        endsAt: atHour(today, 14, 30),
+      },
+    ],
+  });
 }

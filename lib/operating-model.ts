@@ -61,5 +61,7 @@ export function resourceKindsForModel(model: OperatingModel) {
   if (model === "MOBILE_ONLY") return ["SERVICE_TRUCK", "FIELD_UNIT", "OTHER"] as const;
   if (model === "FIELD_SERVICE") return ["SERVICE_TRUCK", "FIELD_UNIT", "YARD", "WASH", "OTHER"] as const;
   if (model === "FLEET_SERVICE") return ["BAY", "SERVICE_TRUCK", "FIELD_UNIT", "YARD", "WASH", "OTHER"] as const;
-  return ["BAY", "LIFT", "ALIGNMENT_RACK", "DIAGNOSTIC_STATION", "BENCH", "MOTORCYCLE_LIFT", "YARD", "WATER_TEST", "LAUNCH", "DYNO", "WASH", "OTHER"] as const;
+  if (model === "SHOP_ONLY") return ["BAY", "LIFT", "ALIGNMENT_RACK", "DIAGNOSTIC_STATION", "BENCH", "MOTORCYCLE_LIFT", "DYNO", "WASH", "OTHER"] as const;
+  if (model === "MULTI_LOCATION") return ["BAY", "LIFT", "ALIGNMENT_RACK", "DIAGNOSTIC_STATION", "YARD", "WASH", "OTHER"] as const;
+  return ["BAY", "LIFT", "ALIGNMENT_RACK", "DIAGNOSTIC_STATION", "BENCH", "MOTORCYCLE_LIFT", "YARD", "WATER_TEST", "LAUNCH", "DYNO", "WASH", "SERVICE_TRUCK", "FIELD_UNIT", "OTHER"] as const;
 }

@@ -101,7 +101,10 @@ export function DayBoard({
           {lanes.map((lane) => {
             const slot = cards.filter((card) => {
               const startHour = new Date(card.startsAt).getHours();
-              return startHour === hour && (!card.technicianProfileId || card.technicianProfileId === lane.id || lane.id === "solo");
+              if (startHour !== hour) return false;
+              if (lane.id === "solo") return true;
+              if (card.technicianProfileId) return card.technicianProfileId === lane.id;
+              return lane.id === lanes[0]?.id;
             });
             return (
               <div

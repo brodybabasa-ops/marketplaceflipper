@@ -58,9 +58,7 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
             asset: true,
             vehicle: { include: { make: true, model: true } },
             serviceRequest: true,
-            estimates: { include: { repairGroups: true }, orderBy: { createdAt: "desc" }, take: 1 },
             authorizations: { orderBy: { submittedAt: "desc" }, take: 1 },
-            thread: true,
           },
         },
         technician: true,
@@ -76,9 +74,7 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
         asset: true,
         vehicle: { include: { make: true, model: true } },
         serviceRequest: true,
-        estimates: { include: { repairGroups: true }, orderBy: { createdAt: "desc" }, take: 1 },
         authorizations: { orderBy: { submittedAt: "desc" }, take: 1 },
-        thread: true,
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -481,8 +477,7 @@ export async function smartFit(mechanicProfileId: string, jobId: string) {
   return { job, duration, candidates: candidates.slice(0, 3) };
 }
 
-export async function fillMyDay(mechanicProfileId: string, day: Date) {
-  const board = await getScheduleBoard(mechanicProfileId, day);
+export function fillFromBoard(board: Awaited<ReturnType<typeof getScheduleBoard>>) {
   const suggestions = board.unscheduledQueue.slice(0, 6).map((item) => ({
     jobId: item.job.id,
     title: item.job.serviceRequest.problemText,
@@ -496,6 +491,10 @@ export async function fillMyDay(mechanicProfileId: string, day: Date) {
     href: item.fitHref,
   }));
   return { suggestions, unscheduledCount: board.unscheduled.length, openHours: board.shopCapacity.openHours };
+}
+
+export async function fillMyDay(mechanicProfileId: string, day: Date) {
+  return fillFromBoard(await getScheduleBoard(mechanicProfileId, day));
 }
 
 export async function cancellationRecovery(mechanicProfileId: string, openedMinutes: number) {

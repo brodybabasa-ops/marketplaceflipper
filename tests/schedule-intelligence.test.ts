@@ -22,6 +22,8 @@ test("shop-only operations hide routes and maps", () => {
   assert.equal(mobile.showRoutes, true);
   assert.equal(mobile.showBays, false);
   assert.ok(!(resourceKindsForModel("MOBILE_ONLY") as readonly string[]).includes("BAY"));
+  assert.ok((resourceKindsForModel("SHOP_ONLY") as readonly string[]).includes("BAY"));
+  assert.ok(!(resourceKindsForModel("SHOP_ONLY") as readonly string[]).includes("SERVICE_TRUCK"));
 });
 
 test("schedule duration is billed labor plus explicit buffers, not a fabricated prediction", () => {

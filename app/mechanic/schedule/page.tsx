@@ -12,7 +12,7 @@ import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
 import { jobAssetLabel } from "@/lib/asset-display";
-import { getScheduleBoard, fillMyDay, smartFit, weekLoad, calloutRecovery, cancellationRecovery } from "@/services/scheduler";
+import { getScheduleBoard, fillFromBoard, smartFit, weekLoad, calloutRecovery, cancellationRecovery } from "@/services/scheduler";
 import { parseNaturalScheduleCommand, scheduleMessageTemplate } from "@/lib/schedule-intelligence";
 import { DayBoard, DraggableJob } from "@/components/schedule/day-board";
 import type { DayOfWeek } from "@prisma/client";
@@ -35,7 +35,7 @@ export default async function MechanicSchedulePage({
   const day = params.date ? new Date(`${params.date}T12:00:00`) : new Date();
   const dateKey = day.toISOString().slice(0, 10);
   const board = await getScheduleBoard(profile.id, day);
-  const fill = await fillMyDay(profile.id, day);
+  const fill = fillFromBoard(board);
   const fit = params.fit ? await smartFit(profile.id, params.fit) : null;
   const load = params.view === "load" ? await weekLoad(profile.id, day) : null;
   const callout = params.callout ? await calloutRecovery(profile.id, params.callout, day) : null;
