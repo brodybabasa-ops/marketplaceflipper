@@ -8,9 +8,12 @@ const LABELS: Record<string, string> = {
   SCHEDULED: "Appointment scheduled",
   EN_ROUTE: "Mechanic on the way",
   ARRIVED: "Mechanic arrived",
-  DIAGNOSING: "Diagnosis complete",
+  CHECKED_IN: "Checked in",
+  DIAGNOSING: "Diagnosing",
   AWAITING_APPROVAL: "Waiting for your approval",
-  IN_PROGRESS: "Repair in progress",
+  IN_PROGRESS: "Repairing",
+  QUALITY_CHECK: "Quality check",
+  READY: "Ready",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
   DISPUTED: "In dispute",
@@ -36,7 +39,7 @@ export function StatusTimeline({ status }: { status: JobStatus }) {
             >
               {done ? "✓" : current ? "→" : "○"}
             </span>
-            <span className={cn(current ? "font-semibold text-navy" : done ? "text-ink" : "text-muted")}>
+            <span className={cn(current ? "font-semibold text-ink" : done ? "text-ink" : "text-muted")}>
               {LABELS[step]}
             </span>
           </li>
@@ -47,5 +50,5 @@ export function StatusTimeline({ status }: { status: JobStatus }) {
 }
 
 export function JobStatusLabel({ status }: { status: JobStatus }) {
-  return <span className="text-sm font-medium text-navy">{LABELS[status]}</span>;
+  return <span className="text-sm font-medium text-ink">{LABELS[status]}</span>;
 }

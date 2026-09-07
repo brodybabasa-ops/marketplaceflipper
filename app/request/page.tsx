@@ -22,7 +22,7 @@ export default async function RequestPage({
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/request" />
-      <h1 className="text-3xl font-bold text-navy">What does your vehicle need?</h1>
+      <h1 className="text-3xl font-bold text-ink">What does your vehicle need?</h1>
       <p className="mt-2 text-sm text-muted">Use everyday language. “Truck shakes when braking” is enough.</p>
       <form action={createRequestAction} className="mt-6 space-y-4">
         {params.mechanic ? <input type="hidden" name="mechanicProfileId" value={params.mechanic} /> : null}

@@ -26,6 +26,8 @@ export const vehicleSchema = z.object({
   drivetrain: z.string().max(40).optional(),
   mileage: z.coerce.number().int().min(0).max(1_000_000),
   vin: z.string().max(17).optional(),
+  plate: z.string().max(12).optional(),
+  color: z.string().max(40).optional(),
   nickname: z.string().max(60).optional(),
   notes: z.string().max(500).optional(),
 });
@@ -40,6 +42,12 @@ export const serviceRequestSchema = z.object({
   budgetCents: z.coerce.number().int().min(0).optional(),
   mobilePreferred: z.coerce.boolean().optional(),
   mechanicProfileId: z.string().uuid().optional(),
+  whenItHappens: z.string().max(40).optional(),
+  noticedWhen: z.array(z.string()).optional(),
+  startedWhen: z.string().max(80).optional(),
+  warningLights: z.string().max(200).optional(),
+  drivability: z.string().max(80).optional(),
+  summary: z.string().max(500).optional(),
 });
 
 export const estimateSchema = z.object({
@@ -99,6 +107,8 @@ export const disputeSchema = z.object({
     "NO_SHOW",
     "VEHICLE_DAMAGE",
     "COMMUNICATION",
+    "UNAUTHORIZED_WORK",
+    "WORK_NOT_COMPLETED",
     "OTHER",
   ]),
   description: z.string().min(12).max(3000),

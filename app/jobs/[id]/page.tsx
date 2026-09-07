@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
+import { RepairGroupEstimate } from "@/components/jobs/repair-group-estimate";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { ReviewCard } from "@/components/jobs/review-card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     <div className="mx-auto max-w-5xl px-4 py-8">
       {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/jobs" /> : null}
       <p className="text-sm text-muted">{job.mechanicProfile.businessName}</p>
-      <h1 className="text-3xl font-bold text-navy">{job.serviceRequest.problemText}</h1>
+      <h1 className="text-3xl font-bold text-ink">{job.serviceRequest.problemText}</h1>
       <p className="mt-1 text-muted">
         {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
       </p>
@@ -42,7 +43,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <div className="mt-8 grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           <Card className="p-5">
-            <h2 className="font-semibold text-navy">Status</h2>
+            <h2 className="font-semibold text-ink">Status</h2>
             <div className="mt-4">
               <StatusTimeline status={job.status} />
             </div>
@@ -53,13 +54,24 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             confirmedAt={job.scheduledConfirmedAt}
             canPropose={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
           />
-          {job.estimates.map((estimate) => (
-            <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
-          ))}
+          {job.estimates.map((estimate) =>
+            estimate.repairGroups?.length ? (
+              <RepairGroupEstimate
+                key={estimate.id}
+                estimateId={estimate.id}
+                jobId={job.id}
+                groups={estimate.repairGroups}
+                canDecide={session.role === "CUSTOMER" && estimate.status === "SENT"}
+                supplemental={estimate.type === "CHANGE_ORDER"}
+              />
+            ) : (
+              <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
+            ),
+          )}
           <JobPhotoGallery photos={job.photos} jobId={job.id} canUpload />
           {job.repairRecord ? (
             <Card className="p-5">
-              <h2 className="font-semibold text-navy">Repair completed</h2>
+              <h2 className="font-semibold text-ink">Repair completed</h2>
               <p className="mt-2 text-lg font-semibold">{job.repairRecord.title}</p>
               <p className="text-sm text-muted">
                 {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
@@ -77,7 +89,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           ) : null}
           {job.status === "COMPLETED" && !job.review && session.role === "CUSTOMER" ? (
             <Card className="p-5">
-              <h2 className="font-semibold text-navy">Leave a review</h2>
+              <h2 className="font-semibold text-ink">Leave a review</h2>
               <p className="text-sm text-muted">Only completed Pocket Mechanic jobs can be reviewed.</p>
               <form action={createReviewAction} className="mt-4 space-y-3">
                 <input type="hidden" name="jobId" value={job.id} />
@@ -108,13 +120,26 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           {job.review ? <ReviewCard review={{ ...job.review, customer: job.customer }} /> : null}
         </div>
         <div className="space-y-4">
+          {job.authorizations.length ? (
+            <Card className="p-5">
+              <h2 className="font-semibold text-ink">Authorization history</h2>
+              <ul className="mt-3 space-y-2 text-sm">
+                {job.authorizations.map((auth) => (
+                  <li key={auth.id}>
+                    {auth.submittedAt.toLocaleString()} · original {formatCents(auth.originalCents)} · authorized{" "}
+                    {formatCents(auth.authorizedCents)}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
           {job.thread ? (
             <Card className="p-5">
-              <h2 className="font-semibold text-navy">Messages</h2>
+              <h2 className="font-semibold text-ink">Messages</h2>
               <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">
                 {job.thread.messages.map((message) => (
                   <div key={message.id} className={message.senderId === session.id ? "text-right" : ""}>
-                    <div className={`inline-block rounded-2xl px-3 py-2 text-sm ${message.senderId === session.id ? "bg-navy text-white" : "bg-paper"}`}>
+                    <div className={`inline-block rounded-2xl px-3 py-2 text-sm ${message.senderId === session.id ? "bg-navy text-white" : "bg-navy-soft"}`}>
                       {message.body}
                     </div>
                     <p className="mt-1 text-[11px] text-muted">{message.createdAt.toLocaleString()}</p>
@@ -130,7 +155,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           ) : null}
           {session.role === "CUSTOMER" ? (
             <Card className="p-5">
-              <h2 className="font-semibold text-navy">Report a problem</h2>
+              <h2 className="font-semibold text-ink">Report a problem</h2>
               <form action={createDisputeAction} className="mt-3 space-y-3">
                 <input type="hidden" name="jobId" value={job.id} />
                 <Select name="category" defaultValue="OTHER">
@@ -140,6 +165,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   <option value="NO_SHOW">Mechanic didn't show</option>
                   <option value="VEHICLE_DAMAGE">Vehicle damage</option>
                   <option value="COMMUNICATION">Communication issue</option>
+                  <option value="UNAUTHORIZED_WORK">Unauthorized work</option>
+                  <option value="WORK_NOT_COMPLETED">Work not completed</option>
                   <option value="OTHER">Other</option>
                 </Select>
                 <Textarea name="description" required placeholder="What happened?" />

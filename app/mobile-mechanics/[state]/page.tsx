@@ -10,7 +10,7 @@ export default async function MobileMechanicsStatePage({ params }: { params: Pro
   const { matches } = await searchMechanics({ mode: "MOBILE", zip: match.code === "UT" ? "84101" : undefined });
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-navy">Mobile mechanics in {match.name}</h1>
+      <h1 className="text-3xl font-bold text-ink">Mobile mechanics in {match.name}</h1>
       <p className="mt-3 max-w-2xl text-muted">Independent mobile technicians available through Pocket Mechanic in {match.name}.</p>
       <div className="mt-8 grid gap-4">
         {matches.map((mechanic) => (

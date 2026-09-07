@@ -15,13 +15,13 @@ export default function HowItWorksPage() {
   ];
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-4xl font-bold text-navy">How Pocket Mechanic works</h1>
+      <h1 className="text-4xl font-bold text-ink">How Pocket Mechanic works</h1>
       <p className="mt-3 text-muted">Built for people who know something is wrong, not for people who speak shop language.</p>
       <div className="mt-10 space-y-4">
         {steps.map(([title, body], index) => (
           <Card key={title} className="p-5">
             <p className="text-sm font-semibold text-accent">Step {index + 1}</p>
-            <h2 className="mt-1 text-xl font-semibold text-navy">{title}</h2>
+            <h2 className="mt-1 text-xl font-semibold text-ink">{title}</h2>
             <p className="mt-1 text-sm text-muted">{body}</p>
           </Card>
         ))}

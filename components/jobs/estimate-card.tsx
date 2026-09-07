@@ -28,10 +28,10 @@ export function EstimateCard({
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-navy">{title}</h3>
+          <h3 className="font-semibold text-ink">{title}</h3>
           <p className="text-sm text-muted">{estimate.status.toLowerCase()}</p>
         </div>
-        <p className="number text-2xl font-semibold text-navy">{formatCents(estimate.totalCents)}</p>
+        <p className="number text-2xl font-semibold text-ink">{formatCents(estimate.totalCents)}</p>
       </div>
       {estimate.reason ? <p className="mt-3 text-sm text-ink">{estimate.reason}</p> : null}
       <ul className="mt-4 divide-y divide-line">

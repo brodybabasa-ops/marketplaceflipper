@@ -271,10 +271,22 @@ function dieselSafeSpecialties(list: ServiceCategory[]): ServiceCategory[] {
 
 async function main() {
   await prisma.$transaction([
+    prisma.repairAuthorizationDecision.deleteMany(),
+    prisma.repairAuthorization.deleteMany(),
+    prisma.recommendedWork.deleteMany(),
+    prisma.inspectionFinding.deleteMany(),
+    prisma.vehicleInspection.deleteMany(),
+    prisma.verificationEvent.deleteMany(),
+    prisma.verificationChecklistItem.deleteMany(),
+    prisma.verificationInspection.deleteMany(),
+    prisma.verificationApplication.deleteMany(),
+    prisma.auditEvent.deleteMany(),
+    prisma.supportTicket.deleteMany(),
     prisma.message.deleteMany(),
     prisma.messageThread.deleteMany(),
     prisma.estimateApproval.deleteMany(),
     prisma.estimateLineItem.deleteMany(),
+    prisma.repairGroup.deleteMany(),
     prisma.estimate.deleteMany(),
     prisma.jobEvent.deleteMany(),
     prisma.jobPhoto.deleteMany(),
@@ -335,6 +347,34 @@ async function main() {
       role: "ADMIN",
       firstName: "Jordan",
       lastName: "Hale",
+    },
+  });
+
+  const inspector = await prisma.user.create({
+    data: {
+      email: "inspector@demo.pocketmechanic.app",
+      passwordHash,
+      role: "INSPECTOR",
+      firstName: "Riley",
+      lastName: "Brooks",
+    },
+  });
+  await prisma.user.create({
+    data: {
+      email: "support@demo.pocketmechanic.app",
+      passwordHash,
+      role: "SUPPORT",
+      firstName: "Sam",
+      lastName: "Nguyen",
+    },
+  });
+  await prisma.user.create({
+    data: {
+      email: "finance@demo.pocketmechanic.app",
+      passwordHash,
+      role: "FINANCE",
+      firstName: "Casey",
+      lastName: "Ortiz",
     },
   });
 
@@ -484,6 +524,7 @@ async function main() {
   }
 
   const mike = mechanicProfiles[0];
+  const priya = mechanicProfiles.find((profile) => profile.slug === "desai-mobile-repair");
   const activeStatuses: JobStatus[] = ["REQUESTED", "ACCEPTED", "SCHEDULED", "EN_ROUTE", "DIAGNOSING", "AWAITING_APPROVAL", "IN_PROGRESS"];
   let completed = 0;
 
@@ -675,8 +716,30 @@ async function main() {
       mechanicScore: Math.max(featuredScore, 96),
       stripeConnectAccountId: "acct_mock_mikesmobile",
       stripeChargesEnabled: true,
+      isFoundingProvider: true,
+      foundingNumber: 18,
+      foundingApprovedAt: new Date("2026-01-15"),
+      subscriptionFeeWaived: true,
+      foundingProgramVersion: "founding-100-v1",
+      lastVerifiedAt: new Date("2026-06-12"),
+      isSelect: true,
+      verificationPipeline: "VERIFIED",
+      marketplaceEligible: true,
     },
   });
+  if (priya) {
+    await prisma.mechanicProfile.update({
+      where: { id: priya.id },
+      data: {
+        isFoundingProvider: true,
+        foundingNumber: 42,
+        foundingApprovedAt: new Date("2026-02-01"),
+        subscriptionFeeWaived: true,
+        foundingProgramVersion: "founding-100-v1",
+        verificationPipeline: "APPLICATION_RECEIVED",
+      },
+    });
+  }
 
   await prisma.platformConfig.create({
     data: {
@@ -687,8 +750,23 @@ async function main() {
         { key: "INSURED", label: "Insured" },
         { key: "POCKET_VERIFIED", label: "Pocket Verified" },
       ],
-      commissionPercent: 10,
+      commissionPercent: 3,
+      marketplaceFeePercent: 3,
+      processorFeePercent: 0,
       mechanicProMonthlyCents: 4900,
+      selectCriteria: {
+        requireVerified: true,
+        minCompletedJobs: 25,
+        minRating: 4.8,
+        maxDisputeRate: 2,
+        minCompletionRate: 95,
+        maxResponseMinutes: 20,
+        minRepeatCustomers: 5,
+      },
+      verificationStandards: {
+        shop: ["Facility condition", "Repair equipment", "Diagnostics", "Insurance", "Professionalism"],
+        mobile: ["Service vehicle", "Tool inventory", "Diagnostics", "Insurance", "Professionalism"],
+      },
     },
   });
 
@@ -708,7 +786,7 @@ async function main() {
     data: { userId: customers[0].id, targetType: "mechanic", targetId: mike.id },
   });
 
-  const commissionPercent = 10;
+  const commissionPercent = 3;
   const paidJobs = await prisma.job.findMany({
     where: { status: "COMPLETED", paymentStatus: "PAID" },
     include: { mechanicProfile: true },
@@ -853,6 +931,147 @@ async function main() {
       },
     ],
   });
+
+  const groupedRequest = await prisma.serviceRequest.create({
+    data: {
+      customerId: customers[0].id,
+      vehicleId: alexTruck.id,
+      mechanicProfileId: mike.id,
+      status: "ACCEPTED",
+      problemText: "My F-150 clicks when I turn left.",
+      category: "SUSPENSION",
+      zip: "84101",
+      city: "Salt Lake City",
+      state: "UT",
+      latitude: 40.7608,
+      longitude: -111.891,
+      whenItHappens: "moving",
+      startedWhen: "Last week",
+      drivability: "yes",
+      summary: "Customer reports a click on left turns. Matching and communication only — not a diagnosis.",
+    },
+  });
+  const groupedJob = await prisma.job.create({
+    data: {
+      serviceRequestId: groupedRequest.id,
+      customerId: customers[0].id,
+      mechanicUserId: mikeUser.id,
+      mechanicProfileId: mike.id,
+      vehicleId: alexTruck.id,
+      status: "AWAITING_APPROVAL",
+      totalCents: 192900,
+      paymentStatus: "UNPAID",
+      events: {
+        create: [
+          { status: "REQUESTED", note: "Customer requested service." },
+          { status: "ACCEPTED", note: "Mike accepted." },
+          { status: "AWAITING_APPROVAL", note: "Grouped estimate sent." },
+        ],
+      },
+    },
+  });
+  const groupedEstimate = await prisma.estimate.create({
+    data: {
+      jobId: groupedJob.id,
+      mechanicId: mikeUser.id,
+      type: "PRIMARY",
+      status: "SENT",
+      totalCents: 192900,
+      subtotalCents: 192900,
+      sentAt: new Date(),
+    },
+  });
+  const groupSeeds = [
+    {
+      title: "Front Brake Service",
+      total: 68000,
+      items: [
+        { category: "PARTS" as const, description: "Front brake pads", quantity: 1, unit: 22000 },
+        { category: "LABOR" as const, description: "Labor 3.5 hours", quantity: 3.5, unit: 10000 },
+        { category: "SUPPLIES" as const, description: "Shop supplies", quantity: 1, unit: 11000 },
+      ],
+    },
+    {
+      title: "Four Tires",
+      total: 112000,
+      items: [{ category: "PARTS" as const, description: "Four tires mounted and balanced", quantity: 4, unit: 28000 }],
+    },
+    {
+      title: "Oil Change",
+      total: 12900,
+      items: [{ category: "OTHER" as const, description: "Oil and filter", quantity: 1, unit: 12900 }],
+    },
+  ];
+  for (const [index, group] of groupSeeds.entries()) {
+    const created = await prisma.repairGroup.create({
+      data: {
+        estimateId: groupedEstimate.id,
+        jobId: groupedJob.id,
+        title: group.title,
+        totalCents: group.total,
+        sortOrder: index,
+      },
+    });
+    await prisma.estimateLineItem.createMany({
+      data: group.items.map((item) => ({
+        estimateId: groupedEstimate.id,
+        repairGroupId: created.id,
+        category: item.category,
+        description: item.description,
+        quantity: item.quantity,
+        unitCents: item.unit,
+        totalCents: Math.round(item.quantity * item.unit),
+      })),
+    });
+  }
+  await prisma.messageThread.create({
+    data: {
+      customerId: customers[0].id,
+      mechanicId: mikeUser.id,
+      jobId: groupedJob.id,
+      requestId: groupedRequest.id,
+      messages: {
+        create: [{ senderId: customers[0].id, body: "My F-150 clicks when I turn left." }],
+      },
+    },
+  });
+
+  await prisma.verificationApplication.create({
+    data: {
+      mechanicProfileId: mike.id,
+      status: "VERIFIED",
+      kind: "MOBILE",
+      notes: "In-person evaluation completed.",
+      events: {
+        create: [
+          { toStatus: "APPLICATION_RECEIVED", reason: "Applied for in-person evaluation." },
+          { actorId: admin.id, fromStatus: "APPLICATION_RECEIVED", toStatus: "VERIFIED", reason: "Mobile inspection passed." },
+        ],
+      },
+      inspections: {
+        create: {
+          mechanicProfileId: mike.id,
+          inspectorId: inspector.id,
+          kind: "MOBILE",
+          status: "VERIFIED",
+          passed: true,
+          score: 94,
+          completedAt: new Date("2026-06-12"),
+          notes: "HQ only. Provider does not see this score.",
+        },
+      },
+    },
+  });
+  if (priya) {
+    await prisma.verificationApplication.create({
+      data: {
+        mechanicProfileId: priya.id,
+        status: "APPLICATION_RECEIVED",
+        kind: "MOBILE",
+        events: { create: { toStatus: "APPLICATION_RECEIVED", reason: "Provider applied for in-person evaluation." } },
+      },
+    });
+  }
 
   const photoJobs = await prisma.job.findMany({
     where: { customerId: customers[0].id, status: "COMPLETED", id: { not: unpaidJob.id } },
@@ -1002,10 +1221,14 @@ async function main() {
   });
 
   console.log("Seed complete.");
-  console.log("Customer: customer@demo.pocketmechanic.app / Demo1234!");
-  console.log("Mechanic: mechanic@demo.pocketmechanic.app / Demo1234!");
-  console.log("Admin:    admin@demo.pocketmechanic.app / Demo1234!");
+  console.log("Customer:  customer@demo.pocketmechanic.app / Demo1234!");
+  console.log("Mechanic:  mechanic@demo.pocketmechanic.app / Demo1234!");
+  console.log("Admin:     admin@demo.pocketmechanic.app / Demo1234!");
+  console.log("Inspector: inspector@demo.pocketmechanic.app / Demo1234!");
+  console.log("Support:   support@demo.pocketmechanic.app / Demo1234!");
+  console.log("Finance:   finance@demo.pocketmechanic.app / Demo1234!");
   console.log(`Unpaid demo job: /jobs/${unpaidJob.id}/pay`);
+  console.log(`Grouped estimate job: /jobs/${groupedJob.id}`);
 }
 
 main()

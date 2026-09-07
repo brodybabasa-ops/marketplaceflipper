@@ -36,6 +36,8 @@ export async function createVehicleAction(formData: FormData) {
     drivetrain: formData.get("drivetrain") || undefined,
     mileage: formData.get("mileage"),
     vin: formData.get("vin") || undefined,
+    plate: formData.get("plate") || undefined,
+    color: formData.get("color") || undefined,
     nickname: formData.get("nickname") || undefined,
     notes: formData.get("notes") || undefined,
   });
@@ -58,6 +60,10 @@ export async function createRequestAction(formData: FormData) {
     budgetCents: formData.get("budgetCents") || undefined,
     mobilePreferred: formData.get("mobilePreferred") === "on",
     mechanicProfileId: formData.get("mechanicProfileId") || undefined,
+    whenItHappens: formData.get("whenItHappens") || undefined,
+    startedWhen: formData.get("startedWhen") || undefined,
+    warningLights: formData.get("warningLights") || undefined,
+    drivability: formData.get("drivability") || undefined,
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check your request.");
   const result = await createServiceRequest({

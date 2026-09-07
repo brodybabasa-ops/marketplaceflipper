@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
-import { SiteFooter, SiteHeader } from "@/components/layout/site-chrome";
+import { Sora } from "next/font/google";
+import { AppChrome } from "@/components/layout/site-chrome";
 import { APP_NAME, TAGLINE } from "@/lib/constants";
 import { getSession } from "@/lib/session";
 import { unreadNotificationCount } from "@/services/notifications";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
+const sora = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
 });
 
@@ -17,18 +17,19 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    "Connect with verified mechanics, compare real customer ratings, get transparent estimates, and keep your entire repair experience in one place.",
+    "Tell us what’s happening with your vehicle. Pocket Mechanic helps you find a mechanic you can trust.",
+  icons: { icon: "/brand/wrench-mark.svg" },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getSession();
   const unreadCount = user ? await unreadNotificationCount(user.id) : 0;
   return (
-    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`} data-scroll-behavior="smooth">
-      <body className="min-h-full flex flex-col bg-paper font-sans text-ink">
-        <SiteHeader user={user} unreadCount={unreadCount} />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
+    <html lang="en" className={`${sora.variable} h-full antialiased`} data-scroll-behavior="smooth">
+      <body className="flex min-h-full flex-col bg-navy-soft font-sans text-ink">
+        <AppChrome user={user} unreadCount={unreadCount}>
+          {children}
+        </AppChrome>
       </body>
     </html>
   );

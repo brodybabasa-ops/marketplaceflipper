@@ -15,6 +15,12 @@ export async function createServiceRequest(input: {
   preferredTimeWindow?: string;
   budgetCents?: number;
   mobilePreferred?: boolean;
+  whenItHappens?: string;
+  noticedWhen?: string[];
+  startedWhen?: string;
+  warningLights?: string;
+  drivability?: string;
+  summary?: string;
 }) {
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: input.vehicleId, customerId: input.customerId },
@@ -41,6 +47,12 @@ export async function createServiceRequest(input: {
       preferredTimeWindow: input.preferredTimeWindow,
       budgetCents: input.budgetCents,
       mobilePreferred: input.mobilePreferred ?? true,
+      whenItHappens: input.whenItHappens,
+      noticedWhen: input.noticedWhen ?? [],
+      startedWhen: input.startedWhen,
+      warningLights: input.warningLights,
+      drivability: input.drivability,
+      summary: input.summary,
     },
   });
 
@@ -167,7 +179,7 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       mechanicProfile: { include: { user: true, specialties: true } },
       vehicle: { include: { make: true, model: true } },
       serviceRequest: true,
-      estimates: { include: { lineItems: true, approvals: true }, orderBy: { createdAt: "desc" } },
+      estimates: { include: { lineItems: true, approvals: true, repairGroups: { include: { lineItems: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "asc" } },
       photos: true,
       repairRecord: true,
@@ -175,6 +187,9 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       thread: { include: { messages: { include: { sender: true }, orderBy: { createdAt: "asc" } } } },
       disputes: true,
       payments: { orderBy: { createdAt: "desc" } },
+      repairGroups: { include: { lineItems: true }, orderBy: { sortOrder: "asc" } },
+      authorizations: { include: { decisions: true }, orderBy: { submittedAt: "desc" } },
+      inspections: { include: { findings: true } },
     },
   });
   if (!job) return null;

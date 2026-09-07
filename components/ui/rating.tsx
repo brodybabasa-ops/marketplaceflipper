@@ -13,7 +13,7 @@ export function Rating({ value, count, size = "md" }: { value: number; count?: n
           />
         ))}
       </div>
-      <span className={cn("number font-semibold text-navy", size === "sm" ? "text-sm" : "text-base")}>
+      <span className={cn("number font-semibold text-ink", size === "sm" ? "text-sm" : "text-base")}>
         {value.toFixed(1)}
       </span>
       {count != null ? <span className="text-sm text-muted">({count})</span> : null}

@@ -35,13 +35,13 @@ export default async function MechanicsSearchPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <p className="text-sm font-semibold uppercase tracking-wide text-muted">Mechanic search</p>
-      <h1 className="mt-1 text-3xl font-bold text-navy">Find a mechanic you can trust</h1>
+      <h1 className="mt-1 text-3xl font-bold text-ink">Find a mechanic you can trust</h1>
       <p className="mt-2 text-muted">
         {zip ? `${zip.city}, ${zip.stateCode}` : "Near you"}
         {category ? ` · looking at ${category.toLowerCase().replaceAll("_", " ")}` : ""}
       </p>
 
-      <form className="mt-6 grid gap-3 rounded-2xl border border-line bg-white p-4 md:grid-cols-4">
+      <form className="mt-6 grid gap-3 rounded-2xl border border-line bg-card p-4 md:grid-cols-4">
         <Input name="q" defaultValue={query.q} placeholder="What does your vehicle need?" />
         <Input name="zip" defaultValue={query.zip} placeholder="ZIP or city" />
         <Input name="make" defaultValue={query.make} placeholder="Vehicle make" />
@@ -86,14 +86,14 @@ export default async function MechanicsSearchPage({
       ) : (
         <>
           <section className="mt-10">
-            <h2 className="text-xl font-semibold text-navy">Best matches</h2>
+            <h2 className="text-xl font-semibold text-ink">Best matches</h2>
             <div className="mt-4 grid gap-4">
               {best.map((mechanic) => (
                 <div key={mechanic.id}>
                   <MechanicCard mechanic={mechanic} />
                   {mechanic.reasons.length ? (
                     <Card className="mt-2 p-4">
-                      <p className="text-sm font-semibold text-navy">Why we recommend {mechanic.firstName}</p>
+                      <p className="text-sm font-semibold text-ink">Why we recommend {mechanic.firstName}</p>
                       <ul className="mt-2 space-y-1 text-sm text-muted">
                         {mechanic.reasons.map((reason) => (
                           <li key={reason}>✓ {reason}</li>
@@ -107,7 +107,7 @@ export default async function MechanicsSearchPage({
           </section>
           {rest.length ? (
             <section className="mt-10">
-              <h2 className="text-xl font-semibold text-navy">Other mechanics nearby</h2>
+              <h2 className="text-xl font-semibold text-ink">Other mechanics nearby</h2>
               <div className="mt-4 grid gap-4">
                 {rest.map((mechanic) => (
                   <MechanicCard key={mechanic.id} mechanic={mechanic} />

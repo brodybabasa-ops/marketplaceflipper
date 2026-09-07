@@ -12,6 +12,10 @@ export type MatchableMechanic = {
   yearsExperience: number;
   serviceMode: ServiceMode;
   verificationLevel: VerificationLevel;
+  isSelect: boolean;
+  isFoundingProvider: boolean;
+  foundingNumber: number | null;
+  lastVerifiedAt: Date | null;
   averageRating: number;
   reviewCount: number;
   completedJobsCount: number;
@@ -48,9 +52,8 @@ export type MatchFilters = {
 };
 
 function verificationLabel(level: VerificationLevel) {
-  if (level === "POCKET_VERIFIED") return "Pocket Verified";
-  if (level === "UNVERIFIED") return null;
-  return "Verified mechanic";
+  if (level === "POCKET_VERIFIED") return "Pocket Mechanic Verified";
+  return null;
 }
 
 function responseCopy(minutes: number) {
@@ -81,7 +84,11 @@ export function recommendationReasons(mechanic: MatchableMechanic, distanceMiles
   }
   const verified = verificationLabel(mechanic.verificationLevel);
   if (verified) reasons.push(verified);
-  return reasons.slice(0, 5);
+  if (mechanic.isSelect) reasons.push("Pocket Mechanic Select");
+  if (mechanic.isFoundingProvider && mechanic.foundingNumber) {
+    reasons.push(`Founding Mechanic #${String(mechanic.foundingNumber).padStart(3, "0")}`);
+  }
+  return reasons.slice(0, 6);
 }
 
 export function matchMechanics(mechanics: MatchableMechanic[], filters: MatchFilters = {}): MechanicMatch[] {

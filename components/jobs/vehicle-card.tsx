@@ -16,7 +16,7 @@ export function VehicleCard({ vehicle, ctaHref, ctaLabel = "Get Help" }: { vehic
   return (
     <Card className="p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{vehicle.nickname || "Vehicle"}</p>
-      <h3 className="mt-1 text-xl font-semibold text-navy">
+      <h3 className="mt-1 text-xl font-semibold text-ink">
         {vehicle.year} {vehicle.make} {vehicle.model}
       </h3>
       <p className="mt-1 text-sm text-muted">{formatMiles(vehicle.mileage)}</p>

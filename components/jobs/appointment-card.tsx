@@ -16,7 +16,7 @@ export function AppointmentCard({
 }) {
   return (
     <Card className="p-5">
-      <h2 className="font-semibold text-navy">Appointment</h2>
+      <h2 className="font-semibold text-ink">Appointment</h2>
       {scheduledAt ? (
         <p className="mt-2 text-sm">
           {scheduledAt.toLocaleString()} {confirmedAt ? "· confirmed" : "· waiting for confirmation"}

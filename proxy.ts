@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, decryptSession, homeForRole } from "@/lib/session-token";
 
-const PROTECTED = ["/home", "/vehicles", "/jobs", "/messages", "/history", "/account", "/request", "/mechanic", "/admin", "/notifications", "/saved", "/disputes"];
+const STAFF = new Set(["ADMIN", "INSPECTOR", "SUPPORT", "FINANCE"]);
+const PROTECTED = [
+  "/home",
+  "/vehicles",
+  "/jobs",
+  "/messages",
+  "/history",
+  "/account",
+  "/request",
+  "/intake",
+  "/compare",
+  "/estimates",
+  "/mechanic",
+  "/admin",
+  "/notifications",
+  "/saved",
+  "/disputes",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,7 +34,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith("/admin") && session.role !== "ADMIN") {
+  if (pathname.startsWith("/admin") && !STAFF.has(session.role)) {
     return NextResponse.redirect(new URL(homeForRole(session.role), request.url));
   }
   if (pathname.startsWith("/mechanic") && session.role !== "MECHANIC" && session.role !== "ADMIN") {
@@ -27,5 +44,36 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home/:path*", "/vehicles/:path*", "/jobs/:path*", "/messages/:path*", "/history/:path*", "/account/:path*", "/request/:path*", "/mechanic/:path*", "/admin/:path*", "/notifications/:path*", "/saved/:path*", "/disputes/:path*"],
+  matcher: [
+    "/home",
+    "/home/:path*",
+    "/vehicles",
+    "/vehicles/:path*",
+    "/jobs",
+    "/jobs/:path*",
+    "/messages",
+    "/messages/:path*",
+    "/history",
+    "/history/:path*",
+    "/account",
+    "/account/:path*",
+    "/request",
+    "/request/:path*",
+    "/intake",
+    "/intake/:path*",
+    "/compare",
+    "/compare/:path*",
+    "/estimates",
+    "/estimates/:path*",
+    "/mechanic",
+    "/mechanic/:path*",
+    "/admin",
+    "/admin/:path*",
+    "/notifications",
+    "/notifications/:path*",
+    "/saved",
+    "/saved/:path*",
+    "/disputes",
+    "/disputes/:path*",
+  ],
 };

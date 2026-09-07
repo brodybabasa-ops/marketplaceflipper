@@ -19,7 +19,7 @@ export default async function VehiclesPage() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/vehicles" />
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-navy">My vehicles</h1>
+        <h1 className="text-3xl font-bold text-ink">My vehicles</h1>
         <Button asChild>
           <Link href="/vehicles/new">Add vehicle</Link>
         </Button>

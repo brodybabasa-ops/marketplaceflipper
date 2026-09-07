@@ -33,11 +33,11 @@ export default async function MechanicSchedulePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <AppNav items={MECHANIC_NAV} current="/mechanic/schedule" />
-      <h1 className="text-3xl font-bold text-navy">Schedule</h1>
+      <h1 className="text-3xl font-bold text-ink">Schedule</h1>
       <p className="mt-2 text-sm text-muted">Weekly hours customers can book. Blocked dates skip matching for that day.</p>
 
       <Card className="mt-6 p-5">
-        <h2 className="font-semibold text-navy">Weekly availability</h2>
+        <h2 className="font-semibold text-ink">Weekly availability</h2>
         <form action={saveAvailabilityAction} className="mt-4 space-y-2">
           {DAYS.map((day) => {
             const current = byDay[day];
@@ -60,7 +60,7 @@ export default async function MechanicSchedulePage() {
       </Card>
 
       <Card className="mt-6 p-5">
-        <h2 className="font-semibold text-navy">Block a date</h2>
+        <h2 className="font-semibold text-ink">Block a date</h2>
         <form action={addBlockedDateAction} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Input name="date" type="date" required />
           <Input name="reason" placeholder="Vacation, shop closed..." />
@@ -79,11 +79,11 @@ export default async function MechanicSchedulePage() {
       </Card>
 
       <section className="mt-8">
-        <h2 className="text-xl font-semibold text-navy">Upcoming jobs</h2>
+        <h2 className="text-xl font-semibold text-ink">Upcoming jobs</h2>
         <div className="mt-4 space-y-3">
           {upcoming.map((job) => (
-            <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
-              <p className="font-semibold text-navy">
+            <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-2xl border border-line bg-card p-4">
+              <p className="font-semibold text-ink">
                 {job.customer.firstName} {job.customer.lastName}
               </p>
               <p className="text-sm text-muted">

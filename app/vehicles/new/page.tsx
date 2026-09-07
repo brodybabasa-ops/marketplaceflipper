@@ -15,7 +15,7 @@ export default async function NewVehiclePage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/vehicles" />
-      <h1 className="text-3xl font-bold text-navy">Add a vehicle</h1>
+      <h1 className="text-3xl font-bold text-ink">Add a vehicle</h1>
       <p className="mt-2 text-sm text-muted">Start with year, make, and model. Everything else is optional.</p>
       <form action={createVehicleAction} className="mt-6 space-y-4">
         <Field label="Year">
@@ -59,6 +59,12 @@ export default async function NewVehiclePage() {
         </Field>
         <Field label="VIN (optional)">
           <Input name="vin" maxLength={17} />
+        </Field>
+        <Field label="License plate">
+          <Input name="plate" placeholder="ABC-1234" />
+        </Field>
+        <Field label="Color">
+          <Input name="color" placeholder="Oxford White" />
         </Field>
         <Field label="Nickname">
           <Input name="nickname" placeholder="The truck" />

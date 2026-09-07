@@ -7,7 +7,7 @@ export const metadata = { title: "For mechanics" };
 export default function ForMechanicsPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
-      <h1 className="text-4xl font-bold text-navy">Get work from customers who are ready to approve it in writing.</h1>
+      <h1 className="text-4xl font-bold text-ink">Get work from customers who are ready to approve it in writing.</h1>
       <p className="mt-3 max-w-2xl text-muted">
         Pocket Mechanic is not a lead mill. Customers request service, you send an estimate, they approve, you do the job, and the review is tied to that job.
       </p>
@@ -18,7 +18,7 @@ export default function ForMechanicsPage() {
           ["A score you earn", "Pocket Score is performance, not advertising spend."],
         ].map(([title, body]) => (
           <Card key={title} className="p-5">
-            <h2 className="font-semibold text-navy">{title}</h2>
+            <h2 className="font-semibold text-ink">{title}</h2>
             <p className="mt-2 text-sm text-muted">{body}</p>
           </Card>
         ))}

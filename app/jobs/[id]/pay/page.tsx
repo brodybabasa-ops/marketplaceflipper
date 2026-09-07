@@ -20,7 +20,7 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/jobs" />
-      <h1 className="text-3xl font-bold text-navy">Pay for this repair</h1>
+      <h1 className="text-3xl font-bold text-ink">Pay for this repair</h1>
       <p className="mt-2 text-sm text-muted">
         You pay the approved estimate. Pocket Mechanic’s marketplace fee comes out of the mechanic payout, not as an extra charge on your bill.
       </p>
@@ -53,7 +53,7 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
           </Button>
         </form>
       )}
-      <Link href={`/jobs/${id}`} className="mt-4 inline-block text-sm font-semibold text-navy">
+      <Link href={`/jobs/${id}`} className="mt-4 inline-block text-sm font-semibold text-ink">
         Back to job
       </Link>
     </div>

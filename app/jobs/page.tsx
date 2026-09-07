@@ -18,16 +18,16 @@ export default async function JobsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/jobs" />
-      <h1 className="text-3xl font-bold text-navy">My jobs</h1>
+      <h1 className="text-3xl font-bold text-ink">My jobs</h1>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (
           <EmptyState title="No jobs yet" body="Request service from a mechanic to start tracking the work." />
         ) : (
           jobs.map((job) => (
-            <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
+            <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-navy">{job.mechanicProfile.businessName}</p>
+                  <p className="font-semibold text-ink">{job.mechanicProfile.businessName}</p>
                   <p className="text-sm text-muted">
                     {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
                   </p>

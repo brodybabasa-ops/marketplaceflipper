@@ -19,7 +19,7 @@ export default async function NotificationsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <AppNav items={session.role === "MECHANIC" ? MECHANIC_NAV : CUSTOMER_NAV} current="/notifications" />
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold text-navy">Notifications</h1>
+        <h1 className="text-3xl font-bold text-ink">Notifications</h1>
         <form action={markNotificationsReadAction}>
           <Button type="submit" variant="secondary" size="sm">
             Mark all read
@@ -34,9 +34,9 @@ export default async function NotificationsPage() {
             <Link
               key={item.id}
               href={item.href ?? "#"}
-              className={`block rounded-2xl border border-line p-4 ${item.readAt ? "bg-white" : "bg-accent-soft"}`}
+              className={`block rounded-2xl border border-line p-4 ${item.readAt ? "bg-card" : "bg-accent-soft"}`}
             >
-              <p className="font-semibold text-navy">{item.title}</p>
+              <p className="font-semibold text-ink">{item.title}</p>
               <p className="text-sm text-muted">{item.body}</p>
               <p className="mt-1 text-xs text-muted">{item.createdAt.toLocaleString()}</p>
             </Link>

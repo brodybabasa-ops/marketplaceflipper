@@ -47,6 +47,6 @@ export async function decryptSession(token: string): Promise<SessionUser | null>
 
 export function homeForRole(role: UserRole) {
   if (role === "MECHANIC") return "/mechanic";
-  if (role === "ADMIN") return "/admin";
+  if (role === "ADMIN" || role === "INSPECTOR" || role === "SUPPORT" || role === "FINANCE") return "/admin";
   return "/home";
 }

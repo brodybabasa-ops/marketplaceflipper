@@ -18,7 +18,8 @@ export async function getJobPaymentSummary(jobId: string) {
     include: { mechanicProfile: true, payments: { orderBy: { createdAt: "desc" } } },
   });
   const config = await prisma.platformConfig.findUnique({ where: { id: "default" } });
-  const commissionPercent = job.commissionPercent ?? config?.commissionPercent ?? 10;
+  const commissionPercent =
+    job.commissionPercent ?? config?.marketplaceFeePercent ?? config?.commissionPercent ?? 3;
   return {
     job,
     ...splitMarketplaceAmount(job.totalCents, commissionPercent),

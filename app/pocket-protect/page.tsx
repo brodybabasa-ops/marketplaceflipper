@@ -7,7 +7,7 @@ export const metadata = { title: "Pocket Protect" };
 export default function PocketProtectPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-4xl font-bold text-navy">Pocket Protect</h1>
+      <h1 className="text-4xl font-bold text-ink">Pocket Protect</h1>
       <p className="mt-3 text-lg text-muted">An extra layer of confidence when you book through Pocket Mechanic.</p>
       <div className="mt-8 space-y-3">
         {[
@@ -18,7 +18,7 @@ export default function PocketProtectPage() {
           "Communication history",
           "Dispute workflow",
         ].map((item) => (
-          <Card key={item} className="p-4 font-medium text-navy">
+          <Card key={item} className="p-4 font-medium text-ink">
             {item}
           </Card>
         ))}

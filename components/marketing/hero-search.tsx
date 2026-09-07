@@ -7,7 +7,7 @@ export function HeroSearch({ compact }: { compact?: boolean }) {
   return (
     <form
       action="/mechanics"
-      className={compact ? "grid gap-3 md:grid-cols-4" : "grid gap-3 rounded-3xl bg-white p-4 shadow-[var(--shadow)] md:grid-cols-[1fr_1.2fr_1fr_auto]"}
+      className={compact ? "grid gap-3 md:grid-cols-4" : "grid gap-3 rounded-3xl bg-card p-4 shadow-[var(--shadow)] md:grid-cols-[1fr_1.2fr_1fr_auto]"}
     >
       <div>
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Vehicle</label>

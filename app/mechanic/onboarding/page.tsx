@@ -13,7 +13,7 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <AppNav items={MECHANIC_NAV} current="/mechanic/profile" />
-      <h1 className="text-3xl font-bold text-navy">Set up your mechanic profile</h1>
+      <h1 className="text-3xl font-bold text-ink">Set up your mechanic profile</h1>
       <p className="mt-2 text-sm text-muted">Profile {profile.profileCompletePct}% complete. Customers see this before they request service.</p>
       <form action={saveMechanicProfileAction} className="mt-6 space-y-4">
         <Field label="Business name">

@@ -17,7 +17,7 @@ export default async function MechanicReviewsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <AppNav items={MECHANIC_NAV} current="/mechanic/reviews" />
-      <h1 className="text-3xl font-bold text-navy">Reviews</h1>
+      <h1 className="text-3xl font-bold text-ink">Reviews</h1>
       <div className="mt-6 space-y-4">
         {reviews.length === 0 ? (
           <EmptyState title="No reviews yet" body="Completed jobs can be reviewed by the customer who booked them." />

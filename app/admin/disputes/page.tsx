@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { resolveDisputeAction } from "@/app/actions/admin";
 import { requireSession } from "@/lib/guards";
+import { staffRoles } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 
 export const metadata = { title: "Disputes" };
 
 export default async function AdminDisputesPage() {
-  await requireSession("ADMIN");
+  await requireSession(staffRoles());
   const disputes = await prisma.dispute.findMany({
     include: { customer: true, mechanic: true, job: { include: { serviceRequest: true, estimates: true } } },
     orderBy: { createdAt: "desc" },
@@ -16,11 +17,11 @@ export default async function AdminDisputesPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <AppNav items={ADMIN_NAV} current="/admin/disputes" />
-      <h1 className="text-3xl font-bold text-navy">Disputes</h1>
+      <h1 className="text-3xl font-bold text-ink">Disputes</h1>
       <div className="mt-6 space-y-4">
         {disputes.map((dispute) => (
-          <div key={dispute.id} className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-semibold text-navy">
+          <div key={dispute.id} className="rounded-2xl border border-line bg-card p-4">
+            <p className="font-semibold text-ink">
               {dispute.category.replaceAll("_", " ")} · {dispute.status}
             </p>
             <p className="text-sm">{dispute.description}</p>

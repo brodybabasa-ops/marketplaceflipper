@@ -16,15 +16,15 @@ export default async function AccountPage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/account" /> : null}
-      <h1 className="text-3xl font-bold text-navy">Profile</h1>
+      <h1 className="text-3xl font-bold text-ink">Profile</h1>
       <Card className="mt-6 p-5">
-        <p className="font-semibold text-navy">
+        <p className="font-semibold text-ink">
           {session.firstName} {session.lastName}
         </p>
         <p className="text-sm text-muted">{session.email}</p>
         <p className="mt-2 text-sm capitalize text-muted">{session.role.toLowerCase()}</p>
         {session.role === "CUSTOMER" ? (
-          <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-navy">
+          <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-ink">
             <Link href="/saved">Saved mechanics</Link>
             <Link href="/disputes">Disputes</Link>
             <Link href="/history">Repair history</Link>
@@ -32,7 +32,7 @@ export default async function AccountPage() {
         ) : null}
       </Card>
       <Card className="mt-6 p-5">
-        <h2 className="font-semibold text-navy">Notifications</h2>
+        <h2 className="font-semibold text-ink">Notifications</h2>
         <p className="mt-1 text-sm text-muted">
           In-app is always on. Email uses Resend when configured; otherwise it is logged. SMS uses Twilio when credentials
           are set.

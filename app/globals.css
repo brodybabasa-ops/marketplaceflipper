@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --navy: #0e1c2f;
-  --navy-soft: #173049;
-  --ink: #1b2430;
-  --muted: #5c6b7a;
-  --line: #e6e2da;
-  --paper: #f6f3ee;
-  --card: #ffffff;
-  --accent: #2f6fed;
-  --accent-soft: #e8f0ff;
-  --success: #1f8a5b;
-  --warning: #c98412;
-  --danger: #c4453c;
-  --radius: 1.1rem;
-  --shadow: 0 10px 30px rgba(14, 28, 47, 0.06);
+  --navy: #0b1320;
+  --navy-soft: #121c2e;
+  --slate: #1e293b;
+  --ink: #f8fafc;
+  --muted: #64748b;
+  --line: #2a3a52;
+  --paper: #0b1320;
+  --card: #1e293b;
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.16);
+  --success: #22c55e;
+  --warning: #ff7a00;
+  --danger: #ef4444;
+  --radius: 0.9rem;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
   --background: var(--paper);
   --foreground: var(--ink);
 }
@@ -24,6 +25,7 @@
   --color-foreground: var(--foreground);
   --color-navy: var(--navy);
   --color-navy-soft: var(--navy-soft);
+  --color-slate: var(--slate);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
@@ -34,9 +36,9 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
-  --font-sans: var(--font-plus-jakarta);
-  --radius-xl: 1.1rem;
-  --radius-2xl: 1.5rem;
+  --font-sans: var(--font-sora);
+  --radius-xl: 0.9rem;
+  --radius-2xl: 1.15rem;
 }
 
 * {
@@ -45,19 +47,25 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-plus-jakarta), "Segoe UI", sans-serif;
+  font-family: var(--font-sora), "Segoe UI", sans-serif;
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: var(--navy);
+  background: var(--accent);
+  color: white;
 }
 
 .number {
   font-variant-numeric: tabular-nums;
+}
+
+.pm-grid {
+  background-image: radial-gradient(rgba(10, 132, 255, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
 }

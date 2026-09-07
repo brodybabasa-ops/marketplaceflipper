@@ -11,6 +11,9 @@ enum UserRole {
   CUSTOMER
   MECHANIC
   ADMIN
+  INSPECTOR
+  SUPPORT
+  FINANCE
 }
 
 enum AccountStatus {
@@ -64,9 +67,12 @@ enum JobStatus {
   SCHEDULED
   EN_ROUTE
   ARRIVED
+  CHECKED_IN
   DIAGNOSING
   AWAITING_APPROVAL
   IN_PROGRESS
+  QUALITY_CHECK
+  READY
   COMPLETED
   CANCELLED
   DISPUTED
@@ -130,6 +136,8 @@ enum DisputeCategory {
   NO_SHOW
   VEHICLE_DAMAGE
   COMMUNICATION
+  UNAUTHORIZED_WORK
+  WORK_NOT_COMPLETED
   OTHER
 }
 
@@ -168,6 +176,38 @@ enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
   CANCELED
+}
+
+enum GroupAuthStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum FindingStatus {
+  GOOD
+  MONITOR
+  NEEDS_ATTENTION
+}
+
+enum VerificationPipelineStatus {
+  NOT_STARTED
+  APPLICATION_RECEIVED
+  REVIEWING
+  VISIT_SCHEDULING
+  VISIT_SCHEDULED
+  EVALUATION_COMPLETED
+  VERIFIED
+  ADDITIONAL_ACTION
+  DENIED
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum InspectionKind {
+  SHOP
+  MOBILE
 }
 
 enum DayOfWeek {
@@ -222,6 +262,12 @@ model User {
   payouts            Payout[]
   payments           Payment[]
   subscriptions      Subscription[]
+  auditEvents        AuditEvent[]
+  inspectionsAsInspector VerificationInspection[] @relation("InspectorVisits")
+  customerRecommendedWork RecommendedWork[] @relation("CustomerRecommendedWork")
+  authorizations     RepairAuthorization[]
+  supportTickets     SupportTicket[] @relation("TicketRequester")
+  assignedTickets    SupportTicket[] @relation("TicketAssignee")
 
   @@index([role, status])
   @@index([email])
@@ -271,6 +317,15 @@ model MechanicProfile {
   acceptsNewJobs           Boolean @default(true)
   stripeConnectAccountId   String?
   stripeChargesEnabled     Boolean @default(false)
+  lastVerifiedAt           DateTime?
+  isSelect                 Boolean @default(false)
+  isFoundingProvider       Boolean @default(false)
+  foundingNumber           Int?
+  foundingApprovedAt       DateTime?
+  subscriptionFeeWaived    Boolean @default(false)
+  foundingProgramVersion   String?
+  marketplaceEligible      Boolean @default(true)
+  verificationPipeline     VerificationPipelineStatus @default(NOT_STARTED)
 
   averageRating       Float @default(0)
   reviewCount         Int   @default(0)
@@ -297,6 +352,9 @@ model MechanicProfile {
   jobs           Job[]
   reviews        Review[]
   savedBy        SavedMechanic[]
+  recommendedWork RecommendedWork[]
+  verificationApplications VerificationApplication[]
+  verificationInspections VerificationInspection[]
 
   @@index([mechanicScore])
   @@index([shopState, shopCity])
@@ -342,6 +400,8 @@ model Vehicle {
   drivetrain  String?
   mileage     Int
   vin         String?
+  plate       String?
+  color       String?
   nickname    String?
   notes       String?
   photoUrl    String?
@@ -354,6 +414,8 @@ model Vehicle {
   serviceRequests ServiceRequest[]
   jobs            Job[]
   repairRecords   RepairRecord[]
+  inspections     VehicleInspection[]
+  recommendedWork RecommendedWork[]
 
   @@index([customerId])
 }
@@ -478,6 +540,13 @@ model ServiceRequest {
   budgetCents          Int?
   mobilePreferred      Boolean              @default(true)
   photoUrls            String[]             @default([])
+  videoUrls            String[]             @default([])
+  whenItHappens        String?
+  noticedWhen          String[]             @default([])
+  startedWhen          String?
+  warningLights        String?
+  drivability          String?
+  summary              String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
@@ -525,6 +594,10 @@ model Job {
   disputes        Dispute[]
   payouts         Payout[]
   payments        Payment[]
+  repairGroups    RepairGroup[]
+  authorizations  RepairAuthorization[]
+  inspections     VehicleInspection[]
+  recommendedWork RecommendedWork[]
 
   @@index([customerId, status])
   @@index([mechanicProfileId, status])
@@ -564,6 +637,8 @@ model Estimate {
   children  Estimate[]         @relation("EstimateRevisions")
   lineItems EstimateLineItem[]
   approvals EstimateApproval[]
+  repairGroups RepairGroup[]
+  authorizations RepairAuthorization[]
 
   @@index([jobId, status])
 }
@@ -576,10 +651,12 @@ model EstimateLineItem {
   quantity    Float                @default(1)
   unitCents   Int
   totalCents  Int
+  repairGroupId String?            @db.Uuid
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
   estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  repairGroup RepairGroup? @relation(fields: [repairGroupId], references: [id], onDelete: SetNull)
 }
 
 model EstimateApproval {
@@ -735,6 +812,8 @@ model Dispute {
   description String
   photoUrls   String[]        @default([])
   resolution  String?
+  exposureCents Int?
+  adminNotes  String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -876,8 +955,12 @@ model PlatformConfig {
   id                  String @id @default("default")
   commissionPercent   Float  @default(10)
   mechanicProMonthlyCents Int @default(4900)
+  marketplaceFeePercent   Float @default(3)
+  processorFeePercent     Float @default(0)
   rankingWeights      Json
   verificationLevels  Json
+  selectCriteria      Json?
+  verificationStandards Json?
   marketplaceName     String @default("Pocket Mechanic")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -891,4 +974,211 @@ model PlatformStat {
   statesCovered      Int      @default(50)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model RepairGroup {
+  id            String          @id @default(uuid()) @db.Uuid
+  estimateId    String          @db.Uuid
+  jobId         String          @db.Uuid
+  findingId     String?         @db.Uuid
+  title         String
+  recommendation String         @default("RECOMMENDED")
+  urgency       String          @default("normal")
+  status        GroupAuthStatus @default(PENDING)
+  totalCents    Int             @default(0)
+  sortOrder     Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  estimate Estimate            @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  job      Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  lineItems EstimateLineItem[]
+  decisions RepairAuthorizationDecision[]
+  recommendedWork RecommendedWork[]
+
+  @@index([estimateId, status])
+  @@index([jobId])
+}
+
+model RepairAuthorization {
+  id              String   @id @default(uuid()) @db.Uuid
+  estimateId      String   @db.Uuid
+  jobId           String   @db.Uuid
+  customerId      String   @db.Uuid
+  originalCents   Int
+  approvedCents   Int
+  declinedCents   Int
+  pendingCents    Int      @default(0)
+  authorizedCents Int
+  ipAddress       String?
+  userAgent       String?
+  submittedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  estimate  Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  customer  User     @relation(fields: [customerId], references: [id])
+  decisions RepairAuthorizationDecision[]
+
+  @@index([jobId, submittedAt])
+}
+
+model RepairAuthorizationDecision {
+  id              String         @id @default(uuid()) @db.Uuid
+  authorizationId String         @db.Uuid
+  repairGroupId   String         @db.Uuid
+  action          ApprovalAction
+  createdAt       DateTime       @default(now())
+
+  authorization RepairAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+  repairGroup   RepairGroup         @relation(fields: [repairGroupId], references: [id], onDelete: Cascade)
+}
+
+model RecommendedWork {
+  id                String   @id @default(uuid()) @db.Uuid
+  customerId        String   @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  vehicleId         String   @db.Uuid
+  jobId             String?  @db.Uuid
+  estimateId        String?  @db.Uuid
+  repairGroupId     String?  @db.Uuid
+  title             String
+  estimatedCents    Int
+  urgency           String   @default("normal")
+  notes             String?
+  declineDate       DateTime?
+  followUpDate      DateTime?
+  status            String   @default("OPEN")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customer User            @relation("CustomerRecommendedWork", fields: [customerId], references: [id], onDelete: Cascade)
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  job      Job?            @relation(fields: [jobId], references: [id])
+  repairGroup RepairGroup? @relation(fields: [repairGroupId], references: [id])
+
+  @@index([mechanicProfileId, status])
+  @@index([customerId, status])
+}
+
+model VehicleInspection {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String   @db.Uuid
+  vehicleId String   @db.Uuid
+  mechanicUserId String @db.Uuid
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job     Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  vehicle Vehicle             @relation(fields: [vehicleId], references: [id])
+  findings InspectionFinding[]
+}
+
+model InspectionFinding {
+  id            String        @id @default(uuid()) @db.Uuid
+  inspectionId  String        @db.Uuid
+  section       String
+  status        FindingStatus
+  explanation   String?
+  recommendation String?
+  urgency       String        @default("normal")
+  photoUrls     String[]      @default([])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  inspection VehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+}
+
+model VerificationApplication {
+  id                String                     @id @default(uuid()) @db.Uuid
+  mechanicProfileId String                     @db.Uuid
+  status            VerificationPipelineStatus @default(APPLICATION_RECEIVED)
+  kind              InspectionKind             @default(MOBILE)
+  notes             String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  mechanic    MechanicProfile            @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  inspections VerificationInspection[]
+  events      VerificationEvent[]
+}
+
+model VerificationInspection {
+  id                String                     @id @default(uuid()) @db.Uuid
+  applicationId     String                     @db.Uuid
+  mechanicProfileId String                     @db.Uuid
+  inspectorId       String?                    @db.Uuid
+  kind              InspectionKind             @default(SHOP)
+  scheduledAt       DateTime?
+  completedAt       DateTime?
+  status            VerificationPipelineStatus @default(VISIT_SCHEDULED)
+  score             Int?
+  passed            Boolean?
+  notes             String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  mechanic    MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  application VerificationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  inspector   User?            @relation("InspectorVisits", fields: [inspectorId], references: [id])
+  items       VerificationChecklistItem[]
+}
+
+model VerificationChecklistItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  inspectionId  String   @db.Uuid
+  category      String
+  score         Int?
+  passed        Boolean?
+  notes         String?
+  notApplicable Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  inspection VerificationInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+}
+
+model VerificationEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  actorId       String?
+  fromStatus    String?
+  toStatus      String
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  application VerificationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  targetType String
+  targetId   String
+  reason     String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+model SupportTicket {
+  id          String   @id @default(uuid()) @db.Uuid
+  requesterId String   @db.Uuid
+  assigneeId  String?  @db.Uuid
+  topic       String
+  body        String
+  status      String   @default("OPEN")
+  jobId       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User  @relation("TicketRequester", fields: [requesterId], references: [id])
+  assignee  User? @relation("TicketAssignee", fields: [assigneeId], references: [id])
 }
