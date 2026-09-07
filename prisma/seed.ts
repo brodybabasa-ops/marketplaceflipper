@@ -483,7 +483,10 @@ async function main() {
   let completed = 0;
 
   for (let i = 0; i < 110; i++) {
-    const mechanic = mechanicProfiles[i % mechanicProfiles.length];
+    const mechanic =
+      i % 4 === 0 || i < 35
+        ? mechanicProfiles[0]
+        : mechanicProfiles[(i % (mechanicProfiles.length - 1)) + 1];
     const vehicle = vehicles[i % vehicles.length];
     const problem = PROBLEMS[i % PROBLEMS.length];
     const customerId = vehicle.customerId;
@@ -588,7 +591,7 @@ async function main() {
         },
       });
       if (completed <= 100) {
-        const rating = 4 + (i % 8 === 0 ? 0 : 1);
+        const rating = mechanic.id === mike.id ? (i % 12 === 0 ? 4 : 5) : 4 + (i % 8 === 0 ? 0 : 1);
         await prisma.review.create({
           data: {
             jobId: job.id,
@@ -648,6 +651,24 @@ async function main() {
       },
     });
   }
+
+  const mikeFresh = await prisma.mechanicProfile.findUniqueOrThrow({ where: { id: mike.id } });
+  const featuredScore = computeMechanicScore(
+    {
+      ...mikeFresh,
+      completedJobsCount: Math.max(mikeFresh.completedJobsCount, 183),
+      averageRating: Math.max(mikeFresh.averageRating, 4.9),
+    },
+    DEFAULT_RANKING_WEIGHTS,
+  );
+  await prisma.mechanicProfile.update({
+    where: { id: mike.id },
+    data: {
+      completedJobsCount: Math.max(mikeFresh.completedJobsCount, 183),
+      averageRating: Math.max(mikeFresh.averageRating, 4.9),
+      mechanicScore: Math.max(featuredScore, 96),
+    },
+  });
 
   await prisma.platformConfig.create({
     data: {
