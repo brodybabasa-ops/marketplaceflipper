@@ -15,6 +15,7 @@ import {
   unscheduledSource,
   utilization,
 } from "@/lib/schedule-intelligence";
+import { checkInState, jobProgressPct, progressLabel, slipRisk } from "@/lib/schedule-visual";
 
 const SHOP_HOURS = { start: 8, end: 18 };
 
@@ -123,6 +124,14 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
       jobStatus: block.job?.status,
       promisedReadyAt: block.job?.promisedReadyAt,
     });
+    const durationMin = Math.max(15, minutesBetween(block.startsAt, block.endsAt));
+    const checkIn = checkInState({
+      now,
+      startsAt: block.startsAt,
+      jobStatus: block.job?.status,
+      arrivedAt: block.job?.arrivedAt,
+      kind: block.kind,
+    });
     return {
       ...block,
       assetLabel: block.job ? jobAssetLabel(block.job) : null,
@@ -130,12 +139,56 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
       waiting: Boolean(block.job?.customerWaiting),
       partsStatus: block.job?.partsStatus ?? "UNKNOWN",
       authorization: block.job?.authorizations[0] ? "AUTHORIZED" : block.job?.status === "AWAITING_APPROVAL" ? "AWAITING" : "NONE",
+      authorizedCents: block.job?.authorizations[0]?.authorizedCents ?? block.job?.totalCents ?? 0,
       inProgress: block.job?.status === "IN_PROGRESS" || block.job?.status === "DIAGNOSING",
+      jobStatus: block.job?.status ?? null,
+      category: block.job?.serviceRequest.category ?? null,
+      requestKind: block.job?.serviceRequest.requestKind ?? null,
+      urgencyMode: block.job?.urgencyMode ?? "NORMAL",
+      complaint: block.job?.serviceRequest.problemText ?? null,
+      technicianName: block.technician?.displayName ?? null,
+      resourceName: block.resource?.name ?? null,
+      resourceKind: block.resource?.kind ?? null,
+      durationMin,
+      scheduledHours: Math.round((durationMin / 60) * 10) / 10,
+      progressPct: jobProgressPct(block.job?.status, block.kind),
+      progressLabel: progressLabel(block.job?.status, block.kind),
+      checkIn,
+      source:
+        block.job?.serviceRequest.requestKind === "FLEET_PM"
+          ? "FLEET"
+          : block.job?.status === "REQUESTED"
+            ? "MARKETPLACE"
+            : block.kind === "DROP_OFF"
+              ? "WALK-IN"
+              : "EXISTING",
+      slip: null as ReturnType<typeof slipRisk>,
+      potentiallyDelayed: false,
       ...risk,
       partsHint: block.job ? partsSchedulingHint(block.job.partsStatus, block.kind) : null,
       authHint: block.job ? authorizationSchedulingHint(block.job.status, block.kind) : null,
     };
   });
+
+  for (const block of enrichedBlocks) {
+    if (!block.technicianProfileId || !["WORK", "QC"].includes(block.kind)) continue;
+    const next = enrichedBlocks.find(
+      (item) =>
+        item.technicianProfileId === block.technicianProfileId &&
+        item.id !== block.id &&
+        item.startsAt.getTime() >= block.endsAt.getTime() &&
+        ["WORK", "QC", "ROAD_TEST"].includes(item.kind),
+    );
+    const slip = slipRisk({
+      currentEndsAt: block.endsAt,
+      nextStartsAt: next?.startsAt ?? null,
+      now,
+      behind: block.behind,
+      minutesBehind: block.minutesBehind,
+    });
+    block.slip = slip;
+    if (slip && next) next.potentiallyDelayed = true;
+  }
 
   const attention = [
     ...enrichedBlocks.filter((block) => block.behind).map((block) => ({
@@ -174,7 +227,62 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
     ready: jobs.filter((job) => job.status === "READY").length,
     expectedCents: jobs.reduce((sum, job) => sum + (job.authorizations[0]?.authorizedCents ?? job.totalCents), 0),
     openHours: shopCapacity.openHours,
+    utilization: shopCapacity.pct,
+    waitingCustomers: jobs.filter((job) => job.customerWaiting).length,
+    arrivingSoon: enrichedBlocks.filter((block) => block.checkIn === "ARRIVING_SOON").length,
   };
+
+  const arrivals = enrichedBlocks
+    .filter((block) => ["DROP_OFF", "WORK"].includes(block.kind) && block.jobId)
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+    .slice(0, 8)
+    .map((block) => ({
+      id: block.id,
+      time: block.startsAt.toISOString(),
+      customerName: block.customerName,
+      assetLabel: block.assetLabel,
+      checkIn: block.checkIn,
+      jobId: block.jobId,
+    }));
+
+  const techRows = techs.map((tech) => {
+    const cap = capacity.find((item) => item.id === tech.id);
+    const live = enrichedBlocks.find(
+      (block) =>
+        (tech.id === "solo" || block.technicianProfileId === tech.id) &&
+        ["WORK", "QC", "TRAVEL"].includes(block.kind) &&
+        block.startsAt <= now &&
+        block.endsAt > now,
+    );
+    const off = enrichedBlocks.some(
+      (block) => (tech.id === "solo" || block.technicianProfileId === tech.id) && (block.kind === "PTO" || block.kind === "UNAVAILABLE"),
+    );
+    return {
+      id: tech.id,
+      name: tech.displayName,
+      title: "title" in tech ? ((tech as { title?: string | null }).title ?? null) : null,
+      duty: tech.duty,
+      hoursStart: tech.hoursStart ?? "08:00",
+      hoursEnd: tech.hoursEnd ?? "18:00",
+      pct: cap?.pct ?? 0,
+      scheduledHours: cap?.scheduledHours ?? 0,
+      availableHours: cap?.availableHours ?? 8,
+      currentTitle: live?.title ?? null,
+      off,
+    };
+  });
+
+  const upcoming = jobs
+    .filter((job) => job.scheduledAt && job.scheduledAt >= end && job.scheduledAt.getTime() < end.getTime() + 7 * 86400000)
+    .slice(0, 8)
+    .map((job) => ({
+      id: job.id,
+      title: job.serviceRequest.problemText.slice(0, 60),
+      when: job.scheduledAt!.toISOString(),
+      assetLabel: jobAssetLabel(job),
+      cents: job.authorizations[0]?.authorizedCents ?? job.totalCents,
+      kind: job.serviceRequest.requestKind,
+    }));
 
   const unscheduledQueue = unscheduled.map((job) => {
     const duration = recommendedScheduleMinutes({
@@ -217,6 +325,7 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
     unscheduledQueue,
     onCalendar,
     techs,
+    techRows,
     resources: profile.resources,
     locations: profile.locations,
     day: start,
@@ -228,6 +337,8 @@ export async function getScheduleBoard(mechanicProfileId: string, day: Date) {
     waitlist,
     recommended,
     now,
+    arrivals,
+    upcoming,
   };
 }
 

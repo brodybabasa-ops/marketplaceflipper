@@ -86,36 +86,51 @@ export async function setPreferredProviderAction(formData: FormData) {
 export async function createScheduleBlockAction(formData: FormData) {
   const session = await requireUser();
   const profile = await prisma.mechanicProfile.findUnique({ where: { userId: session.id } });
-  if (!profile) throw new Error("Not a provider.");
+  if (!profile) return { ok: false as const, error: "Not a provider." };
   const startsAt = new Date(String(formData.get("startsAt")));
   const endsAt = new Date(String(formData.get("endsAt")));
-  await createScheduleBlock({
-    mechanicProfileId: profile.id,
-    actorId: session.id,
-    jobId: String(formData.get("jobId") || "") || undefined,
-    technicianProfileId: optionalId(String(formData.get("technicianProfileId") || "")),
-    resourceId: optionalId(String(formData.get("resourceId") || "")),
-    kind: (String(formData.get("kind") || "WORK") as ScheduleBlockKind) || "WORK",
-    title: String(formData.get("title") || "Work"),
-    startsAt,
-    endsAt,
-    overrideReason: String(formData.get("overrideReason") || "") || undefined,
-  });
-  revalidatePath("/mechanic/schedule");
+  try {
+    await createScheduleBlock({
+      mechanicProfileId: profile.id,
+      actorId: session.id,
+      jobId: String(formData.get("jobId") || "") || undefined,
+      technicianProfileId: optionalId(String(formData.get("technicianProfileId") || "")),
+      resourceId: optionalId(String(formData.get("resourceId") || "")),
+      kind: (String(formData.get("kind") || "WORK") as ScheduleBlockKind) || "WORK",
+      title: String(formData.get("title") || "Work"),
+      startsAt,
+      endsAt,
+      overrideReason: String(formData.get("overrideReason") || "") || undefined,
+    });
+    revalidatePath("/mechanic/schedule");
+    return { ok: true as const };
+  } catch (error) {
+    return { ok: false as const, error: error instanceof Error ? error.message : "Could not place that block." };
+  }
+}
+
+export async function createScheduleBlockFormAction(formData: FormData) {
+  const result = await createScheduleBlockAction(formData);
+  if (!result.ok) throw new Error(result.error);
 }
 
 export async function moveScheduleBlockAction(formData: FormData) {
   const session = await requireUser();
-  await moveScheduleBlock({
-    blockId: String(formData.get("blockId")),
-    actorId: session.id,
-    startsAt: new Date(String(formData.get("startsAt"))),
-    endsAt: new Date(String(formData.get("endsAt"))),
-    technicianProfileId: optionalId(String(formData.get("technicianProfileId") || "")),
-    resourceId: optionalId(String(formData.get("resourceId") || "")),
-    overrideReason: String(formData.get("overrideReason") || "") || undefined,
-  });
-  revalidatePath("/mechanic/schedule");
+  try {
+    await moveScheduleBlock({
+      blockId: String(formData.get("blockId")),
+      actorId: session.id,
+      startsAt: new Date(String(formData.get("startsAt"))),
+      endsAt: new Date(String(formData.get("endsAt"))),
+      technicianProfileId: optionalId(String(formData.get("technicianProfileId") || "")),
+      resourceId: optionalId(String(formData.get("resourceId") || "")),
+      overrideReason: String(formData.get("overrideReason") || "") || undefined,
+    });
+    revalidatePath("/mechanic/schedule");
+    return { ok: true as const };
+  } catch (error) {
+    return { ok: false as const, error: error instanceof Error ? error.message : "Could not move that block." };
+  }
 }
 
 export async function saveOperatingModelAction(formData: FormData) {

@@ -404,150 +404,191 @@ export async function seedTodayOperations(prisma: PrismaClient) {
     }
   }
 
+  await seedBusyShopDay(prisma, today, dayStart);
+}
+
+async function shopWork(
+  prisma: PrismaClient,
+  input: {
+    sarahId: string;
+    sarahUserId: string;
+    customerId: string;
+    vehicleId: string;
+    assetId?: string;
+    problem: string;
+    category: "BRAKES" | "MAINTENANCE" | "SUSPENSION" | "ENGINE" | "ELECTRICAL" | "AC_HEATING" | "DIAGNOSTICS";
+    status: "IN_PROGRESS" | "SCHEDULED" | "AWAITING_APPROVAL" | "CHECKED_IN" | "DIAGNOSING" | "QUALITY_CHECK" | "READY" | "REQUESTED";
+    totalCents: number;
+    partsStatus?: "READY" | "DELAYED" | "ORDERED" | "UNKNOWN";
+    waiting?: boolean;
+    requestKind?: "REPAIR" | "MAINTENANCE" | "DIAGNOSTIC" | "PRE_PURCHASE" | "FLEET_PM";
+    technicianProfileId?: string;
+    promisedReadyAt?: Date;
+    scheduledAt?: Date;
+  },
+) {
+  const request = await prisma.serviceRequest.create({
+    data: {
+      customerId: input.customerId,
+      vehicleId: input.vehicleId,
+      assetId: input.assetId,
+      mechanicProfileId: input.sarahId,
+      status: input.status === "REQUESTED" ? "OPEN" : "ACCEPTED",
+      problemText: input.problem,
+      category: input.category,
+      requestKind: input.requestKind ?? "REPAIR",
+      zip: "84070",
+      city: "Sandy",
+      state: "UT",
+      mobilePreferred: false,
+      urgencyMode: input.waiting ? "URGENT" : "NORMAL",
+    },
+  });
+  return prisma.job.create({
+    data: {
+      serviceRequestId: request.id,
+      customerId: input.customerId,
+      mechanicUserId: input.sarahUserId,
+      mechanicProfileId: input.sarahId,
+      vehicleId: input.vehicleId,
+      assetId: input.assetId,
+      status: input.status,
+      totalCents: input.totalCents,
+      partsStatus: input.partsStatus ?? "UNKNOWN",
+      customerWaiting: Boolean(input.waiting),
+      scheduledAt: input.scheduledAt ?? new Date(),
+      promisedReadyAt: input.promisedReadyAt,
+      technicianProfileId: input.technicianProfileId,
+      events: { create: [{ status: input.status, note: "Demo: busy shop board fixture" }] },
+    },
+  });
+}
+
+export async function seedBusyShopDay(prisma: PrismaClient, today: Date, dayStart: Date) {
   const sarah = await prisma.mechanicProfile.findFirst({
     where: { user: { email: "sarah.chen@demo.pocketmechanic.app" } },
     include: { technicianProfiles: true, resources: true, user: true },
   });
   if (!sarah) return;
-  const sarahToday = await prisma.scheduleBlock.count({
+  const existing = await prisma.scheduleBlock.count({
+    where: { mechanicProfileId: sarah.id, startsAt: { gte: dayStart }, title: { startsWith: "Board:" } },
+  });
+  if (existing > 0) return;
+
+  await prisma.scheduleBlock.deleteMany({
     where: { mechanicProfileId: sarah.id, startsAt: { gte: dayStart }, title: { startsWith: "Demo:" } },
   });
-  if (sarahToday > 0) return;
 
-  if (sarah.technicianProfiles.length < 2) {
-    await prisma.technicianProfile.create({
-      data: {
-        mechanicProfileId: sarah.id,
-        displayName: "Jordan Hale",
-        title: "Shop technician",
-        duty: "SHOP",
-        specialties: ["BRAKES", "MAINTENANCE"],
-      },
-    });
+  const wanted = [
+    { displayName: "Dana Park", title: "Lead technician", duty: "SHOP" as const, specialties: ["ENGINE", "ELECTRICAL"] },
+    { displayName: "Jordan Hale", title: "Shop technician", duty: "SHOP" as const, specialties: ["BRAKES", "MAINTENANCE"] },
+    { displayName: "Mike Reyes", title: "Technician", duty: "SHOP" as const, specialties: ["DIAGNOSTICS", "ENGINE"] },
+    { displayName: "Alex Ruiz", title: "Technician", duty: "SHOP" as const, specialties: ["AC_HEATING", "ELECTRICAL"] },
+    { displayName: "Ryan Cole", title: "Technician", duty: "SHOP" as const, specialties: ["MAINTENANCE"] },
+  ];
+  for (const tech of wanted) {
+    if (!sarah.technicianProfiles.find((item) => item.displayName === tech.displayName)) {
+      await prisma.technicianProfile.create({ data: { mechanicProfileId: sarah.id, ...tech } });
+    }
   }
   const techs = await prisma.technicianProfile.findMany({ where: { mechanicProfileId: sarah.id, active: true } });
-  const dana = techs.find((tech) => tech.displayName.includes("Dana")) ?? techs[0];
-  const jordan = techs.find((tech) => tech.displayName.includes("Jordan")) ?? techs[1] ?? dana;
-  const bay1 = sarah.resources.find((item) => item.name === "Bay 1") ?? sarah.resources[0];
+  const dana = techs.find((item) => item.displayName.includes("Dana"));
+  const jordan = techs.find((item) => item.displayName.includes("Jordan"));
+  const mike = techs.find((item) => item.displayName.includes("Mike"));
+  const alex = techs.find((item) => item.displayName.includes("Alex"));
+  const ryan = techs.find((item) => item.displayName.includes("Ryan"));
+  const bay1 = sarah.resources.find((item) => item.name === "Bay 1");
+  const bay2 = sarah.resources.find((item) => item.name === "Bay 2");
   const rack = sarah.resources.find((item) => item.kind === "ALIGNMENT_RACK");
   const customer = await prisma.user.findUnique({ where: { email: "customer@demo.pocketmechanic.app" } });
-  const vehicle = customer
-    ? await prisma.vehicle.findFirst({ where: { customerId: customer.id }, include: { asset: true } })
-    : null;
-  if (!customer || !vehicle || !dana) return;
+  const vehicles = customer
+    ? await prisma.vehicle.findMany({ where: { customerId: customer.id }, include: { asset: true }, take: 6 })
+    : [];
+  const v = (index: number) => vehicles[index % Math.max(1, vehicles.length)];
+  if (!customer || !vehicles.length || !dana || !jordan || !mike || !alex || !ryan) return;
 
-  async function shopJob(input: {
-    problem: string;
-    category: "BRAKES" | "MAINTENANCE" | "SUSPENSION" | "ENGINE";
-    status: "IN_PROGRESS" | "SCHEDULED" | "AWAITING_APPROVAL" | "CHECKED_IN";
-    totalCents: number;
-    partsStatus?: "READY" | "DELAYED" | "ORDERED";
-    waiting?: boolean;
-  }) {
-    const request = await prisma.serviceRequest.create({
-      data: {
-        customerId: customer!.id,
-        vehicleId: vehicle!.id,
-        assetId: vehicle!.asset?.id,
-        mechanicProfileId: sarah!.id,
-        status: "ACCEPTED",
-        problemText: input.problem,
-        category: input.category,
-        zip: "84070",
-        city: "Sandy",
-        state: "UT",
-        mobilePreferred: false,
-      },
+  const lateEnd = new Date(Date.now() - 25 * 60000);
+  const lateStart = new Date(lateEnd.getTime() - 2 * 3600000);
+  const arriving = new Date(Date.now() + 8 * 60000);
+
+  const oil = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(0).id, assetId: v(0).asset?.id,
+    problem: "Board: Oil change", category: "MAINTENANCE", status: "QUALITY_CHECK", totalCents: 12900, partsStatus: "READY", technicianProfileId: dana.id, promisedReadyAt: atHour(today, 11),
+  });
+  const brakes = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(1).id, assetId: v(1).asset?.id,
+    problem: "Board: Brake service running late", category: "BRAKES", status: "IN_PROGRESS", totalCents: 68000, partsStatus: "READY", waiting: true, technicianProfileId: jordan.id, promisedReadyAt: atHour(today, 12),
+  });
+  const diag = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(2).id, assetId: v(2).asset?.id,
+    problem: "Board: Engine diagnostics", category: "DIAGNOSTICS", status: "DIAGNOSING", totalCents: 18900, partsStatus: "READY", requestKind: "DIAGNOSTIC", technicianProfileId: mike.id,
+  });
+  const trans = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(3).id, assetId: v(3).asset?.id,
+    problem: "Board: Transmission inspection", category: "ENGINE", status: "CHECKED_IN", totalCents: 42000, partsStatus: "READY", technicianProfileId: alex.id,
+  });
+  const ppi = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(4).id, assetId: v(4).asset?.id,
+    problem: "Board: Pre-purchase inspection", category: "DIAGNOSTICS", status: "SCHEDULED", totalCents: 24900, requestKind: "PRE_PURCHASE", technicianProfileId: dana.id,
+  });
+  const ac = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(5).id, assetId: v(5).asset?.id,
+    problem: "Board: AC repair", category: "AC_HEATING", status: "SCHEDULED", totalCents: 54000, technicianProfileId: mike.id,
+  });
+  const engine = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(0).id, assetId: v(0).asset?.id,
+    problem: "Board: Engine repair", category: "ENGINE", status: "SCHEDULED", totalCents: 680000, technicianProfileId: alex.id,
+  });
+  const tires = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(1).id, assetId: v(1).asset?.id,
+    problem: "Board: Tire service", category: "MAINTENANCE", status: "SCHEDULED", totalCents: 89000, technicianProfileId: jordan.id,
+  });
+  const follow = await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(2).id, assetId: v(2).asset?.id,
+    problem: "Board: Customer follow-up", category: "MAINTENANCE", status: "SCHEDULED", totalCents: 0, technicianProfileId: jordan.id,
+  });
+  await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(3).id, assetId: v(3).asset?.id,
+    problem: "Board: Estimate waiting on Tahoe oil leak", category: "ENGINE", status: "AWAITING_APPROVAL", totalCents: 214000,
+  });
+  await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(4).id, assetId: v(4).asset?.id,
+    problem: "Board: Waiting on delayed hub assembly", category: "BRAKES", status: "CHECKED_IN", totalCents: 42000, partsStatus: "DELAYED",
+  });
+  await shopWork(prisma, {
+    sarahId: sarah.id, sarahUserId: sarah.userId, customerId: customer.id, vehicleId: v(5).id, assetId: v(5).asset?.id,
+    problem: "Board: Marketplace — grinding noise, customer requested ASAP", category: "BRAKES", status: "REQUESTED", totalCents: 0, waiting: true,
+  });
+  const fleetUser = await prisma.user.findUnique({ where: { email: "fleet@demo.pocketmechanic.app" } });
+  const fleetAsset = fleetUser ? await prisma.asset.findFirst({ where: { ownerId: fleetUser.id } }) : null;
+  if (fleetUser && fleetAsset) {
+    const fleetJob = await shopWork(prisma, {
+      sarahId: sarah.id, sarahUserId: sarah.userId, customerId: fleetUser.id, vehicleId: v(0).id, assetId: fleetAsset.id,
+      problem: "Board: Fleet PM Unit 214", category: "MAINTENANCE", status: "SCHEDULED", totalCents: 32000, requestKind: "FLEET_PM", technicianProfileId: dana.id, scheduledAt: atHour(today, 15, 30),
     });
-    return prisma.job.create({
+    await prisma.scheduleBlock.create({
       data: {
-        serviceRequestId: request.id,
-        customerId: customer!.id,
-        mechanicUserId: sarah!.userId,
-        mechanicProfileId: sarah!.id,
-        vehicleId: vehicle!.id,
-        assetId: vehicle!.asset?.id,
-        status: input.status,
-        totalCents: input.totalCents,
-        partsStatus: input.partsStatus ?? "UNKNOWN",
-        customerWaiting: Boolean(input.waiting),
-        scheduledAt: today,
-        promisedReadyAt: atHour(today, 16, 30),
-        technicianProfileId: dana!.id,
-        events: { create: [{ status: input.status, note: "Demo: shop operations fixture" }] },
+        mechanicProfileId: sarah.id, jobId: fleetJob.id, technicianProfileId: dana.id, kind: "WORK",
+        title: "Board: Fleet PM Unit 214", startsAt: atHour(today, 15, 30), endsAt: atHour(today, 16, 30),
       },
     });
   }
-
-  const brakes = await shopJob({
-    problem: "Front brakes grind on the F-250",
-    category: "BRAKES",
-    status: "IN_PROGRESS",
-    totalCents: 68000,
-    partsStatus: "READY",
-    waiting: true,
-  });
-  const alignment = await shopJob({
-    problem: "Pulls right after tire replacement",
-    category: "SUSPENSION",
-    status: "SCHEDULED",
-    totalCents: 12900,
-    partsStatus: "READY",
-  });
-  await shopJob({
-    problem: "Estimate waiting on Tahoe oil leak",
-    category: "ENGINE",
-    status: "AWAITING_APPROVAL",
-    totalCents: 84000,
-  });
-  await shopJob({
-    problem: "Centurion waiting on a delayed pump",
-    category: "MAINTENANCE",
-    status: "CHECKED_IN",
-    totalCents: 42000,
-    partsStatus: "DELAYED",
-  });
 
   await prisma.scheduleBlock.createMany({
     data: [
-      {
-        mechanicProfileId: sarah.id,
-        jobId: brakes.id,
-        technicianProfileId: dana.id,
-        resourceId: bay1?.id,
-        kind: "DROP_OFF",
-        title: "Demo: Customer drop-off",
-        startsAt: atHour(today, 8),
-        endsAt: atHour(today, 8, 15),
-      },
-      {
-        mechanicProfileId: sarah.id,
-        jobId: brakes.id,
-        technicianProfileId: dana.id,
-        resourceId: bay1?.id,
-        kind: "WORK",
-        title: "Demo: Brake job",
-        startsAt: atHour(today, 9, 30),
-        endsAt: atHour(today, 11, 30),
-      },
-      {
-        mechanicProfileId: sarah.id,
-        jobId: brakes.id,
-        kind: "PICKUP",
-        title: "Demo: Promised pickup",
-        startsAt: atHour(today, 16, 30),
-        endsAt: atHour(today, 16, 45),
-      },
-      {
-        mechanicProfileId: sarah.id,
-        jobId: alignment.id,
-        technicianProfileId: jordan.id,
-        resourceId: rack?.id,
-        kind: "WORK",
-        title: "Demo: Alignment",
-        startsAt: atHour(today, 13),
-        endsAt: atHour(today, 14, 30),
-      },
+      { mechanicProfileId: sarah.id, jobId: oil.id, technicianProfileId: dana.id, resourceId: bay1?.id, kind: "WORK", title: "Board: Oil change", startsAt: atHour(today, 8), endsAt: atHour(today, 9) },
+      { mechanicProfileId: sarah.id, jobId: brakes.id, technicianProfileId: jordan.id, resourceId: bay2?.id, kind: "WORK", title: "Board: Brake service", startsAt: lateStart, endsAt: lateEnd },
+      { mechanicProfileId: sarah.id, jobId: diag.id, technicianProfileId: mike.id, kind: "WORK", title: "Board: Engine diagnostics", startsAt: atHour(today, 9), endsAt: atHour(today, 11) },
+      { mechanicProfileId: sarah.id, jobId: trans.id, technicianProfileId: alex.id, resourceId: bay1?.id, kind: "WORK", title: "Board: Transmission", startsAt: atHour(today, 9), endsAt: atHour(today, 12) },
+      { mechanicProfileId: sarah.id, kind: "DROP_OFF", title: "Board: Customer arriving", jobId: ppi.id, technicianProfileId: dana.id, startsAt: arriving, endsAt: new Date(arriving.getTime() + 15 * 60000) },
+      { mechanicProfileId: sarah.id, jobId: ppi.id, technicianProfileId: dana.id, kind: "WORK", title: "Board: PPI", startsAt: atHour(today, 10, 30), endsAt: atHour(today, 12) },
+      { mechanicProfileId: sarah.id, technicianProfileId: dana.id, kind: "BREAK", title: "Board: Lunch", startsAt: atHour(today, 12), endsAt: atHour(today, 13) },
+      { mechanicProfileId: sarah.id, technicianProfileId: jordan.id, kind: "BREAK", title: "Board: Lunch", startsAt: atHour(today, 12), endsAt: atHour(today, 13) },
+      { mechanicProfileId: sarah.id, jobId: ac.id, technicianProfileId: mike.id, kind: "WORK", title: "Board: AC repair", startsAt: atHour(today, 13), endsAt: atHour(today, 15) },
+      { mechanicProfileId: sarah.id, jobId: engine.id, technicianProfileId: alex.id, resourceId: bay1?.id, kind: "WORK", title: "Board: Engine repair", startsAt: atHour(today, 13), endsAt: atHour(today, 16) },
+      { mechanicProfileId: sarah.id, jobId: tires.id, technicianProfileId: jordan.id, resourceId: rack?.id, kind: "WORK", title: "Board: Tire service", startsAt: atHour(today, 13, 30), endsAt: atHour(today, 15) },
+      { mechanicProfileId: sarah.id, jobId: follow.id, technicianProfileId: jordan.id, kind: "ADMIN", title: "Board: Customer follow-up", startsAt: atHour(today, 16), endsAt: atHour(today, 16, 30) },
+      { mechanicProfileId: sarah.id, technicianProfileId: ryan.id, kind: "PTO", title: "Board: Time off", startsAt: atHour(today, 8), endsAt: atHour(today, 17) },
     ],
   });
 }

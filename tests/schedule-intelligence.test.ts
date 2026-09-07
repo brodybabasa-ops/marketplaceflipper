@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { operatingViews, resolveOperatingModel, operatingModelFromForm, resourceKindsForModel } from "../lib/operating-model";
+import { checkInState, jobProgressPct, slipRisk, visualTone } from "../lib/schedule-visual";
 import {
   authorizationSchedulingHint,
   delayRisk,
@@ -92,4 +93,30 @@ test("hybrid remains shop plus travel, not a third app", () => {
   assert.equal(hybrid.showHybridLanes, true);
   assert.equal(hybrid.showBays, true);
   assert.equal(hybrid.showTravel, true);
+});
+
+test("visual tones keep status and type modes separate and never rely on color alone", () => {
+  assert.equal(jobProgressPct("IN_PROGRESS"), 65);
+  assert.equal(jobProgressPct("READY"), 95);
+  assert.equal(visualTone({ mode: "status", jobStatus: "DIAGNOSING" }).tone, "purple");
+  assert.equal(visualTone({ mode: "status", behind: true }).label, "Running late");
+  assert.equal(visualTone({ mode: "type", category: "MAINTENANCE" }).tone, "blue");
+  const soon = checkInState({ now: new Date("2026-09-07T07:53:00"), startsAt: new Date("2026-09-07T08:00:00") });
+  assert.equal(soon, "ARRIVING_SOON");
+  const slip = slipRisk({
+    currentEndsAt: new Date("2026-09-07T10:00:00"),
+    nextStartsAt: new Date("2026-09-07T11:00:00"),
+    now: new Date("2026-09-07T10:42:00"),
+    behind: true,
+    minutesBehind: 42,
+  });
+  assert.equal(slip, null);
+  const hit = slipRisk({
+    currentEndsAt: new Date("2026-09-07T11:00:00"),
+    nextStartsAt: new Date("2026-09-07T11:00:00"),
+    now: new Date("2026-09-07T11:25:00"),
+    behind: true,
+    minutesBehind: 25,
+  });
+  assert.equal(hit?.delayMinutes, 25);
 });
