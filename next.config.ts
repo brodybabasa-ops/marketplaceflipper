@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "plus.unsplash.com" },
     ],
   },
-  serverExternalPackages: ["bcryptjs", "@prisma/client"],
+  serverExternalPackages: ["bcryptjs", "@prisma/client", "stripe"],
 };
 
 export default nextConfig;

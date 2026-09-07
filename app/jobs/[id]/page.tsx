@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea, Input } from "@/components/ui/input";
 import { createDisputeAction, createReviewAction, sendMessageAction } from "@/app/actions/marketplace";
+import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { JobPhotoGallery } from "@/components/jobs/job-photos";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
+import Link from "next/link";
 
 export const metadata = { title: "Job" };
 
@@ -18,7 +21,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const job = await getJobForUser(id, session.id, session.role);
   if (!job) notFound();
-  const latestEstimate = job.estimates[0];
+  const latestPayment = job.payments[0];
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/jobs" /> : null}
@@ -27,6 +30,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <p className="mt-1 text-muted">
         {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
       </p>
+      {session.role === "CUSTOMER" &&
+      job.paymentStatus !== "PAID" &&
+      job.totalCents > 0 &&
+      (job.status === "COMPLETED" || job.status === "DISPUTED") ? (
+        <Button asChild className="mt-4">
+          <Link href={`/jobs/${job.id}/pay`}>Pay {formatCents(job.totalCents)}</Link>
+        </Button>
+      ) : null}
 
       <div className="mt-8 grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
@@ -36,9 +47,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <StatusTimeline status={job.status} />
             </div>
           </Card>
+          <AppointmentCard
+            jobId={job.id}
+            scheduledAt={job.scheduledAt}
+            confirmedAt={job.scheduledConfirmedAt}
+            canPropose={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
+          />
           {job.estimates.map((estimate) => (
             <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
           ))}
+          <JobPhotoGallery photos={job.photos} jobId={job.id} canUpload />
           {job.repairRecord ? (
             <Card className="p-5">
               <h2 className="font-semibold text-navy">Repair completed</h2>
@@ -51,6 +69,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               {job.repairRecord.laborHours ? <p className="text-sm">Labor: {job.repairRecord.laborHours} hours</p> : null}
               {job.repairRecord.warrantySummary ? <p className="text-sm">Warranty: {job.repairRecord.warrantySummary}</p> : null}
               {job.totalCents ? <p className="mt-2 number font-semibold">{formatCents(job.totalCents)}</p> : null}
+              <p className="mt-1 text-sm text-muted">
+                Payment: {job.paymentStatus.toLowerCase()}
+                {latestPayment ? ` · ${formatCents(latestPayment.amountCents)} via ${latestPayment.provider}` : ""}
+              </p>
             </Card>
           ) : null}
           {job.status === "COMPLETED" && !job.review && session.role === "CUSTOMER" ? (

@@ -16,6 +16,7 @@ import {
 import { createServiceRequest, getJobForUser, transitionJob } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
 import { createReview } from "@/services/reviews";
+import { notifyUser } from "@/services/notifications";
 import type { JobStatus } from "@prisma/client";
 
 async function requireUser() {
@@ -86,6 +87,13 @@ export async function sendMessageAction(formData: FormData) {
   await prisma.messageThread.update({
     where: { id: thread.id },
     data: { lastMessageAt: new Date() },
+  });
+  const recipientId = session.id === thread.customerId ? thread.mechanicId : thread.customerId;
+  await notifyUser({
+    userId: recipientId,
+    title: "New message",
+    body: parsed.data.body.slice(0, 120),
+    href: thread.jobId ? `/jobs/${thread.jobId}` : "/messages",
   });
   revalidatePath("/messages");
   if (thread.jobId) {
@@ -180,8 +188,15 @@ export async function createDisputeAction(formData: FormData) {
     },
   });
   await prisma.job.update({ where: { id: job.id }, data: { status: "DISPUTED" } });
+  await notifyUser({
+    userId: job.mechanicUserId,
+    title: "A customer reported a problem",
+    body: parsed.data.description.slice(0, 160),
+    href: `/mechanic/jobs/${job.id}`,
+  });
   revalidatePath(`/jobs/${job.id}`);
-  redirect(`/jobs/${job.id}`);
+  revalidatePath("/disputes");
+  redirect(`/disputes`);
 }
 
 export async function saveRepairRecordAction(formData: FormData) {

@@ -188,13 +188,15 @@ model User {
   status         AccountStatus @default(ACTIVE)
   firstName      String
   lastName       String
-  phone          String?
-  avatarUrl      String?
-  emailVerifiedAt DateTime?
-  lastLoginAt    DateTime?
-  lastLoginIp    String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  phone              String?
+  avatarUrl          String?
+  emailNotifications Boolean       @default(true)
+  smsNotifications   Boolean       @default(false)
+  emailVerifiedAt    DateTime?
+  lastLoginAt        DateTime?
+  lastLoginIp        String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   customerProfile CustomerProfile?
   mechanicProfile MechanicProfile?
@@ -218,6 +220,7 @@ model User {
   verificationsReviewed Verification[] @relation("VerificationReviewer")
   fraudSignals       FraudSignal[]
   payouts            Payout[]
+  payments           Payment[]
   subscriptions      Subscription[]
 
   @@index([role, status])
@@ -264,8 +267,10 @@ model MechanicProfile {
   onboardingStep       Int               @default(1)
   profileCompletePct   Int               @default(0)
   verificationLevel    VerificationLevel @default(UNVERIFIED)
-  isSponsored          Boolean           @default(false)
-  acceptsNewJobs       Boolean           @default(true)
+  isSponsored              Boolean @default(false)
+  acceptsNewJobs           Boolean @default(true)
+  stripeConnectAccountId   String?
+  stripeChargesEnabled     Boolean @default(false)
 
   averageRating       Float @default(0)
   reviewCount         Int   @default(0)
@@ -286,6 +291,7 @@ model MechanicProfile {
   certifications MechanicCertification[]
   serviceAreas   MechanicServiceArea[]
   availability   MechanicAvailability[]
+  blockedDates   MechanicBlockedDate[]
   makeExpertise  MechanicMakeExpertise[]
   verifications  Verification[]
   jobs           Job[]
@@ -426,6 +432,19 @@ model MechanicAvailability {
   @@unique([mechanicProfileId, dayOfWeek])
 }
 
+model MechanicBlockedDate {
+  id                String   @id @default(uuid()) @db.Uuid
+  mechanicProfileId String   @db.Uuid
+  date              DateTime @db.Date
+  reason            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([mechanicProfileId, date])
+}
+
 model ZipCode {
   id        String   @id @default(uuid()) @db.Uuid
   zip       String   @unique
@@ -484,10 +503,11 @@ model Job {
   completedAt       DateTime?
   cancelledAt       DateTime?
   cancelReason      String?
-  paymentStatus     PaymentStatus @default(UNPAID)
-  paymentIntentId   String?
-  commissionPercent Float?
-  totalCents        Int           @default(0)
+  paymentStatus          PaymentStatus @default(UNPAID)
+  paymentIntentId        String?
+  commissionPercent      Float?
+  totalCents             Int           @default(0)
+  scheduledConfirmedAt   DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -504,6 +524,7 @@ model Job {
   thread          MessageThread?
   disputes        Dispute[]
   payouts         Payout[]
+  payments        Payment[]
 
   @@index([customerId, status])
   @@index([mechanicProfileId, status])
@@ -764,6 +785,28 @@ model Favorite {
   updatedAt  DateTime @updatedAt
 
   @@unique([userId, targetType, targetId])
+}
+
+model Payment {
+  id                  String        @id @default(uuid()) @db.Uuid
+  jobId               String        @db.Uuid
+  customerId          String        @db.Uuid
+  mechanicUserId      String        @db.Uuid
+  amountCents         Int
+  commissionCents     Int
+  mechanicPayoutCents Int
+  status              PaymentStatus @default(PENDING)
+  provider            String        @default("mock")
+  providerIntentId    String?
+  providerChargeId    String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  job      Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  customer User @relation(fields: [customerId], references: [id])
+
+  @@index([jobId, status])
+  @@index([customerId])
 }
 
 model Payout {

@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createEstimateAction, saveRepairRecordAction, sendMessageAction, updateJobStatusAction } from "@/app/actions/marketplace";
+import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { JobPhotoGallery } from "@/components/jobs/job-photos";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
+import { formatCents } from "@/lib/money";
 
 export const metadata = { title: "Job" };
 
@@ -53,10 +56,35 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         </Card>
       </div>
 
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <AppointmentCard
+          jobId={job.id}
+          scheduledAt={job.scheduledAt}
+          confirmedAt={job.scheduledConfirmedAt}
+          canPropose={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
+        />
+        <Card className="p-5">
+          <h2 className="font-semibold text-navy">Payment</h2>
+          <p className="mt-2 text-sm capitalize">{job.paymentStatus.toLowerCase()}</p>
+          <p className="number mt-1 text-xl font-semibold text-navy">{formatCents(job.totalCents)}</p>
+        </Card>
+      </div>
+
       <section className="mt-8 space-y-4">
+        {job.disputes.length ? (
+          <Card className="p-5">
+            <h2 className="font-semibold text-navy">Dispute</h2>
+            {job.disputes.map((dispute) => (
+              <p key={dispute.id} className="mt-2 text-sm">
+                {dispute.category.replaceAll("_", " ")} · {dispute.status} · {dispute.description}
+              </p>
+            ))}
+          </Card>
+        ) : null}
         {job.estimates.map((estimate) => (
           <EstimateCard key={estimate.id} estimate={estimate} />
         ))}
+        <JobPhotoGallery photos={job.photos} jobId={job.id} canUpload />
         <Card className="p-5">
           <h2 className="font-semibold text-navy">Create estimate or additional work request</h2>
           <p className="text-sm text-muted">Additional work cannot silently rewrite the original estimate. It creates a new approval record.</p>

@@ -12,6 +12,8 @@ import { US_STATES } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { MechanicCard } from "@/components/mechanics/mechanic-card";
 import { searchMechanics } from "@/services/search";
+import { getSession } from "@/lib/session";
+import { toggleSavedMechanicAction } from "@/app/actions/phase2";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -27,7 +29,28 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function MechanicSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const mechanic = await getMechanicBySlug(slug);
-  if (mechanic) return <MechanicProfile mechanic={mechanic} />;
+  if (mechanic) {
+    const session = await getSession();
+    const canSave = session?.role === "CUSTOMER";
+    const isSaved =
+      canSave && session
+        ? Boolean(
+            await prisma.savedMechanic.findUnique({
+              where: {
+                customerId_mechanicProfileId: { customerId: session.id, mechanicProfileId: mechanic.id },
+              },
+            }),
+          )
+        : false;
+    return (
+      <MechanicProfile
+        mechanic={mechanic}
+        canSave={Boolean(canSave)}
+        isSaved={isSaved}
+        signedIn={Boolean(session)}
+      />
+    );
+  }
 
   const state = US_STATES.find((item) => item.slug === slug);
   if (state) {
@@ -80,8 +103,14 @@ function SeoList({
 
 function MechanicProfile({
   mechanic,
+  canSave,
+  isSaved,
+  signedIn,
 }: {
   mechanic: NonNullable<Awaited<ReturnType<typeof getMechanicBySlug>>>;
+  canSave: boolean;
+  isSaved: boolean;
+  signedIn: boolean;
 }) {
   const level = VERIFICATION_LEVELS.find((item) => item.value === mechanic.verificationLevel);
   return (
@@ -112,8 +141,16 @@ function MechanicProfile({
             <Button asChild>
               <Link href={`/request?mechanic=${mechanic.id}`}>Request Service</Link>
             </Button>
+            {canSave ? (
+              <form action={toggleSavedMechanicAction}>
+                <input type="hidden" name="mechanicProfileId" value={mechanic.id} />
+                <Button type="submit" variant={isSaved ? "secondary" : "accent"}>
+                  {isSaved ? "Saved" : "Save mechanic"}
+                </Button>
+              </form>
+            ) : null}
             <Button asChild variant="secondary">
-              <Link href={`/sign-in`}>Message</Link>
+              <Link href={signedIn ? "/messages" : "/sign-in"}>Message</Link>
             </Button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { Card, EmptyState } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
@@ -13,7 +14,18 @@ export default async function HistoryPage() {
     include: {
       make: true,
       model: true,
-      repairRecords: { include: { job: { include: { mechanicProfile: true } } }, orderBy: { createdAt: "desc" } },
+      repairRecords: {
+        include: {
+          job: {
+            include: {
+              mechanicProfile: true,
+              photos: true,
+              payments: { orderBy: { createdAt: "desc" }, take: 1 },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
   return (
@@ -34,16 +46,38 @@ export default async function HistoryPage() {
                 {vehicle.repairRecords.length === 0 ? (
                   <p className="text-sm text-muted">No documented repairs yet.</p>
                 ) : (
-                  vehicle.repairRecords.map((record) => (
-                    <Card key={record.id} className="p-4">
-                      <p className="text-sm text-muted">
-                        {record.createdAt.toLocaleString("en-US", { month: "short", year: "numeric" })}
-                      </p>
-                      <p className="font-semibold text-navy">{record.title}</p>
-                      <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
-                      <p className="number mt-1 font-semibold">{formatCents(record.job.totalCents)}</p>
-                    </Card>
-                  ))
+                  vehicle.repairRecords.map((record) => {
+                    const payment = record.job.payments[0];
+                    return (
+                      <Link key={record.id} href={`/jobs/${record.jobId}`} className="block">
+                        <Card className="p-4">
+                          <p className="text-sm text-muted">
+                            {record.createdAt.toLocaleString("en-US", { month: "short", year: "numeric" })}
+                          </p>
+                          <p className="font-semibold text-navy">{record.title}</p>
+                          <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
+                          <p className="number mt-1 font-semibold">{formatCents(record.job.totalCents)}</p>
+                          <p className="mt-1 text-xs capitalize text-muted">
+                            Payment {record.job.paymentStatus.toLowerCase()}
+                            {payment ? ` · ${formatCents(payment.amountCents)} via ${payment.provider}` : ""}
+                          </p>
+                          {record.job.photos.length ? (
+                            <div className="mt-3 flex gap-2 overflow-x-auto">
+                              {record.job.photos.slice(0, 4).map((photo) => (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  key={photo.id}
+                                  src={photo.url}
+                                  alt={photo.caption ?? photo.kind}
+                                  className="h-16 w-24 rounded-lg object-cover"
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </Card>
+                      </Link>
+                    );
+                  })
                 )}
               </div>
             </section>
