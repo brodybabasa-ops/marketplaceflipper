@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { RepairOutcomeKind, ScheduleBlockKind } from "@prisma/client";
+import type { RepairOutcomeKind, ResourceKind, ScheduleBlockKind, TechnicianDuty } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/session";
 import { DEMO_PASSWORD } from "@/lib/constants";
@@ -11,7 +11,7 @@ import { findUserByEmail, verifyPassword } from "@/services/auth";
 import { recordRepairOutcome } from "@/services/outcomes";
 import { createWarrantyFromRepair } from "@/services/warranties";
 import { transferAsset } from "@/services/asset-lifecycle";
-import { createScheduleBlock, moveScheduleBlock } from "@/services/scheduler";
+import { createScheduleBlock, moveScheduleBlock, sendScheduleUpdate } from "@/services/scheduler";
 import { createServiceRequest } from "@/services/jobs";
 import { serviceRequestSchema } from "@/lib/validations";
 import { operatingModelFromForm } from "@/lib/operating-model";
@@ -21,6 +21,10 @@ async function requireUser() {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   return session;
+}
+
+function optionalId(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : undefined;
 }
 
 export async function submitOutcomeAction(formData: FormData) {
@@ -89,8 +93,8 @@ export async function createScheduleBlockAction(formData: FormData) {
     mechanicProfileId: profile.id,
     actorId: session.id,
     jobId: String(formData.get("jobId") || "") || undefined,
-    technicianProfileId: String(formData.get("technicianProfileId") || "") || undefined,
-    resourceId: String(formData.get("resourceId") || "") || undefined,
+    technicianProfileId: optionalId(String(formData.get("technicianProfileId") || "")),
+    resourceId: optionalId(String(formData.get("resourceId") || "")),
     kind: (String(formData.get("kind") || "WORK") as ScheduleBlockKind) || "WORK",
     title: String(formData.get("title") || "Work"),
     startsAt,
@@ -107,8 +111,8 @@ export async function moveScheduleBlockAction(formData: FormData) {
     actorId: session.id,
     startsAt: new Date(String(formData.get("startsAt"))),
     endsAt: new Date(String(formData.get("endsAt"))),
-    technicianProfileId: String(formData.get("technicianProfileId") || "") || undefined,
-    resourceId: String(formData.get("resourceId") || "") || undefined,
+    technicianProfileId: optionalId(String(formData.get("technicianProfileId") || "")),
+    resourceId: optionalId(String(formData.get("resourceId") || "")),
     overrideReason: String(formData.get("overrideReason") || "") || undefined,
   });
   revalidatePath("/mechanic/schedule");
@@ -122,9 +126,97 @@ export async function saveOperatingModelAction(formData: FormData) {
   const travel = formData.get("travel") === "on";
   await prisma.mechanicProfile.update({
     where: { id: profile.id },
-    data: { operatingModel: operatingModelFromForm(shop, travel) },
+    data: {
+      operatingModel: operatingModelFromForm(shop, travel, {
+        multi: formData.get("multi") === "on",
+        fleet: formData.get("fleet") === "on",
+        field: formData.get("field") === "on",
+      }),
+    },
   });
   revalidatePath("/mechanic/settings");
+  revalidatePath("/mechanic/schedule");
+}
+
+export async function sendScheduleUpdateAction(formData: FormData) {
+  const session = await requireUser();
+  await sendScheduleUpdate({
+    actorId: session.id,
+    jobId: String(formData.get("jobId")),
+    body: String(formData.get("body") || "").trim(),
+  });
+  revalidatePath("/mechanic/schedule");
+  revalidatePath(`/mechanic/jobs/${String(formData.get("jobId"))}`);
+}
+
+export async function createTechnicianAction(formData: FormData) {
+  const session = await requireUser();
+  const profile = await prisma.mechanicProfile.findUnique({ where: { userId: session.id } });
+  if (!profile) throw new Error("Not a provider.");
+  const specialties = String(formData.get("specialties") || "")
+    .split(",")
+    .map((item) => item.trim().toUpperCase().replaceAll(" ", "_"))
+    .filter(Boolean);
+  await prisma.technicianProfile.create({
+    data: {
+      mechanicProfileId: profile.id,
+      displayName: String(formData.get("displayName") || "").trim(),
+      title: String(formData.get("title") || "") || undefined,
+      duty: (String(formData.get("duty") || "BOTH") as TechnicianDuty) || "BOTH",
+      hoursStart: String(formData.get("hoursStart") || "08:00"),
+      hoursEnd: String(formData.get("hoursEnd") || "18:00"),
+      specialties,
+    },
+  });
+  revalidatePath("/mechanic/settings");
+  revalidatePath("/mechanic/schedule");
+}
+
+export async function createResourceAction(formData: FormData) {
+  const session = await requireUser();
+  const profile = await prisma.mechanicProfile.findUnique({ where: { userId: session.id } });
+  if (!profile) throw new Error("Not a provider.");
+  await prisma.providerResource.create({
+    data: {
+      mechanicProfileId: profile.id,
+      name: String(formData.get("name") || "").trim(),
+      kind: (String(formData.get("kind") || "OTHER") as ResourceKind) || "OTHER",
+      locationId: String(formData.get("locationId") || "") || undefined,
+    },
+  });
+  revalidatePath("/mechanic/settings");
+  revalidatePath("/mechanic/schedule");
+}
+
+export async function createLocationAction(formData: FormData) {
+  const session = await requireUser();
+  const profile = await prisma.mechanicProfile.findUnique({ where: { userId: session.id } });
+  if (!profile) throw new Error("Not a provider.");
+  await prisma.providerLocation.create({
+    data: {
+      mechanicProfileId: profile.id,
+      name: String(formData.get("name") || "").trim(),
+      city: String(formData.get("city") || "") || undefined,
+      state: String(formData.get("state") || "") || undefined,
+      zip: String(formData.get("zip") || "") || undefined,
+    },
+  });
+  revalidatePath("/mechanic/settings");
+  revalidatePath("/mechanic/schedule");
+}
+
+export async function addWaitlistAction(formData: FormData) {
+  const session = await requireUser();
+  const profile = await prisma.mechanicProfile.findUnique({ where: { userId: session.id } });
+  if (!profile) throw new Error("Not a provider.");
+  await prisma.waitlistEntry.create({
+    data: {
+      mechanicProfileId: profile.id,
+      customerId: String(formData.get("customerId")),
+      jobId: String(formData.get("jobId") || "") || undefined,
+      notes: String(formData.get("notes") || "Contact me if something opens earlier."),
+    },
+  });
   revalidatePath("/mechanic/schedule");
 }
 

@@ -27,6 +27,8 @@ const LINKS: [string, string][] = [
   ["Provider requests", "/mechanic/requests"],
   ["Provider jobs", "/mechanic/jobs"],
   ["Provider schedule", "/mechanic/schedule"],
+  ["Schedule load", "/mechanic/schedule?view=load"],
+  ["Morning huddle", "/mechanic/schedule?view=huddle"],
   ["Provider CRM", "/mechanic/customers"],
   ["CRM today", "/mechanic/customers/today"],
   ["Provider job board", "/mechanic/board"],

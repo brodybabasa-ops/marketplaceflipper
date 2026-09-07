@@ -127,6 +127,9 @@ export default async function MechanicJobPage({
             confirmedAt={job.scheduledConfirmedAt}
             canPropose={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
           />
+          <Button asChild variant="secondary" size="sm">
+            <Link href={`/mechanic/schedule?fit=${job.id}`}>Smart Fit this job</Link>
+          </Button>
           <Card className="p-5">
             <h2 className="font-semibold text-ink">Approved scope</h2>
             {job.authorizations[0] ? (
