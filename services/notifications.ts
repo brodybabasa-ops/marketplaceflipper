@@ -9,20 +9,51 @@ export type NotificationInput = {
   channel?: NotificationChannel;
 };
 
-async function sendEmail(input: NotificationInput) {
+async function sendEmail(input: NotificationInput, email: string) {
   if (!process.env.RESEND_API_KEY) {
-    console.info("[email:mock]", input.title, input.userId);
+    console.info("[email:mock]", email, input.title);
     return;
   }
-  console.info("[email:resend-pending]", input.title);
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM ?? "Pocket Mechanic <hello@example.com>",
+      to: [email],
+      subject: input.title,
+      text: `${input.body}\n\n${input.href ? `${process.env.NEXT_PUBLIC_APP_URL}${input.href}` : ""}`,
+    }),
+  });
+  if (!response.ok) {
+    console.error("[email:resend-failed]", await response.text());
+  }
 }
 
-async function sendSms(input: NotificationInput) {
-  if (!process.env.TWILIO_ACCOUNT_SID) {
-    console.info("[sms:mock]", input.title, input.userId);
+async function sendSms(input: NotificationInput, phone: string) {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_FROM_NUMBER) {
+    console.info("[sms:mock]", phone, input.title);
     return;
   }
-  console.info("[sms:twilio-pending]", input.title);
+  const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
+  const body = new URLSearchParams({
+    To: phone,
+    From: process.env.TWILIO_FROM_NUMBER,
+    Body: `${input.title}: ${input.body}`,
+  });
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
+    {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    },
+  );
+  if (!response.ok) {
+    console.error("[sms:twilio-failed]", await response.text());
+  }
 }
 
 export async function notify(input: NotificationInput) {
@@ -36,6 +67,27 @@ export async function notify(input: NotificationInput) {
       href: input.href,
     },
   });
-  if (channel === "EMAIL") await sendEmail(input);
-  if (channel === "SMS") await sendSms(input);
+  if (channel === "IN_APP") return;
+  const user = await prisma.user.findUnique({ where: { id: input.userId } });
+  if (!user) return;
+  if (channel === "EMAIL" && user.emailNotifications) await sendEmail(input, user.email);
+  if (channel === "SMS" && user.smsNotifications && user.phone) await sendSms(input, user.phone);
+}
+
+export async function notifyUser(input: Omit<NotificationInput, "channel">) {
+  const user = await prisma.user.findUnique({ where: { id: input.userId } });
+  await notify({ ...input, channel: "IN_APP" });
+  if (user?.emailNotifications) await notify({ ...input, channel: "EMAIL" });
+  if (user?.smsNotifications && user.phone) await notify({ ...input, channel: "SMS" });
+}
+
+export async function unreadNotificationCount(userId: string) {
+  return prisma.notification.count({ where: { userId, readAt: null, channel: "IN_APP" } });
+}
+
+export async function markNotificationsRead(userId: string) {
+  await prisma.notification.updateMany({
+    where: { userId, readAt: null },
+    data: { readAt: new Date() },
+  });
 }

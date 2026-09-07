@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { Bell } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/app/actions/auth";
 import type { SessionUser } from "@/lib/session";
 import { homeForRole } from "@/lib/session";
 
-export function SiteHeader({ user }: { user: SessionUser | null }) {
+export function SiteHeader({ user, unreadCount = 0 }: { user: SessionUser | null; unreadCount?: number }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -29,6 +30,14 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              <Link href="/notifications" className="relative rounded-full p-2 text-navy hover:bg-white" aria-label="Notifications">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 ? (
+                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
+              </Link>
               <Button asChild variant="ghost" size="sm">
                 <Link href={homeForRole(user.role)}>Dashboard</Link>
               </Button>

@@ -283,6 +283,9 @@ async function main() {
     prisma.review.deleteMany(),
     prisma.dispute.deleteMany(),
     prisma.notification.deleteMany(),
+    prisma.payment.deleteMany(),
+    prisma.payout.deleteMany(),
+    prisma.mechanicBlockedDate.deleteMany(),
     prisma.job.deleteMany(),
     prisma.serviceRequest.deleteMany(),
     prisma.savedMechanic.deleteMany(),
@@ -297,7 +300,6 @@ async function main() {
     prisma.customerProfile.deleteMany(),
     prisma.adminAction.deleteMany(),
     prisma.fraudSignal.deleteMany(),
-    prisma.payout.deleteMany(),
     prisma.subscription.deleteMany(),
     prisma.favorite.deleteMany(),
     prisma.user.deleteMany(),
@@ -349,6 +351,9 @@ async function main() {
         role: "CUSTOMER",
         firstName: i === 0 ? "Alex" : firstName,
         lastName: i === 0 ? "Harper" : lastName,
+        phone: i === 0 ? "+18015550100" : undefined,
+        emailNotifications: true,
+        smsNotifications: i === 0,
         customerProfile: {
           create: { city: zip.city, state: zip.stateCode, zip: zip.zip, latitude: zip.latitude, longitude: zip.longitude },
         },
@@ -527,6 +532,7 @@ async function main() {
         totalCents: problem.price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
         scheduledAt: status === "REQUESTED" ? undefined : createdAt,
+        scheduledConfirmedAt: status === "SCHEDULED" || status === "EN_ROUTE" || status === "DIAGNOSING" || status === "IN_PROGRESS" ? createdAt : undefined,
         completedAt: status === "COMPLETED" ? new Date(createdAt.getTime() + 86400000 * 2) : undefined,
         createdAt,
         events: {
@@ -667,6 +673,8 @@ async function main() {
       completedJobsCount: Math.max(mikeFresh.completedJobsCount, 183),
       averageRating: Math.max(mikeFresh.averageRating, 4.9),
       mechanicScore: Math.max(featuredScore, 96),
+      stripeConnectAccountId: "acct_mock_mikesmobile",
+      stripeChargesEnabled: true,
     },
   });
 
@@ -696,11 +704,308 @@ async function main() {
   await prisma.savedMechanic.create({
     data: { customerId: customers[0].id, mechanicProfileId: mike.id },
   });
+  await prisma.favorite.create({
+    data: { userId: customers[0].id, targetType: "mechanic", targetId: mike.id },
+  });
+
+  const commissionPercent = 10;
+  const paidJobs = await prisma.job.findMany({
+    where: { status: "COMPLETED", paymentStatus: "PAID" },
+    include: { mechanicProfile: true },
+  });
+  for (const job of paidJobs) {
+    const commissionCents = Math.round(job.totalCents * (commissionPercent / 100));
+    const mechanicPayoutCents = job.totalCents - commissionCents;
+    const intentId = `mock_pi_${job.id.replace(/-/g, "").slice(0, 12)}`;
+    await prisma.payment.create({
+      data: {
+        jobId: job.id,
+        customerId: job.customerId,
+        mechanicUserId: job.mechanicUserId,
+        amountCents: job.totalCents,
+        commissionCents,
+        mechanicPayoutCents,
+        status: "PAID",
+        provider: "mock",
+        providerIntentId: intentId,
+        createdAt: job.completedAt ?? job.createdAt,
+      },
+    });
+    await prisma.payout.create({
+      data: {
+        mechanicUserId: job.mechanicUserId,
+        jobId: job.id,
+        amountCents: mechanicPayoutCents,
+        commissionCents,
+        status: "PAID",
+        stripeConnectAccountId: job.mechanicProfile.stripeConnectAccountId,
+        stripeTransferId: intentId,
+        createdAt: job.completedAt ?? job.createdAt,
+      },
+    });
+  }
+
+  const alexTruck = vehicles[0];
+  const mikeUser = await prisma.user.findUniqueOrThrow({ where: { id: mike.userId } });
+  const unpaidCreatedAt = new Date();
+  unpaidCreatedAt.setDate(unpaidCreatedAt.getDate() - 2);
+  const unpaidRequest = await prisma.serviceRequest.create({
+    data: {
+      customerId: customers[0].id,
+      vehicleId: alexTruck.id,
+      mechanicProfileId: mike.id,
+      status: "ACCEPTED",
+      problemText: "Squeal from the left rear brake after the last service.",
+      category: "BRAKES",
+      zip: "84101",
+      city: "Salt Lake City",
+      state: "UT",
+      latitude: 40.7608,
+      longitude: -111.891,
+      createdAt: unpaidCreatedAt,
+    },
+  });
+  const unpaidJob = await prisma.job.create({
+    data: {
+      serviceRequestId: unpaidRequest.id,
+      customerId: customers[0].id,
+      mechanicUserId: mikeUser.id,
+      mechanicProfileId: mike.id,
+      vehicleId: alexTruck.id,
+      status: "COMPLETED",
+      totalCents: 36500,
+      paymentStatus: "UNPAID",
+      scheduledAt: unpaidCreatedAt,
+      scheduledConfirmedAt: unpaidCreatedAt,
+      completedAt: new Date(),
+      createdAt: unpaidCreatedAt,
+      events: {
+        create: [
+          { status: "REQUESTED", createdAt: unpaidCreatedAt },
+          { status: "COMPLETED", createdAt: new Date(), note: "Work complete. Awaiting payment." },
+        ],
+      },
+    },
+  });
+  await prisma.mechanicProfile.update({
+    where: { id: mike.id },
+    data: { completedJobsCount: { increment: 1 } },
+  });
+  await prisma.estimate.create({
+    data: {
+      jobId: unpaidJob.id,
+      mechanicId: mikeUser.id,
+      type: "PRIMARY",
+      status: "APPROVED",
+      totalCents: 36500,
+      subtotalCents: 36500,
+      sentAt: unpaidCreatedAt,
+      lineItems: {
+        create: [
+          { category: "DIAGNOSTIC", description: "Diagnostic labor", quantity: 1, unitCents: 9500, totalCents: 9500 },
+          { category: "LABOR", description: "Rear brake hardware service", quantity: 1, unitCents: 18000, totalCents: 18000 },
+          { category: "PARTS", description: "Rear pads and hardware", quantity: 1, unitCents: 9000, totalCents: 9000 },
+        ],
+      },
+    },
+  });
+  await prisma.repairRecord.create({
+    data: {
+      jobId: unpaidJob.id,
+      vehicleId: alexTruck.id,
+      title: "Rear brake hardware service",
+      diagnosis: "Squeal from the left rear brake after the last service.",
+      workPerformed: "Replaced rear pads and hardware, cleaned and lubricated slides.",
+      partsReplaced: "Rear pads, abutment clips",
+      mileage: alexTruck.mileage + 420,
+      laborHours: 1.8,
+      warrantySummary: "12 months / 12,000 miles",
+    },
+  });
+  await prisma.messageThread.create({
+    data: {
+      customerId: customers[0].id,
+      mechanicId: mikeUser.id,
+      jobId: unpaidJob.id,
+      requestId: unpaidRequest.id,
+      lastMessageAt: new Date(),
+      messages: {
+        create: [
+          { senderId: customers[0].id, body: "Squeal from the left rear brake after the last service." },
+          { senderId: mikeUser.id, body: "I replaced the rear hardware. Pay when you are ready — the invoice is on the job." },
+        ],
+      },
+    },
+  });
+  await prisma.jobPhoto.createMany({
+    data: [
+      {
+        jobId: unpaidJob.id,
+        kind: "BEFORE",
+        url: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=800&q=80",
+        caption: "Rear rotor before service",
+      },
+      {
+        jobId: unpaidJob.id,
+        kind: "AFTER",
+        url: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=800&q=80",
+        caption: "Pads installed",
+      },
+    ],
+  });
+
+  const photoJobs = await prisma.job.findMany({
+    where: { customerId: customers[0].id, status: "COMPLETED", id: { not: unpaidJob.id } },
+    take: 4,
+  });
+  for (const job of photoJobs) {
+    await prisma.jobPhoto.createMany({
+      data: [
+        {
+          jobId: job.id,
+          kind: "BEFORE",
+          url: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=80",
+          caption: "Before photos",
+        },
+        {
+          jobId: job.id,
+          kind: "AFTER",
+          url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80",
+          caption: "After the repair",
+        },
+      ],
+    });
+  }
+
+  const appointment = new Date();
+  appointment.setDate(appointment.getDate() + (appointment.getDay() === 6 ? 2 : appointment.getDay() === 0 ? 1 : 1));
+  appointment.setHours(10, 0, 0, 0);
+  if (appointment.getDay() === 0) appointment.setDate(appointment.getDate() + 1);
+  const scheduleRequest = await prisma.serviceRequest.create({
+    data: {
+      customerId: customers[0].id,
+      vehicleId: vehicles[1].id,
+      mechanicProfileId: mike.id,
+      status: "ACCEPTED",
+      problemText: "Pre-trip inspection before a canyon drive.",
+      category: "MAINTENANCE",
+      zip: "84101",
+      city: "Salt Lake City",
+      state: "UT",
+      latitude: 40.7608,
+      longitude: -111.891,
+    },
+  });
+  const scheduledJob = await prisma.job.create({
+    data: {
+      serviceRequestId: scheduleRequest.id,
+      customerId: customers[0].id,
+      mechanicUserId: mikeUser.id,
+      mechanicProfileId: mike.id,
+      vehicleId: vehicles[1].id,
+      status: "SCHEDULED",
+      totalCents: 12000,
+      paymentStatus: "UNPAID",
+      scheduledAt: appointment,
+      scheduledConfirmedAt: appointment,
+      events: {
+        create: [
+          { status: "REQUESTED", note: "Customer requested a pre-trip inspection." },
+          { status: "SCHEDULED", note: "Appointment confirmed." },
+        ],
+      },
+    },
+  });
+  await prisma.estimate.create({
+    data: {
+      jobId: scheduledJob.id,
+      mechanicId: mikeUser.id,
+      type: "PRIMARY",
+      status: "APPROVED",
+      totalCents: 12000,
+      subtotalCents: 12000,
+      sentAt: new Date(),
+      lineItems: {
+        create: [{ category: "DIAGNOSTIC", description: "Inspection labor", quantity: 1, unitCents: 12000, totalCents: 12000 }],
+      },
+    },
+  });
+  await prisma.messageThread.create({
+    data: {
+      customerId: customers[0].id,
+      mechanicId: mikeUser.id,
+      jobId: scheduledJob.id,
+      requestId: scheduleRequest.id,
+      messages: {
+        create: [
+          { senderId: customers[0].id, body: "Can you look it over before we head up the canyon?" },
+          { senderId: mikeUser.id, body: "Yes — I have you on the calendar. See you then." },
+        ],
+      },
+    },
+  });
+
+  await prisma.mechanicBlockedDate.createMany({
+    data: [
+      { mechanicProfileId: mike.id, date: new Date("2026-12-24"), reason: "Holiday" },
+      { mechanicProfileId: mike.id, date: new Date("2026-12-25"), reason: "Holiday" },
+    ],
+  });
+
+  const disputedJob = await prisma.job.findFirst({
+    where: { customerId: customers[0].id, mechanicProfileId: mike.id, status: "COMPLETED", id: { not: unpaidJob.id } },
+  });
+  if (disputedJob) {
+    await prisma.dispute.create({
+      data: {
+        jobId: disputedJob.id,
+        customerId: customers[0].id,
+        mechanicId: mikeUser.id,
+        category: "COMMUNICATION",
+        status: "OPEN",
+        description: "Demo case: customer asked for a clearer parts breakdown after the job.",
+      },
+    });
+  }
+
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customers[0].id,
+        channel: "IN_APP",
+        title: "Repair complete",
+        body: "Pay the approved amount for the rear brake hardware service.",
+        href: `/jobs/${unpaidJob.id}/pay`,
+      },
+      {
+        userId: customers[0].id,
+        channel: "IN_APP",
+        title: "Appointment confirmed",
+        body: appointment.toLocaleString(),
+        href: `/jobs/${scheduledJob.id}`,
+      },
+      {
+        userId: mikeUser.id,
+        channel: "IN_APP",
+        title: "Customer waiting to pay",
+        body: "Alex Harper has a completed unpaid invoice.",
+        href: `/mechanic/jobs/${unpaidJob.id}`,
+      },
+      {
+        userId: mikeUser.id,
+        channel: "IN_APP",
+        title: "Appointment on the calendar",
+        body: "Pre-trip inspection is confirmed.",
+        href: `/mechanic/schedule`,
+      },
+    ],
+  });
 
   console.log("Seed complete.");
   console.log("Customer: customer@demo.pocketmechanic.app / Demo1234!");
   console.log("Mechanic: mechanic@demo.pocketmechanic.app / Demo1234!");
   console.log("Admin:    admin@demo.pocketmechanic.app / Demo1234!");
+  console.log(`Unpaid demo job: /jobs/${unpaidJob.id}/pay`);
 }
 
 main()

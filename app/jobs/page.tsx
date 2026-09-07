@@ -4,6 +4,7 @@ import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { formatCents } from "@/lib/money";
 
 export const metadata = { title: "My jobs" };
 
@@ -30,6 +31,9 @@ export default async function JobsPage() {
                   <p className="text-sm text-muted">
                     {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
                   </p>
+                  {job.status === "COMPLETED" && job.paymentStatus !== "PAID" && job.totalCents > 0 ? (
+                    <p className="mt-1 text-sm font-semibold text-accent">Pay {formatCents(job.totalCents)}</p>
+                  ) : null}
                 </div>
                 <JobStatusLabel status={job.status} />
               </div>

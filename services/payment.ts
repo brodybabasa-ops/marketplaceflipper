@@ -10,18 +10,26 @@ export type ConnectedAccount = {
   chargesEnabled: boolean;
 };
 
+export type CreateIntentInput = {
+  amountCents: number;
+  jobId: string;
+  customerId: string;
+  connectAccountId?: string | null;
+  applicationFeeCents?: number;
+};
+
 export interface PaymentService {
-  createPaymentIntent(input: { amountCents: number; jobId: string; customerId: string }): Promise<PaymentIntent>;
+  createPaymentIntent(input: CreateIntentInput): Promise<PaymentIntent>;
   capture(intentId: string): Promise<PaymentIntent>;
   refund(intentId: string, amountCents?: number): Promise<PaymentIntent>;
   createConnectedAccount(mechanicUserId: string): Promise<ConnectedAccount>;
 }
 
 class MockPaymentService implements PaymentService {
-  async createPaymentIntent(input: { amountCents: number; jobId: string }): Promise<PaymentIntent> {
+  async createPaymentIntent(input: CreateIntentInput): Promise<PaymentIntent> {
     return {
-      id: `mock_pi_${input.jobId.slice(0, 8)}`,
-      status: "requires_payment_method",
+      id: `mock_pi_${input.jobId.replace(/-/g, "").slice(0, 12)}`,
+      status: "requires_capture",
       amountCents: input.amountCents,
       currency: "usd",
     };
@@ -36,22 +44,58 @@ class MockPaymentService implements PaymentService {
   }
 
   async createConnectedAccount(mechanicUserId: string): Promise<ConnectedAccount> {
-    return { id: `acct_mock_${mechanicUserId.slice(0, 8)}`, chargesEnabled: false };
+    return { id: `acct_mock_${mechanicUserId.replace(/-/g, "").slice(0, 12)}`, chargesEnabled: true };
   }
 }
 
 class StripePaymentService implements PaymentService {
-  async createPaymentIntent(): Promise<PaymentIntent> {
-    throw new Error("Stripe Connect is not configured. Use the mock PaymentService until keys are provided.");
+  private async client() {
+    const Stripe = (await import("stripe")).default;
+    return new Stripe(process.env.STRIPE_SECRET_KEY!);
   }
-  async capture(): Promise<PaymentIntent> {
-    throw new Error("Stripe Connect is not configured.");
+
+  async createPaymentIntent(input: CreateIntentInput): Promise<PaymentIntent> {
+    const stripe = await this.client();
+    const intent = await stripe.paymentIntents.create({
+      amount: input.amountCents,
+      currency: "usd",
+      capture_method: "manual",
+      metadata: { jobId: input.jobId, customerId: input.customerId },
+      application_fee_amount: input.applicationFeeCents,
+      ...(input.connectAccountId ? { transfer_data: { destination: input.connectAccountId } } : {}),
+    });
+    return {
+      id: intent.id,
+      status: intent.status === "succeeded" ? "succeeded" : "requires_capture",
+      amountCents: intent.amount,
+      currency: intent.currency,
+    };
   }
-  async refund(): Promise<PaymentIntent> {
-    throw new Error("Stripe Connect is not configured.");
+
+  async capture(intentId: string): Promise<PaymentIntent> {
+    const stripe = await this.client();
+    const intent = await stripe.paymentIntents.capture(intentId);
+    return {
+      id: intent.id,
+      status: intent.status === "succeeded" ? "succeeded" : "requires_capture",
+      amountCents: intent.amount,
+      currency: intent.currency,
+    };
   }
-  async createConnectedAccount(): Promise<ConnectedAccount> {
-    throw new Error("Stripe Connect is not configured.");
+
+  async refund(intentId: string, amountCents?: number): Promise<PaymentIntent> {
+    const stripe = await this.client();
+    await stripe.refunds.create({ payment_intent: intentId, amount: amountCents });
+    return { id: intentId, status: "canceled", amountCents: amountCents ?? 0, currency: "usd" };
+  }
+
+  async createConnectedAccount(mechanicUserId: string): Promise<ConnectedAccount> {
+    const stripe = await this.client();
+    const account = await stripe.accounts.create({
+      type: "express",
+      metadata: { mechanicUserId },
+    });
+    return { id: account.id, chargesEnabled: Boolean(account.charges_enabled) };
   }
 }
 

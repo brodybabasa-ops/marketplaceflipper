@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/layout/site-chrome";
 import { APP_NAME, TAGLINE } from "@/lib/constants";
 import { getSession } from "@/lib/session";
+import { unreadNotificationCount } from "@/services/notifications";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -21,10 +22,11 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const user = await getSession();
+  const unreadCount = user ? await unreadNotificationCount(user.id) : 0;
   return (
     <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-paper font-sans text-ink">
-        <SiteHeader user={user} />
+        <SiteHeader user={user} unreadCount={unreadCount} />
         <main className="flex-1">{children}</main>
         <SiteFooter />
       </body>

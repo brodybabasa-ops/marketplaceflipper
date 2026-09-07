@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { transitionJob } from "@/services/jobs";
-import { notify } from "@/services/notifications";
+import { notifyUser } from "@/services/notifications";
 import type { EstimateLineCategory, EstimateType } from "@prisma/client";
 
 export async function createEstimate(input: {
@@ -52,7 +52,7 @@ export async function createEstimate(input: {
     },
   });
 
-  await notify({
+  await notifyUser({
     userId: job.customerId,
     title: input.type === "CHANGE_ORDER" ? "Additional work needs your approval" : "Your estimate is ready",
     body: `Review the ${input.type === "CHANGE_ORDER" ? "additional work request" : "estimate"} before work continues.`,
@@ -101,7 +101,7 @@ export async function respondToEstimate(input: {
     });
     await transitionJob(estimate.jobId, "IN_PROGRESS", input.userId, "Customer approved the estimate.");
   } else {
-    await notify({
+    await notifyUser({
       userId: estimate.job.mechanicUserId,
       title: "Estimate declined",
       body: "The customer declined this estimate. Message them if you can revise it.",

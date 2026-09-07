@@ -35,6 +35,8 @@ export const CUSTOMER_NAV = [
   { href: "/mechanics", label: "Find a Mechanic" },
   { href: "/vehicles", label: "My Vehicles" },
   { href: "/jobs", label: "My Jobs" },
+  { href: "/saved", label: "Saved" },
+  { href: "/disputes", label: "Disputes" },
   { href: "/messages", label: "Messages" },
   { href: "/history", label: "Repair History" },
   { href: "/account", label: "Profile" },
@@ -44,10 +46,13 @@ export const MECHANIC_NAV = [
   { href: "/mechanic", label: "Dashboard" },
   { href: "/mechanic/requests", label: "Requests" },
   { href: "/mechanic/jobs", label: "Jobs" },
+  { href: "/mechanic/schedule", label: "Schedule" },
+  { href: "/disputes", label: "Disputes" },
   { href: "/mechanic/messages", label: "Messages" },
+  { href: "/mechanic/analytics", label: "Analytics" },
   { href: "/mechanic/reviews", label: "Reviews" },
-  { href: "/mechanic/profile", label: "Profile" },
   { href: "/mechanic/earnings", label: "Earnings" },
+  { href: "/mechanic/profile", label: "Profile" },
   { href: "/mechanic/settings", label: "Settings" },
 ];
 

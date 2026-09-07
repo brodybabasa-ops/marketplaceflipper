@@ -1,7 +1,7 @@
 import type { JobStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
-import { notify } from "@/services/notifications";
+import { notifyUser } from "@/services/notifications";
 import { classifyProblem } from "@/services/problem-classifier";
 
 export async function createServiceRequest(input: {
@@ -79,7 +79,7 @@ export async function createServiceRequest(input: {
     },
   });
 
-  await notify({
+  await notifyUser({
     userId: mechanic.userId,
     title: "New service request",
     body: input.problemText,
@@ -115,10 +115,19 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
       where: { id: job.serviceRequestId },
       data: { status: "ACCEPTED", mechanicProfileId: job.mechanicProfileId },
     });
-    await notify({
+    await notifyUser({
       userId: job.customerId,
       title: "Your mechanic accepted the request",
-      body: "You can message them and track the job from here.",
+      body: "You can message them, confirm a time, and track the job from here.",
+      href: `/jobs/${job.id}`,
+    });
+  }
+
+  if (next === "SCHEDULED") {
+    await notifyUser({
+      userId: job.customerId === actorId ? job.mechanicUserId : job.customerId,
+      title: "Appointment scheduled",
+      body: note ?? "A time is on the calendar.",
       href: `/jobs/${job.id}`,
     });
   }
@@ -129,16 +138,16 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
       data: { completedJobsCount: { increment: 1 } },
     });
     await refreshMechanicScore(job.mechanicProfileId);
-    await notify({
+    await notifyUser({
       userId: job.customerId,
       title: "Repair complete",
-      body: "Review the work and leave a rating when you are ready.",
-      href: `/jobs/${job.id}`,
+      body: job.paymentStatus === "PAID" ? "Review the work and leave a rating when you are ready." : "Pay the approved amount, then leave a review.",
+      href: job.paymentStatus === "PAID" ? `/jobs/${job.id}` : `/jobs/${job.id}/pay`,
     });
   }
 
   if (next === "CANCELLED") {
-    await notify({
+    await notifyUser({
       userId: actorId === job.customerId ? job.mechanicUserId : job.customerId,
       title: "Job cancelled",
       body: note ?? "This job was cancelled.",
@@ -165,6 +174,7 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       review: { include: { response: true } },
       thread: { include: { messages: { include: { sender: true }, orderBy: { createdAt: "asc" } } } },
       disputes: true,
+      payments: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!job) return null;

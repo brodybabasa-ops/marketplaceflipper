@@ -6,12 +6,13 @@ import { Card, EmptyState } from "@/components/ui/card";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { formatCents } from "@/lib/money";
 
 export const metadata = { title: "Home" };
 
 export default async function CustomerHomePage() {
   const session = await requireSession("CUSTOMER");
-  const [vehicles, jobs, threads, repairs] = await Promise.all([
+  const [vehicles, jobs, threads, repairs, saved, upcoming, unpaid] = await Promise.all([
     prisma.vehicle.findMany({
       where: { customerId: session.id },
       include: { make: true, model: true },
@@ -28,6 +29,23 @@ export default async function CustomerHomePage() {
       where: { vehicle: { customerId: session.id } },
       include: { job: { include: { mechanicProfile: true } }, vehicle: { include: { make: true, model: true } } },
       orderBy: { createdAt: "desc" },
+      take: 3,
+    }),
+    prisma.savedMechanic.findMany({
+      where: { customerId: session.id },
+      include: { mechanic: true },
+      take: 4,
+    }),
+    prisma.job.findMany({
+      where: { customerId: session.id, scheduledAt: { gte: new Date() }, status: { notIn: ["CANCELLED", "COMPLETED"] } },
+      include: { mechanicProfile: true },
+      orderBy: { scheduledAt: "asc" },
+      take: 3,
+    }),
+    prisma.job.findMany({
+      where: { customerId: session.id, status: "COMPLETED", paymentStatus: { not: "PAID" }, totalCents: { gt: 0 } },
+      include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } } },
+      orderBy: { completedAt: "desc" },
       take: 3,
     }),
   ]);
@@ -90,13 +108,46 @@ export default async function CustomerHomePage() {
           <p className="number mt-1 text-3xl font-bold text-navy">{jobs.length}</p>
         </Card>
         <Card className="p-5">
-          <p className="text-sm text-muted">Message threads</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{threads}</p>
+          <p className="text-sm text-muted">Upcoming appointments</p>
+          <p className="number mt-1 text-3xl font-bold text-navy">{upcoming.length}</p>
         </Card>
         <Card className="p-5">
-          <p className="text-sm text-muted">Recent repairs</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{repairs.length}</p>
+          <p className="text-sm text-muted">Messages</p>
+          <p className="number mt-1 text-3xl font-bold text-navy">{threads}</p>
         </Card>
+      </section>
+
+      {unpaid.length ? (
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold text-navy">Pay for completed work</h2>
+          <div className="mt-4 space-y-3">
+            {unpaid.map((job) => (
+              <Link key={job.id} href={`/jobs/${job.id}/pay`} className="block rounded-2xl border border-line bg-white p-4">
+                <p className="font-semibold text-navy">{job.mechanicProfile.businessName}</p>
+                <p className="text-sm text-muted">
+                  {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                </p>
+                <p className="number mt-1 font-semibold text-accent">Pay {formatCents(job.totalCents)}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-navy">Upcoming appointments</h2>
+        <div className="mt-4 space-y-3">
+          {upcoming.length === 0 ? (
+            <p className="text-sm text-muted">Nothing on the calendar yet.</p>
+          ) : (
+            upcoming.map((job) => (
+              <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
+                <p className="font-semibold text-navy">{job.mechanicProfile.businessName}</p>
+                <p className="text-sm text-muted">{job.scheduledAt?.toLocaleString()}</p>
+              </Link>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="mt-10">
@@ -116,6 +167,45 @@ export default async function CustomerHomePage() {
                   </div>
                   <JobStatusLabel status={job.status} />
                 </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-navy">Recent repairs</h2>
+          <Link className="text-sm font-semibold text-accent" href="/history">
+            Full history
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {repairs.map((record) => (
+            <Link key={record.id} href={`/jobs/${record.jobId}`} className="rounded-2xl border border-line bg-white p-4">
+              <p className="font-semibold text-navy">{record.title}</p>
+              <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
+              <p className="number mt-1 text-sm font-semibold">{formatCents(record.job.totalCents)}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-navy">Saved mechanics</h2>
+          <Link className="text-sm font-semibold text-accent" href="/saved">
+            View all
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {saved.length === 0 ? (
+            <p className="text-sm text-muted">Save a mechanic from their profile when you want them later.</p>
+          ) : (
+            saved.map((item) => (
+              <Link key={item.id} href={`/mechanics/${item.mechanic.slug}`} className="rounded-2xl border border-line bg-white p-4">
+                <p className="font-semibold text-navy">{item.mechanic.businessName}</p>
+                <p className="text-sm text-muted">{item.mechanic.shopCity}, {item.mechanic.shopState}</p>
               </Link>
             ))
           )}
