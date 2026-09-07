@@ -8,9 +8,20 @@ import { responseTimeLabel } from "@/services/matching";
 import type { MechanicMatch } from "@/services/matching";
 import { addToCompareAction } from "@/app/actions/master";
 import { TrustBadges } from "@/components/mechanics/trust-badges";
+import { RequestProviderButton } from "@/components/mechanics/request-provider-button";
 
-export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href?: string }) {
-  const profileHref = href ?? `/mechanics/${mechanic.slug}`;
+export function MechanicCard({
+  mechanic,
+  href,
+  requestId,
+}: {
+  mechanic: MechanicMatch;
+  href?: string;
+  requestId?: string;
+}) {
+  const profileHref = requestId
+    ? `${href ?? `/mechanics/${mechanic.slug}`}?request=${requestId}`
+    : (href ?? `/mechanics/${mechanic.slug}`);
   return (
     <article className="rounded-2xl border border-line bg-card p-5 shadow-[var(--shadow)]">
       <div className="flex gap-4">
@@ -85,9 +96,13 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
           <Button asChild>
             <Link href={profileHref}>View Profile</Link>
           </Button>
-          <Button asChild variant="secondary">
-            <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It</Link>
-          </Button>
+          {requestId ? (
+            <RequestProviderButton requestId={requestId} mechanicProfileId={mechanic.id} />
+          ) : (
+            <Button asChild variant="secondary">
+              <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It</Link>
+            </Button>
+          )}
           <form action={addToCompareAction}>
             <input type="hidden" name="mechanicProfileId" value={mechanic.id} />
             <Button type="submit" variant="secondary">

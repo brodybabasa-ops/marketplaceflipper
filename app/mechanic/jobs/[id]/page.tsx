@@ -227,14 +227,19 @@ export default async function MechanicJobPage({
             <h2 className="font-semibold text-ink">Send grouped estimate</h2>
             <p className="text-sm text-muted">Each repair group is authorized separately. Additional work must be a supplemental estimate.</p>
             <div className="mt-4">
-              <GroupedEstimateBuilder jobId={job.id} />
+              <GroupedEstimateBuilder
+                jobId={job.id}
+                defaultType={job.authorizations.length ? "CHANGE_ORDER" : "PRIMARY"}
+                lockedSupplemental={job.authorizations.length > 0}
+              />
             </div>
           </Card>
-          <Card className="p-5">
-            <h2 className="font-semibold text-ink">Legacy line-item estimate</h2>
+          <details className="rounded-2xl border border-line bg-card p-5">
+            <summary className="cursor-pointer text-sm font-semibold text-muted">Advanced: line-item estimate without repair groups</summary>
+            <p className="mt-2 text-xs text-muted">Customers authorize by repair group. Use this only if you need a preliminary total that is not the authorization path.</p>
             <form action={createEstimateAction} className="mt-4 space-y-3">
               <input type="hidden" name="jobId" value={job.id} />
-              <Select name="type" defaultValue="PRIMARY">
+              <Select name="type" defaultValue={job.authorizations.length ? "CHANGE_ORDER" : "PRIMARY"}>
                 <option value="PRELIMINARY">Preliminary estimate</option>
                 <option value="PRIMARY">Estimate</option>
                 <option value="CHANGE_ORDER">Supplemental estimate</option>
@@ -256,7 +261,7 @@ export default async function MechanicJobPage({
               ))}
               <Button type="submit">Send to customer</Button>
             </form>
-          </Card>
+          </details>
         </div>
       ) : null}
 

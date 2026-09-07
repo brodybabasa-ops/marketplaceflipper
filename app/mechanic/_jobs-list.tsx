@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MechanicAppNav } from "@/components/layout/app-nav";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { jobAssetLabel } from "@/lib/asset-display";
@@ -20,7 +21,11 @@ export default async function MechanicJobsList({ title, href, statuses }: { titl
       <h1 className="text-3xl font-bold text-ink">{title}</h1>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (
-          <EmptyState title="Nothing here yet" body="New customer requests will show up in this list." />
+          <EmptyState title="Nothing here yet" body="When a customer requests you from Fix It, the job appears here until you accept.">
+            <Button asChild variant="secondary">
+              <Link href="/mechanic">Back to attention</Link>
+            </Button>
+          </EmptyState>
         ) : (
           jobs.map((job) => (
             <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-2xl border border-line bg-card p-4">

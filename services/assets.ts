@@ -297,6 +297,30 @@ export function garageCardCopy(asset: GarageAsset) {
 
 export type GarageCardCopy = ReturnType<typeof garageCardCopy>;
 
+export async function syncAssetUsage(input: {
+  assetId?: string | null;
+  vehicleId?: string | null;
+  usageValue: number;
+}) {
+  if (input.vehicleId) {
+    await prisma.vehicle.update({
+      where: { id: input.vehicleId },
+      data: { mileage: input.usageValue },
+    });
+    await prisma.asset.updateMany({
+      where: { vehicleId: input.vehicleId },
+      data: { usageValue: input.usageValue },
+    });
+    return;
+  }
+  if (input.assetId) {
+    await prisma.asset.update({
+      where: { id: input.assetId },
+      data: { usageValue: input.usageValue },
+    });
+  }
+}
+
 export async function attachProviderIndustries(mechanicProfileId: string, industryKeys: string[], verifiedKey?: string) {
   const industries = await prisma.industry.findMany({ where: { key: { in: industryKeys } } });
   for (const industry of industries) {

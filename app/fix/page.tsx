@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { CustomerAppNav } from "@/components/layout/app-nav";
 import { FixItWizard } from "@/components/intake/fix-it-wizard";
 import { requireSession } from "@/lib/guards";
@@ -53,9 +52,7 @@ export default async function FixItPage({
         urgency={urgent ? "URGENT" : "NORMAL"}
         requestKind={kind === "PRE_PURCHASE" || kind === "MAINTENANCE" ? kind : "REPAIR"}
       />
-      <p className="mt-6 text-xs text-muted">
-        Prefer the classic form? <Link className="text-accent" href="/intake">Open issue intake</Link>
-      </p>
+      <p className="mt-6 text-xs text-muted">Whatever you own. Whatever’s wrong with it. Fix it.</p>
     </div>
   );
 }

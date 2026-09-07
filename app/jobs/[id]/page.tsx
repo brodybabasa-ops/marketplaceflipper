@@ -57,6 +57,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <p className="mt-1 text-muted">
         {jobAssetLabel(job)}
       </p>
+      {session.role === "CUSTOMER" && job.status === "REQUESTED" ? (
+        <p className="mt-3 text-sm text-muted">Waiting for {job.mechanicProfile.businessName} to accept. You can message them from this job.</p>
+      ) : null}
       {session.role === "CUSTOMER" &&
       job.paymentStatus !== "PAID" &&
       job.totalCents > 0 &&

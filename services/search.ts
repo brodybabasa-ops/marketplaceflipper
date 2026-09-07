@@ -22,7 +22,14 @@ export async function searchMechanics(input: {
   request?: string;
   asset?: string;
 }) {
-  const originZip = input.zip?.replace(/\D/g, "").slice(0, 5);
+  const request = input.request
+    ? await prisma.serviceRequest.findUnique({
+        where: { id: input.request },
+        include: { industry: true, asset: { include: { industry: true } } },
+      })
+    : null;
+
+  const originZip = (input.zip || request?.zip)?.replace(/\D/g, "").slice(0, 5);
   const zip = originZip
     ? await prisma.zipCode.findUnique({ where: { zip: originZip } })
     : input.zip
@@ -32,27 +39,26 @@ export async function searchMechanics(input: {
       : await prisma.zipCode.findUnique({ where: { zip: "84101" } });
 
   let industryKey = input.industry?.toUpperCase() || "AUTOMOTIVE";
-  if (input.request) {
-    const request = await prisma.serviceRequest.findUnique({
-      where: { id: input.request },
-      include: { industry: true, asset: { include: { industry: true } } },
-    });
-    industryKey = request?.industry?.key ?? request?.asset?.industry.key ?? industryKey;
+  if (request) {
+    industryKey = request.industry?.key ?? request.asset?.industry.key ?? industryKey;
   } else if (input.asset) {
     const asset = await prisma.asset.findUnique({ where: { id: input.asset }, include: { industry: true } });
     if (asset) industryKey = asset.industry.key;
   }
 
+  const queryText = input.q || request?.problemText;
   const category = input.category
     ? (input.category.toUpperCase() as ServiceCategory)
-    : input.q
-      ? classifyProblem(input.q, industryKey)
-      : undefined;
+    : request?.category
+      ? request.category
+      : queryText
+        ? classifyProblem(queryText, industryKey)
+        : undefined;
 
   const filters: MatchFilters = {
     origin: zip ? { latitude: zip.latitude, longitude: zip.longitude } : undefined,
     category,
-    makeName: input.make || input.vehicle?.split(" ").slice(1, 2)[0],
+    makeName: input.make || request?.asset?.manufacturer || input.vehicle?.split(" ").slice(1, 2)[0],
     serviceMode: (input.mode as ServiceMode | "ANY" | undefined) ?? undefined,
     minRating: input.rating ? Number(input.rating) : undefined,
     verifiedOnly: input.verified === "1",
@@ -64,7 +70,7 @@ export async function searchMechanics(input: {
   };
 
   const matches = matchMechanics(await listMechanicsForMatching(), filters);
-  return { matches, zip, category, filters, industryKey };
+  return { matches, zip, category, filters, industryKey, request };
 }
 
 export function one(value: string | string[] | undefined) {

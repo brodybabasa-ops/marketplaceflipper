@@ -7,31 +7,43 @@ import { prisma } from "@/lib/db";
 
 export const metadata = { title: "Product review" };
 
-const LINKS = [
+const LINKS: [string, string][] = [
   ["Customer home", "/home"],
   ["My Garage", "/vehicles"],
+  ["Add asset", "/vehicles/new"],
   ["Fix It", "/fix"],
   ["Inspect before buying", "/inspect"],
   ["Urgent help", "/help-now"],
-  ["Jobs", "/jobs"],
+  ["Provider matches", "/mechanics"],
+  ["Jobs / repair tracking", "/jobs"],
   ["Estimates", "/estimates"],
-  ["History", "/history"],
+  ["Payments / wallet", "/wallet"],
+  ["Service history", "/history"],
+  ["Messages", "/messages"],
   ["Fleet", "/fleet"],
-  ["Wallet", "/wallet"],
   ["Profile", "/account"],
-  ["Find a mechanic", "/mechanics"],
-  ["Compare", "/compare"],
+  ["Compare providers", "/compare"],
   ["Provider attention", "/mechanic"],
+  ["Provider requests", "/mechanic/requests"],
+  ["Provider jobs", "/mechanic/jobs"],
   ["Provider schedule", "/mechanic/schedule"],
-  ["Provider settings", "/mechanic/settings"],
   ["Provider CRM", "/mechanic/customers"],
+  ["CRM today", "/mechanic/customers/today"],
   ["Provider job board", "/mechanic/board"],
+  ["Provider settings", "/mechanic/settings"],
   ["HQ attention", "/admin"],
-  ["Marketplace", "/admin/marketplace"],
+  ["Marketplace health", "/admin/marketplace"],
   ["Providers needed", "/admin/recruiting"],
   ["Verification", "/admin/verification"],
   ["Pocket Assurance", "/admin/disputes"],
   ["Role preview", "/dev/preview"],
+];
+
+const FLOW = [
+  ["Customer", "Garage → Fix It → request → matches → request provider → job"],
+  ["Authorization", "Grouped estimate → approve/decline items → immutable auth → supplemental v2"],
+  ["Provider", "Request → accept → inspect → finding → estimate → repair → payment → CRM"],
+  ["HQ", "Unserved / Assurance / failed pay / verification / stuck jobs"],
 ];
 
 export default async function ProductReviewPage() {
@@ -44,9 +56,19 @@ export default async function ProductReviewPage() {
     where: session.role === "MECHANIC" ? { mechanicUserId: session.id } : { customerId: session.id },
     select: { id: true },
   });
+  const openRequest = session.role === "CUSTOMER"
+    ? await prisma.serviceRequest.findFirst({
+        where: { customerId: session.id, status: { in: ["OPEN", "MATCHED"] } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      })
+    : null;
   const extra = [
     firstAsset ? ["Asset home", `/vehicles/${firstAsset.vehicleId ?? firstAsset.id}`] : null,
+    firstAsset ? ["Asset Fix It", `/fix?asset=${firstAsset.id}`] : null,
+    openRequest ? ["Matches for open request", `/mechanics?request=${openRequest.id}`] : null,
     firstJob ? ["Job tracking", `/jobs/${firstJob.id}`] : null,
+    firstJob ? ["Pay / complete", `/jobs/${firstJob.id}/pay`] : null,
     firstJob && session.role === "MECHANIC" ? ["Provider job", `/mechanic/jobs/${firstJob.id}`] : null,
   ].filter(Boolean) as [string, string][];
   return (
@@ -56,7 +78,17 @@ export default async function ProductReviewPage() {
       <p className="mt-2 text-sm text-muted">
         Signed in as {session.email}. This index is hidden when vision demo is off or NODE_ENV is production.
       </p>
-      <Card className="mt-6 divide-y divide-line">
+      <Card className="mt-6 p-4">
+        <p className="text-sm font-semibold text-ink">Canonical connected flow</p>
+        <ul className="mt-3 space-y-2 text-sm text-muted">
+          {FLOW.map(([label, body]) => (
+            <li key={label}>
+              <span className="font-semibold text-ink">{label}:</span> {body}
+            </li>
+          ))}
+        </ul>
+      </Card>
+      <Card className="mt-4 divide-y divide-line">
         {[...LINKS, ...extra].map(([label, href]) => (
           <Link key={href} href={href} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-slate">
             <span>{label}</span>

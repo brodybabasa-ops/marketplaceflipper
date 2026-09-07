@@ -16,7 +16,9 @@ import {
   serviceRequestSchema,
   vehicleSchema,
 } from "@/lib/validations";
-import { createServiceRequest, getJobForUser, transitionJob } from "@/services/jobs";
+import { assignMechanicToRequest, createServiceRequest, getJobForUser, transitionJob } from "@/services/jobs";
+import { syncAssetUsage } from "@/services/assets";
+import { audit } from "@/lib/audit";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
 import { createReview } from "@/services/reviews";
 import { notifyUser } from "@/services/notifications";
@@ -124,6 +126,20 @@ export async function createRequestAction(formData: FormData) {
     redirect(`/jobs/${result.job.id}`);
   }
   redirect(`/mechanics?request=${result.request.id}&zip=${parsed.data.zip}`);
+}
+
+export async function assignMechanicToRequestAction(formData: FormData) {
+  const session = await requireUser();
+  if (session.role !== "CUSTOMER") throw new Error("Not authorized.");
+  const result = await assignMechanicToRequest({
+    requestId: String(formData.get("requestId")),
+    mechanicProfileId: String(formData.get("mechanicProfileId")),
+    customerId: session.id,
+  });
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${result.job.id}`);
+  revalidatePath("/mechanic/requests");
+  redirect(`/jobs/${result.job.id}`);
 }
 
 export async function sendMessageAction(formData: FormData) {
@@ -288,7 +304,18 @@ export async function saveRepairRecordAction(formData: FormData) {
       notes: String(formData.get("notes") ?? ""),
     },
   });
+  const mileage = formData.get("mileage") ? Number(formData.get("mileage")) : undefined;
+  if (mileage != null && Number.isFinite(mileage)) {
+    await syncAssetUsage({ assetId: job.assetId, vehicleId: job.vehicleId, usageValue: mileage });
+  }
   const warrantySummary = String(formData.get("warrantySummary") ?? "").trim();
+  await audit({
+    actorId: session.id,
+    action: "repair.documented",
+    targetType: "job",
+    targetId: jobId,
+    metadata: { title: record.title, warranty: Boolean(warrantySummary) },
+  });
   if (warrantySummary) {
     const existing = await prisma.repairWarranty.findFirst({ where: { jobId } });
     if (existing) {

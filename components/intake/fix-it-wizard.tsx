@@ -56,7 +56,10 @@ export function FixItWizard({
       <input type="hidden" name="assetId" value={assetId} />
       <input type="hidden" name="zip" value={zip} />
       {requestKind === "PRE_PURCHASE" ? <input type="hidden" name="prePurchase" value="on" /> : null}
-      {requestKind === "MAINTENANCE" ? <input type="hidden" name="requestKind" value="MAINTENANCE" /> : null}
+      {requestKind === "MAINTENANCE" || requestKind === "ROADSIDE" ? (
+        <input type="hidden" name="requestKind" value={requestKind} />
+      ) : null}
+      <input type="hidden" name="urgencyMode" value={urgency} />
 
       {step === 0 ? (
         <Card className="p-5">

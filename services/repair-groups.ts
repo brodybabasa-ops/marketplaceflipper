@@ -3,6 +3,14 @@ import { notifyUser } from "@/services/notifications";
 import { audit } from "@/lib/audit";
 import type { ApprovalAction, EstimateLineCategory } from "@prisma/client";
 
+export function groupedEstimateTypeForJob(hasAuthorization: boolean, requested: "PRIMARY" | "CHANGE_ORDER" = "PRIMARY") {
+  return hasAuthorization ? "CHANGE_ORDER" : requested;
+}
+
+export function shouldAppendFindingToOpenPrimary(hasAuthorization: boolean, hasOpenPrimary: boolean) {
+  return !hasAuthorization && hasOpenPrimary;
+}
+
 export async function createGroupedEstimate(input: {
   jobId: string;
   mechanicId: string;
@@ -14,8 +22,12 @@ export async function createGroupedEstimate(input: {
     items: { category: EstimateLineCategory; description: string; quantity: number; unitCents: number }[];
   }[];
 }) {
-  const job = await prisma.job.findUniqueOrThrow({ where: { id: input.jobId } });
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: input.jobId },
+    include: { authorizations: { select: { id: true } } },
+  });
   if (job.mechanicUserId !== input.mechanicId) throw new Error("Not authorized.");
+  const type = groupedEstimateTypeForJob(job.authorizations.length > 0, input.type ?? "PRIMARY");
 
   const prepared = input.groups.map((group, index) => {
     const items = group.items.map((item) => ({
@@ -32,7 +44,7 @@ export async function createGroupedEstimate(input: {
   });
   const totalCents = prepared.reduce((sum, group) => sum + group.totalCents, 0);
 
-  if ((input.type ?? "PRIMARY") === "PRIMARY") {
+  if (type === "PRIMARY") {
     await prisma.estimate.updateMany({
       where: { jobId: input.jobId, type: "PRIMARY", status: { in: ["DRAFT", "SENT"] } },
       data: { status: "SUPERSEDED" },
@@ -43,7 +55,7 @@ export async function createGroupedEstimate(input: {
     data: {
       jobId: input.jobId,
       mechanicId: input.mechanicId,
-      type: input.type ?? "PRIMARY",
+      type,
       status: "SENT",
       reason: input.reason,
       subtotalCents: totalCents,
@@ -80,11 +92,11 @@ export async function createGroupedEstimate(input: {
     where: { id: input.jobId },
     data: {
       status: "AWAITING_APPROVAL",
-      totalCents,
+      totalCents: type === "CHANGE_ORDER" ? job.totalCents : totalCents,
       events: {
         create: {
           status: "AWAITING_APPROVAL",
-          note: input.type === "CHANGE_ORDER" ? "Supplemental estimate sent." : "Estimate sent.",
+          note: type === "CHANGE_ORDER" ? "Supplemental estimate sent." : "Estimate sent.",
         },
       },
     },
@@ -92,12 +104,110 @@ export async function createGroupedEstimate(input: {
 
   await notifyUser({
     userId: job.customerId,
-    title: input.type === "CHANGE_ORDER" ? "Additional work needs your approval" : "Choose the repairs you'd like completed",
+    title: type === "CHANGE_ORDER" ? "Additional work needs your approval" : "Choose the repairs you'd like completed",
     body: "Approve or decline each repair. Only approved work is authorized.",
     href: `/jobs/${job.id}`,
   });
 
+  await audit({
+    actorId: input.mechanicId,
+    action: type === "CHANGE_ORDER" ? "estimate.supplemental_created" : "estimate.created",
+    targetType: "estimate",
+    targetId: estimate.id,
+    metadata: { jobId: input.jobId, type, totalCents },
+  });
+
   return estimate;
+}
+
+export async function addFindingAsRepairGroup(input: {
+  jobId: string;
+  mechanicId: string;
+  title: string;
+  amountCents: number;
+}) {
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: input.jobId },
+    include: {
+      authorizations: { select: { id: true } },
+      estimates: {
+        where: { type: "PRIMARY", status: { in: ["DRAFT", "SENT"] } },
+        include: { repairGroups: true },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
+  });
+  if (job.mechanicUserId !== input.mechanicId) throw new Error("Not authorized.");
+
+  const hasAuthorization = job.authorizations.length > 0;
+  const openPrimary = job.estimates[0];
+  if (shouldAppendFindingToOpenPrimary(hasAuthorization, Boolean(openPrimary))) {
+    const estimate = openPrimary;
+    const amountCents = input.amountCents;
+    const sortOrder = estimate.repairGroups.length;
+    const created = await prisma.repairGroup.create({
+      data: {
+        estimateId: estimate.id,
+        jobId: input.jobId,
+        title: input.title,
+        recommendation: "RECOMMENDED",
+        totalCents: amountCents,
+        sortOrder,
+      },
+    });
+    await prisma.estimateLineItem.create({
+      data: {
+        estimateId: estimate.id,
+        repairGroupId: created.id,
+        category: "LABOR",
+        description: input.title,
+        quantity: 1,
+        unitCents: amountCents,
+        totalCents: amountCents,
+      },
+    });
+    const newTotal = estimate.totalCents + amountCents;
+    await prisma.estimate.update({
+      where: { id: estimate.id },
+      data: { totalCents: newTotal, subtotalCents: newTotal, status: "SENT", sentAt: estimate.sentAt ?? new Date() },
+    });
+    await prisma.job.update({
+      where: { id: input.jobId },
+      data: {
+        status: "AWAITING_APPROVAL",
+        totalCents: newTotal,
+        events: { create: { status: "AWAITING_APPROVAL", note: `Inspection finding added: ${input.title}.` } },
+      },
+    });
+    await notifyUser({
+      userId: job.customerId,
+      title: "Choose the repairs you'd like completed",
+      body: `${input.title} was added from the inspection. Approve or decline each repair.`,
+      href: `/jobs/${job.id}`,
+    });
+    await audit({
+      actorId: input.mechanicId,
+      action: "estimate.finding_appended",
+      targetType: "estimate",
+      targetId: estimate.id,
+      metadata: { groupId: created.id, title: input.title, amountCents },
+    });
+    return estimate;
+  }
+
+  return createGroupedEstimate({
+    jobId: input.jobId,
+    mechanicId: input.mechanicId,
+    type: groupedEstimateTypeForJob(hasAuthorization),
+    reason: hasAuthorization ? "Supplemental work from inspection finding." : "Created from inspection finding.",
+    groups: [
+      {
+        title: input.title,
+        items: [{ category: "LABOR", description: input.title, quantity: 1, unitCents: input.amountCents }],
+      },
+    ],
+  });
 }
 
 export function totalsForGroups(groups: { status: string; totalCents: number }[]) {

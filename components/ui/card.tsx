@@ -47,10 +47,17 @@ export function KpiCard({ label, value, hint }: { label: string; value: React.Re
 
 export function LoadingState() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading</span>
       <div className="h-8 w-48 animate-pulse rounded-xl bg-slate" />
+      <div className="h-5 w-80 animate-pulse rounded-lg bg-slate" />
       <div className="h-32 animate-pulse rounded-2xl bg-slate" />
       <div className="h-32 animate-pulse rounded-2xl bg-slate" />
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="h-24 animate-pulse rounded-2xl bg-slate" />
+        <div className="h-24 animate-pulse rounded-2xl bg-slate" />
+        <div className="h-24 animate-pulse rounded-2xl bg-slate" />
+      </div>
     </div>
   );
 }

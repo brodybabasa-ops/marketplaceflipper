@@ -11,18 +11,16 @@ type GroupDraft = { title: string; recommended: boolean; lines: Line[] };
 
 const emptyLine = (): Line => ({ description: "", kind: "PARTS", quantity: 1, unitPrice: "" });
 
-export function GroupedEstimateBuilder({ jobId }: { jobId: string }) {
-  const [groups, setGroups] = useState<GroupDraft[]>([
-    {
-      title: "Front Brake Service",
-      recommended: true,
-      lines: [
-        { description: "Front brake pads", kind: "PARTS", quantity: 1, unitPrice: "220" },
-        { description: "Labor", kind: "LABOR", quantity: 3.5, unitPrice: "100" },
-        { description: "Shop supplies", kind: "SHOP_SUPPLIES", quantity: 1, unitPrice: "25" }
-      ]
-    }
-  ]);
+export function GroupedEstimateBuilder({
+  jobId,
+  defaultType = "PRIMARY",
+  lockedSupplemental = false,
+}: {
+  jobId: string;
+  defaultType?: "PRIMARY" | "CHANGE_ORDER";
+  lockedSupplemental?: boolean;
+}) {
+  const [groups, setGroups] = useState<GroupDraft[]>([{ title: "", recommended: true, lines: [emptyLine()] }]);
 
   function addGroup() {
     setGroups((g) => [...g, { title: "", recommended: true, lines: [emptyLine()] }]);
@@ -35,10 +33,17 @@ export function GroupedEstimateBuilder({ jobId }: { jobId: string }) {
     >
       <input type="hidden" name="jobId" value={jobId} />
       <input type="hidden" name="groups" value={JSON.stringify(groups)} />
-      <select name="type" defaultValue="PRIMARY" className="h-11 rounded-xl border border-white/10 bg-navy-soft px-3 text-sm text-ink">
-        <option value="PRIMARY">Estimate</option>
-        <option value="CHANGE_ORDER">Supplemental estimate</option>
-      </select>
+      {lockedSupplemental ? (
+        <input type="hidden" name="type" value="CHANGE_ORDER" />
+      ) : (
+        <select name="type" defaultValue={defaultType} className="h-11 rounded-xl border border-white/10 bg-navy-soft px-3 text-sm text-ink">
+          <option value="PRIMARY">Estimate</option>
+          <option value="CHANGE_ORDER">Supplemental estimate</option>
+        </select>
+      )}
+      {lockedSupplemental ? (
+        <p className="text-sm text-muted">This job already has an authorization. Additional work is sent as Supplemental Estimate / Version 2 and does not rewrite the original.</p>
+      ) : null}
       {groups.map((group, gi) => (
         <div key={gi} className="rounded-2xl border border-white/10 bg-navy p-4">
           <div className="mb-3 flex items-center gap-3">

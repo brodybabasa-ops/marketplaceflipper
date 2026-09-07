@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CustomerAppNav } from "@/components/layout/app-nav";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
@@ -22,7 +23,11 @@ export default async function JobsPage() {
       <h1 className="text-3xl font-bold text-ink">My jobs</h1>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (
-          <EmptyState title="No jobs yet" body="Request service from a mechanic to start tracking the work." />
+          <EmptyState title="No jobs yet" body="Describe what’s wrong. Pocket Mechanic finds the right people and this list tracks the work.">
+            <Button asChild>
+              <Link href="/fix">Fix It</Link>
+            </Button>
+          </EmptyState>
         ) : (
           jobs.map((job) => (
             <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-card p-4">

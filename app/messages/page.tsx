@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CustomerAppNav } from "@/components/layout/app-nav";
 import { EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -25,7 +26,13 @@ export default async function MessagesPage() {
       <p className="mt-2 text-sm text-muted">Job-related conversations stay attached to the request, not a random phone number.</p>
       <div className="mt-6 space-y-3">
         {threads.length === 0 ? (
-          <EmptyState title="No conversations yet" body="Start from a job or mechanic profile so the context stays with the work." />
+          <EmptyState title="No conversations yet" body="Messages stay attached to a job so you and the provider have the same context.">
+            <Button asChild>
+              <Link href={session.role === "CUSTOMER" ? "/fix" : "/mechanic/requests"}>
+                {session.role === "CUSTOMER" ? "Fix It" : "Open requests"}
+              </Link>
+            </Button>
+          </EmptyState>
         ) : (
           threads.map((thread) => {
             const other = session.id === thread.customerId ? thread.mechanic : thread.customer;

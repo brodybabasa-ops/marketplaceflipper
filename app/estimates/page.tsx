@@ -2,6 +2,8 @@ import Link from "next/link";
 import { CustomerAppNav } from "@/components/layout/app-nav";
 import { RepairGroupEstimate } from "@/components/jobs/repair-group-estimate";
 import { EstimateCard } from "@/components/jobs/estimate-card";
+import { EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
@@ -27,7 +29,13 @@ export default async function CustomerEstimatesPage() {
       <h1 className="text-3xl font-bold text-ink">Estimates</h1>
       <p className="mt-2 text-sm text-muted">Approve or decline each repair. Approved work cannot be silently changed.</p>
       <div className="mt-6 space-y-4">
-        {estimates.length === 0 ? <p className="text-muted">No estimates yet.</p> : null}
+        {estimates.length === 0 ? (
+          <EmptyState title="No estimates yet" body="After a provider inspects, each repair group appears here for you to approve or decline.">
+            <Button asChild>
+              <Link href="/jobs">Track repairs</Link>
+            </Button>
+          </EmptyState>
+        ) : null}
         {estimates.map((estimate) => (
           <div key={estimate.id} className="space-y-3">
             <Link href={`/jobs/${estimate.jobId}`} className="block text-sm text-accent">

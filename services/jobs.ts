@@ -1,9 +1,40 @@
-import type { JobStatus, RequestKind } from "@prisma/client";
+import type { JobStatus, RequestKind, ServiceRequest, UrgencyMode } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { audit } from "@/lib/audit";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
 import { notifyUser } from "@/services/notifications";
 import { classifyNeed } from "@/services/problem-classifier";
 import { createAutomotiveAsset } from "@/services/assets";
+
+export type RequestJobSnapshot = {
+  id: string;
+  mechanicProfileId: string;
+  status: string;
+};
+
+export function providerAssignmentPlan(input: {
+  actorId: string;
+  customerId: string;
+  requestStatus: string;
+  mechanicProfileId: string;
+  jobs: RequestJobSnapshot[];
+}):
+  | { ok: true; action: "reuse"; jobId: string }
+  | { ok: true; action: "create"; cancelJobIds: string[] }
+  | { ok: false; reason: string } {
+  if (input.actorId !== input.customerId) return { ok: false, reason: "Not authorized." };
+  if (["ACCEPTED", "EXPIRED", "CANCELLED"].includes(input.requestStatus)) {
+    return { ok: false, reason: "This request is no longer open for a new provider." };
+  }
+  const active = input.jobs.filter((job) => job.status !== "CANCELLED");
+  const same = active.find((job) => job.mechanicProfileId === input.mechanicProfileId);
+  if (same) return { ok: true, action: "reuse", jobId: same.id };
+  const committed = active.filter((job) => job.status !== "REQUESTED");
+  if (committed.length) {
+    return { ok: false, reason: "A provider is already working this request." };
+  }
+  return { ok: true, action: "create", cancelJobIds: active.map((job) => job.id) };
+}
 
 export async function createServiceRequest(input: {
   customerId: string;
@@ -100,8 +131,31 @@ export async function createServiceRequest(input: {
     },
   });
 
+  await audit({
+    actorId: input.customerId,
+    action: "request.created",
+    targetType: "serviceRequest",
+    targetId: request.id,
+    metadata: { requestKind: request.requestKind, mechanicProfileId: input.mechanicProfileId ?? null },
+  });
+
   if (!input.mechanicProfileId) return { request, job: null, thread: null };
 
+  const opened = await openJobForRequest({
+    request,
+    mechanicProfileId: input.mechanicProfileId,
+    problemText: input.problemText,
+    urgencyMode: input.urgencyMode ?? "NORMAL",
+  });
+  return { request, job: opened.job, thread: opened.thread };
+}
+
+async function openJobForRequest(input: {
+  request: Pick<ServiceRequest, "id" | "customerId" | "vehicleId" | "assetId" | "problemText" | "urgencyMode">;
+  mechanicProfileId: string;
+  problemText: string;
+  urgencyMode: UrgencyMode | "NORMAL" | "URGENT";
+}) {
   const mechanic = await prisma.mechanicProfile.findUniqueOrThrow({
     where: { id: input.mechanicProfileId },
     include: { user: true },
@@ -109,42 +163,117 @@ export async function createServiceRequest(input: {
 
   const job = await prisma.job.create({
     data: {
-      serviceRequestId: request.id,
-      customerId: input.customerId,
+      serviceRequestId: input.request.id,
+      customerId: input.request.customerId,
       mechanicUserId: mechanic.userId,
       mechanicProfileId: mechanic.id,
-      vehicleId: vehicle?.id ?? asset?.vehicleId,
-      assetId: asset?.id,
+      vehicleId: input.request.vehicleId,
+      assetId: input.request.assetId,
       status: "REQUESTED",
-      urgencyMode: input.urgencyMode ?? "NORMAL",
-      events: { create: { status: "REQUESTED", note: "Customer requested service." } },
+      urgencyMode: input.urgencyMode ?? input.request.urgencyMode ?? "NORMAL",
+      events: { create: { status: "REQUESTED", note: "Customer requested this provider." } },
     },
   });
 
-  const thread = await prisma.messageThread.create({
-    data: {
-      customerId: input.customerId,
-      mechanicId: mechanic.userId,
-      jobId: job.id,
-      requestId: request.id,
-      messages: {
-        create: {
-          senderId: input.customerId,
-          body: input.problemText,
-          kind: "TEXT",
+  const existingThread = await prisma.messageThread.findUnique({ where: { requestId: input.request.id } });
+  const thread = existingThread
+    ? await prisma.messageThread.update({
+        where: { id: existingThread.id },
+        data: {
+          mechanicId: mechanic.userId,
+          jobId: job.id,
+          lastMessageAt: new Date(),
+          messages: {
+            create: {
+              senderId: input.request.customerId,
+              body: input.problemText,
+              kind: "TEXT",
+            },
+          },
         },
-      },
-    },
+      })
+    : await prisma.messageThread.create({
+        data: {
+          customerId: input.request.customerId,
+          mechanicId: mechanic.userId,
+          jobId: job.id,
+          requestId: input.request.id,
+          messages: {
+            create: {
+              senderId: input.request.customerId,
+              body: input.problemText,
+              kind: "TEXT",
+            },
+          },
+        },
+      });
+
+  await prisma.serviceRequest.update({
+    where: { id: input.request.id },
+    data: { status: "MATCHED", mechanicProfileId: mechanic.id },
   });
 
   await notifyUser({
     userId: mechanic.userId,
     title: "New service request",
     body: input.problemText,
-    href: `/mechanic/requests`,
+    href: "/mechanic/requests",
   });
 
-  return { request, job, thread };
+  await audit({
+    actorId: input.request.customerId,
+    action: "request.provider_assigned",
+    targetType: "job",
+    targetId: job.id,
+    metadata: { requestId: input.request.id, mechanicProfileId: mechanic.id },
+  });
+
+  return { job, thread, mechanic };
+}
+
+export async function assignMechanicToRequest(input: {
+  requestId: string;
+  mechanicProfileId: string;
+  customerId: string;
+}) {
+  const request = await prisma.serviceRequest.findUnique({
+    where: { id: input.requestId },
+    include: { jobs: true },
+  });
+  if (!request) throw new Error("Service request not found.");
+
+  const plan = providerAssignmentPlan({
+    actorId: input.customerId,
+    customerId: request.customerId,
+    requestStatus: request.status,
+    mechanicProfileId: input.mechanicProfileId,
+    jobs: request.jobs,
+  });
+  if (!plan.ok) throw new Error(plan.reason);
+  if (plan.action === "reuse") {
+    const job = await prisma.job.findUniqueOrThrow({ where: { id: plan.jobId } });
+    return { request, job, thread: null };
+  }
+
+  for (const jobId of plan.cancelJobIds) {
+    await prisma.job.update({
+      where: { id: jobId },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancelReason: "Customer requested a different provider.",
+        events: { create: { status: "CANCELLED", note: "Customer requested a different provider." } },
+      },
+    });
+  }
+
+  const opened = await openJobForRequest({
+    request,
+    mechanicProfileId: input.mechanicProfileId,
+    problemText: request.problemText,
+    urgencyMode: request.urgencyMode,
+  });
+  return { request, job: opened.job, thread: opened.thread };
 }
 
 export async function transitionJob(jobId: string, next: JobStatus, actorId: string, note?: string) {
@@ -167,6 +296,14 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
   if (next === "SCHEDULED" && !job.scheduledAt) data.scheduledAt = new Date();
 
   const updated = await prisma.job.update({ where: { id: jobId }, data });
+
+  await audit({
+    actorId,
+    action: `job.${next.toLowerCase()}`,
+    targetType: "job",
+    targetId: jobId,
+    reason: note,
+  });
 
   if (next === "ACCEPTED") {
     await prisma.serviceRequest.update({

@@ -41,22 +41,20 @@ export default async function FleetPage() {
       </div>
       <div className="mt-8 space-y-3">
         {dashboard.rows.map((row) => (
-          <Link key={row.assetId} href={`/vehicles/${row.assetId}`} className="block rounded-2xl border border-line bg-card p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold text-ink">{row.label ? `${row.label} · ${row.title}` : row.title}</p>
-                <p className="text-sm text-muted">
-                  {row.industry}
-                  {row.down ? " · Down" : ""}
-                  {row.due ? ` · ${row.due} maintenance` : ""}
-                  {row.provider ? ` · ${row.provider}` : ""}
-                </p>
-              </div>
-              <Button size="sm" variant="secondary">
-                Fix It
-              </Button>
-            </div>
-          </Link>
+          <div key={row.assetId} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-card p-4">
+            <Link href={`/vehicles/${row.assetId}`} className="min-w-0 flex-1">
+              <p className="font-semibold text-ink">{row.label ? `${row.label} · ${row.title}` : row.title}</p>
+              <p className="text-sm text-muted">
+                {row.industry}
+                {row.down ? " · Down" : ""}
+                {row.due ? ` · ${row.due} maintenance` : ""}
+                {row.provider ? ` · ${row.provider}` : ""}
+              </p>
+            </Link>
+            <Button asChild size="sm">
+              <Link href={`/fix?asset=${row.assetId}`}>Fix It</Link>
+            </Button>
+          </div>
         ))}
       </div>
     </div>

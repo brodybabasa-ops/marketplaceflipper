@@ -26,8 +26,10 @@ export async function getMechanicCrm(mechanicProfileId: string, mechanicUserId: 
     const last = customerJobs[0];
     const rec = recommended.filter((item) => item.customerId === id);
     const unpaid = customerJobs.some((job) => job.status === "COMPLETED" && job.paymentStatus !== "PAID");
+    const dueFollowUp = rec.find((item) => item.followUpDate && item.followUpDate.getTime() <= Date.now());
     let nextAction = "None";
     if (unpaid) nextAction = "Unpaid invoice";
+    else if (dueFollowUp) nextAction = `Follow up: ${dueFollowUp.title}`;
     else if (rec[0]) nextAction = rec[0].title;
     else if (customerJobs.some((job) => job.status === "AWAITING_APPROVAL")) nextAction = "Estimate pending";
     return {

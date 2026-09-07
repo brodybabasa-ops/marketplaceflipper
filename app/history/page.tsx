@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CustomerAppNav } from "@/components/layout/app-nav";
 import { Card, EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -40,7 +41,11 @@ export default async function HistoryPage() {
       </p>
       <div className="mt-8 space-y-8">
         {assets.length === 0 ? (
-          <EmptyState title="No vehicles yet" body="Add a vehicle to start building history." />
+          <EmptyState title="No service history yet" body="Completed Pocket Mechanic repairs land here, including photos, invoices, and warranties.">
+            <Button asChild>
+              <Link href="/vehicles">Open garage</Link>
+            </Button>
+          </EmptyState>
         ) : (
           assets.map((asset) => (
             <section key={asset.id}>
@@ -50,7 +55,11 @@ export default async function HistoryPage() {
               {mixed ? <p className="text-xs uppercase tracking-wide text-muted">{asset.industry.name}</p> : null}
               <div className="mt-3 space-y-3">
                 {asset.repairRecords.length === 0 ? (
-                  <p className="text-sm text-muted">No documented repairs yet.</p>
+                  <EmptyState title="No documented repairs yet" body="When a Pocket Mechanic job is completed, the record stays with this asset.">
+                    <Button asChild>
+                      <Link href={`/fix?asset=${asset.id}`}>Fix It</Link>
+                    </Button>
+                  </EmptyState>
                 ) : (
                   asset.repairRecords.map((record) => {
                     const payment = record.job.payments[0];

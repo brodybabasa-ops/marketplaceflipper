@@ -12,10 +12,11 @@ import { formatCents } from "@/lib/money";
 import { US_STATES } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { MechanicCard } from "@/components/mechanics/mechanic-card";
-import { searchMechanics } from "@/services/search";
+import { searchMechanics, one } from "@/services/search";
 import { getSession } from "@/lib/session";
 import { toggleSavedMechanicAction } from "@/app/actions/phase2";
 import { addToCompareAction } from "@/app/actions/master";
+import { RequestProviderButton } from "@/components/mechanics/request-provider-button";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -28,8 +29,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: "Mechanics" };
 }
 
-export default async function MechanicSlugPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function MechanicSlugPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
+  const requestId = one((await searchParams).request);
   const mechanic = await getMechanicBySlug(slug);
   if (mechanic) {
     const session = await getSession();
@@ -52,6 +60,7 @@ export default async function MechanicSlugPage({ params }: { params: Promise<{ s
         canSave={Boolean(canSave)}
         isSaved={isSaved}
         signedIn={Boolean(session)}
+        requestId={requestId}
       />
     );
   }
@@ -111,12 +120,14 @@ function MechanicProfile({
   canSave,
   isSaved,
   signedIn,
+  requestId,
 }: {
   mechanic: NonNullable<Awaited<ReturnType<typeof getMechanicBySlug>>>;
   graph: Awaited<ReturnType<typeof providerTrustGraph>>;
   canSave: boolean;
   isSaved: boolean;
   signedIn: boolean;
+  requestId?: string;
 }) {
   const level = VERIFICATION_LEVELS.find((item) => item.value === mechanic.verificationLevel);
   return (
@@ -148,9 +159,13 @@ function MechanicProfile({
             {mechanic.serviceRadiusMiles} miles
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It with this provider</Link>
-            </Button>
+            {requestId && signedIn ? (
+              <RequestProviderButton requestId={requestId} mechanicProfileId={mechanic.id} label="Request this provider" />
+            ) : (
+              <Button asChild>
+                <Link href={`/fix?mechanic=${mechanic.id}`}>Fix It with this provider</Link>
+              </Button>
+            )}
             {canSave ? (
               <form action={toggleSavedMechanicAction}>
                 <input type="hidden" name="mechanicProfileId" value={mechanic.id} />

@@ -8,7 +8,7 @@ export async function providerAttention(mechanicProfileId: string) {
   startOfDay.setHours(0, 0, 0, 0);
   const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
 
-  const [requests, today, awaiting, staleEstimates, parts, ready, unpaid, recommended, warranties] = await Promise.all([
+  const [requests, today, awaiting, staleEstimates, parts, ready, unpaid, recommended, warranties, waiting, outcomes, dueFollowUps] = await Promise.all([
     prisma.job.count({ where: { mechanicProfileId, status: "REQUESTED" } }),
     prisma.job.findMany({
       where: { mechanicProfileId, scheduledAt: { gte: startOfDay }, status: { notIn: ["CANCELLED", "COMPLETED"] } },
@@ -32,16 +32,28 @@ export async function providerAttention(mechanicProfileId: string) {
     prisma.repairWarranty.count({
       where: { mechanicProfileId, expiresAt: { lte: new Date(Date.now() + 30 * 86400000), gte: new Date() } },
     }),
+    prisma.job.count({
+      where: { mechanicProfileId, customerWaiting: true, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+    }),
+    prisma.job.count({
+      where: { mechanicProfileId, status: "COMPLETED", outcome: { is: null } },
+    }),
+    prisma.recommendedWork.count({
+      where: { mechanicProfileId, status: "OPEN", followUpDate: { lte: new Date() } },
+    }),
   ]);
 
   const items = [
     requests ? { href: "/mechanic/requests", label: `${requests} new request${requests === 1 ? "" : "s"}`, tone: "accent" as const } : null,
+    waiting ? { href: "/mechanic/jobs", label: `${waiting} customer${waiting === 1 ? "" : "s"} waiting`, tone: "warning" as const } : null,
     awaiting ? { href: "/mechanic/estimates", label: `${awaiting} estimate${awaiting === 1 ? "" : "s"} waiting on the customer`, tone: "warning" as const } : null,
     staleEstimates ? { href: "/mechanic/estimates", label: `${staleEstimates} estimate${staleEstimates === 1 ? "" : "s"} waiting more than 24 hours`, tone: "warning" as const } : null,
     parts ? { href: "/mechanic/board", label: `${parts} job${parts === 1 ? "" : "s"} waiting on parts`, tone: "warning" as const } : null,
     ready ? { href: "/mechanic/board", label: `${ready} ready for pickup`, tone: "success" as const } : null,
     unpaid ? { href: "/mechanic/earnings", label: `${unpaid} payment${unpaid === 1 ? "" : "s"} outstanding`, tone: "danger" as const } : null,
+    dueFollowUps ? { href: "/mechanic/customers/today", label: `${dueFollowUps} follow-up${dueFollowUps === 1 ? "" : "s"} due`, tone: "accent" as const } : null,
     recommended.length ? { href: "/mechanic/customers/today", label: `${recommended.length} recommended-work follow-up${recommended.length === 1 ? "" : "s"}`, tone: "accent" as const } : null,
+    outcomes ? { href: "/mechanic/customers", label: `${outcomes} completed repair${outcomes === 1 ? "" : "s"} waiting on an outcome`, tone: "muted" as const } : null,
     warranties ? { href: "/mechanic/customers", label: `${warranties} warranty follow-up${warranties === 1 ? "" : "s"} this month`, tone: "muted" as const } : null,
   ].filter(Boolean);
 

@@ -31,9 +31,10 @@ export default async function MechanicsSearchPage({
     industry: one(params.industry),
     asset: one(params.asset),
   };
-  const { matches, zip, category } = await searchMechanics(query);
+  const { matches, zip, category, request } = await searchMechanics(query);
   const best = matches.filter((item) => item.isBestMatch);
   const rest = matches.filter((item) => !item.isBestMatch);
+  const requestId = query.request;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -47,9 +48,17 @@ export default async function MechanicsSearchPage({
         {zip ? `${zip.city}, ${zip.stateCode}` : "Near you"}
         {category ? ` · looking at ${category.toLowerCase().replaceAll("_", " ")}` : ""}
       </p>
+      {request ? (
+        <Card className="mt-4 p-4">
+          <p className="text-sm font-semibold text-ink">Your service request</p>
+          <p className="mt-1 text-sm text-muted">{request.problemText}</p>
+          <p className="mt-2 text-xs text-muted">Choose a provider to attach this request. The job starts when they accept.</p>
+        </Card>
+      ) : null}
 
       <form className="mt-6 grid gap-3 rounded-2xl border border-line bg-card p-4 md:grid-cols-4">
-        <Input name="q" defaultValue={query.q} placeholder="What does your vehicle need?" />
+        {requestId ? <input type="hidden" name="request" value={requestId} /> : null}
+        <Input name="q" defaultValue={query.q ?? request?.problemText ?? ""} placeholder="What does your vehicle need?" />
         <Input name="zip" defaultValue={query.zip} placeholder="ZIP or city" />
         <Input name="make" defaultValue={query.make} placeholder="Vehicle make" />
         <Select name="sort" defaultValue={query.sort ?? "recommended"}>
@@ -88,7 +97,19 @@ export default async function MechanicsSearchPage({
 
       {matches.length === 0 ? (
         <div className="mt-8">
-          <EmptyState title="No mechanics matched those filters" body="Try a wider area, or describe the problem in everyday words." />
+          <EmptyState
+            title="No provider matches yet"
+            body="Try a wider area or a nearby ZIP. If nobody can take this, Pocket Mechanic HQ sees it as unserved demand."
+          >
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild>
+                <Link href={requestId ? `/mechanics?request=${requestId}` : "/fix"}>Widen search</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/help-now">Need help now</Link>
+              </Button>
+            </div>
+          </EmptyState>
         </div>
       ) : (
         <>
@@ -97,7 +118,7 @@ export default async function MechanicsSearchPage({
             <div className="mt-4 grid gap-4">
               {best.map((mechanic) => (
                 <div key={mechanic.id}>
-                  <MechanicCard mechanic={mechanic} />
+                  <MechanicCard mechanic={mechanic} requestId={requestId} />
                   {mechanic.reasons.length ? (
                     <Card className="mt-2 p-4">
                       <p className="text-sm font-semibold text-ink">Why we recommend {mechanic.firstName}</p>
@@ -118,7 +139,7 @@ export default async function MechanicsSearchPage({
               <h2 className="text-xl font-semibold text-ink">Other mechanics nearby</h2>
               <div className="mt-4 grid gap-4">
                 {rest.map((mechanic) => (
-                  <MechanicCard key={mechanic.id} mechanic={mechanic} />
+                  <MechanicCard key={mechanic.id} mechanic={mechanic} requestId={requestId} />
                 ))}
               </div>
             </section>

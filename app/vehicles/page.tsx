@@ -25,7 +25,11 @@ export default async function VehiclesPage() {
       </div>
       {assets.length === 0 ? (
         <div className="mt-6">
-          <EmptyState title="Nothing in your garage yet" body="Add the vehicle that needs help. Nickname optional." />
+          <EmptyState title="Nothing in your garage yet" body="Add what you own — car, boat, bike, RV, or equipment. Year, make, and model is enough.">
+            <Button asChild>
+              <Link href="/vehicles/new">Add to garage</Link>
+            </Button>
+          </EmptyState>
         </div>
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-3">

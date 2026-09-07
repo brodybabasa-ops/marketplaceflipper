@@ -5,7 +5,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { decideRepairGroup, submitAuthorization, createGroupedEstimate } from "@/services/repair-groups";
+import { decideRepairGroup, submitAuthorization, createGroupedEstimate, addFindingAsRepairGroup } from "@/services/repair-groups";
 import { applyForVerification, setVerificationStatus, saveInspectionItem } from "@/services/verification";
 import { audit } from "@/lib/audit";
 import { can } from "@/lib/permissions";
@@ -195,17 +195,11 @@ export async function findingToEstimateGroupAction(formData: FormData) {
   const jobId = String(formData.get("jobId"));
   const title = String(formData.get("title"));
   const amount = Math.round(Number(formData.get("amount") || 0) * 100);
-  await createGroupedEstimate({
+  await addFindingAsRepairGroup({
     jobId,
     mechanicId: session.id,
-    type: "CHANGE_ORDER",
-    reason: "Created from inspection finding.",
-    groups: [
-      {
-        title,
-        items: [{ category: "LABOR", description: title, quantity: 1, unitCents: amount }],
-      },
-    ],
+    title,
+    amountCents: amount,
   });
   revalidatePath(`/mechanic/jobs/${jobId}`);
 }
