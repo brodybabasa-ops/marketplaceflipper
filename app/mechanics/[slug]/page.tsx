@@ -127,6 +127,9 @@ function MechanicProfile({
               isSelect={mechanic.isSelect}
               isFoundingProvider={mechanic.isFoundingProvider}
               foundingNumber={mechanic.foundingNumber}
+              verifiedIndustries={mechanic.industries
+                .filter((item) => item.verified)
+                .map((item) => item.industry.name)}
             />
           </div>
           <p className="mt-1 text-muted">
@@ -168,6 +171,23 @@ function MechanicProfile({
         <h2 className="text-xl font-semibold text-ink">About</h2>
         <p className="mt-2 max-w-3xl text-ink">{mechanic.bio}</p>
         {level ? <p className="mt-3 text-sm text-muted">{level.description}</p> : null}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold text-ink">Industries served</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {mechanic.industries.length === 0 ? (
+            <Badge tone="muted">Automotive</Badge>
+          ) : (
+            mechanic.industries.map((item) => (
+              <Badge key={item.id} tone={item.verified ? "accent" : "muted"}>
+                {item.industry.name}
+                {item.verified ? " · Verified" : ""}
+              </Badge>
+            ))
+          )}
+        </div>
+        <p className="mt-2 text-xs text-muted">Verified status is per industry. Automotive verification does not cover marine or powersports.</p>
       </section>
 
       <section className="mt-8">

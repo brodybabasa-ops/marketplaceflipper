@@ -1,32 +1,30 @@
 import Link from "next/link";
 import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
-import { VehicleCard } from "@/components/jobs/vehicle-card";
+import { GarageCard } from "@/components/jobs/garage-card";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState } from "@/components/ui/card";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel } from "@/lib/asset-display";
+import { garageCardCopy, listGarage } from "@/services/assets";
 
 export const metadata = { title: "Home" };
 
 export default async function CustomerHomePage() {
   const session = await requireSession("CUSTOMER");
-  const [vehicles, jobs, threads, repairs, saved, upcoming, unpaid] = await Promise.all([
-    prisma.vehicle.findMany({
-      where: { customerId: session.id },
-      include: { make: true, model: true },
-      orderBy: { createdAt: "desc" },
-    }),
+  const [garage, jobs, threads, repairs, saved, upcoming, unpaid] = await Promise.all([
+    listGarage(session.id),
     prisma.job.findMany({
       where: { customerId: session.id, status: { notIn: ["COMPLETED", "CANCELLED"] } },
-      include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } } },
+      include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, asset: true },
       orderBy: { updatedAt: "desc" },
       take: 5,
     }),
     prisma.messageThread.count({ where: { customerId: session.id } }),
     prisma.repairRecord.findMany({
-      where: { vehicle: { customerId: session.id } },
+      where: { OR: [{ vehicle: { customerId: session.id } }, { asset: { ownerId: session.id } }] },
       include: { job: { include: { mechanicProfile: true } }, vehicle: { include: { make: true, model: true } } },
       orderBy: { createdAt: "desc" },
       take: 3,
@@ -44,7 +42,7 @@ export default async function CustomerHomePage() {
     }),
     prisma.job.findMany({
       where: { customerId: session.id, status: "COMPLETED", paymentStatus: { not: "PAID" }, totalCents: { gt: 0 } },
-      include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } } },
+      include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, asset: true },
       orderBy: { completedAt: "desc" },
       take: 3,
     }),
@@ -53,13 +51,17 @@ export default async function CustomerHomePage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/home" />
-      <h1 className="text-3xl font-bold text-ink">How can we help with your vehicle?</h1>
+      <h1 className="text-3xl font-bold text-ink">
+        {garage.headline.title === "My Garage" && garage.headline.body.includes("everything")
+          ? "How can we help with what you own?"
+          : "How can we help with your vehicle?"}
+      </h1>
       <div className="mt-5 flex flex-wrap gap-3">
         <Button asChild size="lg">
           <Link href="/request">Find a Mechanic</Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href="/vehicles">My Vehicles</Link>
+          <Link href="/vehicles">{garage.headline.title}</Link>
         </Button>
         <Button asChild variant="secondary">
           <Link href="/jobs">My Jobs</Link>
@@ -73,8 +75,8 @@ export default async function CustomerHomePage() {
       </div>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-ink">My vehicles</h2>
-        {vehicles.length === 0 ? (
+        <h2 className="text-xl font-semibold text-ink">{garage.headline.title}</h2>
+        {garage.assets.length === 0 ? (
           <div className="mt-4">
             <EmptyState title="Add your first vehicle" body="Year, make, and model is enough. We’ll keep the rest of the details simple.">
               <Button asChild>
@@ -84,20 +86,17 @@ export default async function CustomerHomePage() {
           </div>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {vehicles.map((vehicle) => (
-              <VehicleCard
-                key={vehicle.id}
-                vehicle={{
-                  id: vehicle.id,
-                  year: vehicle.year,
-                  make: vehicle.make.name,
-                  model: vehicle.model.name,
-                  mileage: vehicle.mileage,
-                  nickname: vehicle.nickname,
-                }}
-                ctaHref={`/request?vehicle=${vehicle.id}`}
-              />
-            ))}
+            {garage.assets.map((asset) => {
+              const card = garageCardCopy(asset);
+              return (
+                <GarageCard
+                  key={asset.id}
+                  card={card}
+                  href={`/vehicles/${asset.vehicleId ?? asset.id}`}
+                  ctaHref={`/intake?asset=${asset.id}`}
+                />
+              );
+            })}
           </div>
         )}
       </section>
@@ -125,7 +124,7 @@ export default async function CustomerHomePage() {
               <Link key={job.id} href={`/jobs/${job.id}/pay`} className="block rounded-2xl border border-line bg-card p-4">
                 <p className="font-semibold text-ink">{job.mechanicProfile.businessName}</p>
                 <p className="text-sm text-muted">
-                  {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                  {jobAssetLabel(job)}
                 </p>
                 <p className="number mt-1 font-semibold text-accent">Pay {formatCents(job.totalCents)}</p>
               </Link>
@@ -162,7 +161,7 @@ export default async function CustomerHomePage() {
                   <div>
                     <p className="font-semibold text-ink">{job.mechanicProfile.businessName}</p>
                     <p className="text-sm text-muted">
-                      {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                      {jobAssetLabel(job)}
                     </p>
                   </div>
                   <JobStatusLabel status={job.status} />

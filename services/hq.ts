@@ -2,8 +2,8 @@ import { prisma } from "@/lib/db";
 
 export async function hqSearch(q: string) {
   const term = q.trim();
-  if (!term) return { customers: [], providers: [], jobs: [], vehicles: [] };
-  const [customers, providers, jobs, vehicles] = await Promise.all([
+  if (!term) return { customers: [], providers: [], jobs: [], vehicles: [], assets: [] };
+  const [customers, providers, jobs, vehicles, assets] = await Promise.all([
     prisma.user.findMany({
       where: {
         role: "CUSTOMER",
@@ -24,7 +24,7 @@ export async function hqSearch(q: string) {
           { user: { email: { contains: term, mode: "insensitive" } } },
         ],
       },
-      include: { user: true },
+      include: { user: true, industries: { include: { industry: true } } },
       take: 8,
     }),
     prisma.job.findMany({
@@ -41,8 +41,55 @@ export async function hqSearch(q: string) {
       include: { make: true, model: true, customer: true },
       take: 8,
     }),
+    prisma.asset.findMany({
+      where: {
+        OR: [
+          { manufacturer: { contains: term, mode: "insensitive" } },
+          { model: { contains: term, mode: "insensitive" } },
+          { nickname: { contains: term, mode: "insensitive" } },
+          { identifiers: { some: { value: { contains: term, mode: "insensitive" } } } },
+        ],
+      },
+      include: { industry: true, assetType: true, owner: true, identifiers: true },
+      take: 8,
+    }),
   ]);
-  return { customers, providers, jobs, vehicles };
+  return { customers, providers, jobs, vehicles, assets };
+}
+
+export async function marketplaceCoverage() {
+  const industries = await prisma.industry.findMany({
+    where: { active: true },
+    orderBy: { sortOrder: "asc" },
+    include: {
+      _count: { select: { assets: true, serviceRequests: true, providerIndustries: true } },
+    },
+  });
+  const verified = await prisma.providerIndustry.groupBy({
+    by: ["industryId"],
+    where: { verified: true },
+    _count: { _all: true },
+  });
+  const verifiedByIndustry = Object.fromEntries(verified.map((item) => [item.industryId, item._count._all]));
+  return industries.map((industry) => {
+    const providers = industry._count.providerIndustries;
+    const demand = industry._count.serviceRequests;
+    const supply = providers;
+    let coverage = "No coverage yet";
+    if (supply >= 8 && demand < supply * 3) coverage = "Strong coverage";
+    else if (supply >= 3) coverage = "Moderate coverage";
+    else if (demand > supply * 2) coverage = "High demand / low supply";
+    else if (supply > 0) coverage = "Low coverage";
+    return {
+      key: industry.key,
+      name: industry.name,
+      assets: industry._count.assets,
+      demand,
+      providers,
+      verifiedProviders: verifiedByIndustry[industry.id] ?? 0,
+      coverage,
+    };
+  });
 }
 
 export async function getHqDashboard() {

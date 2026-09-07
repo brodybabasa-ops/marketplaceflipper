@@ -5,6 +5,7 @@ import { Card, KpiCard } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel } from "@/lib/asset-display";
 
 export default async function MechanicCustomer360({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession("MECHANIC");
@@ -14,7 +15,7 @@ export default async function MechanicCustomer360({ params }: { params: Promise<
   if (!customer) notFound();
   const jobs = await prisma.job.findMany({
     where: { mechanicProfileId: profile.id, customerId: id },
-    include: { vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+    include: { vehicle: { include: { make: true, model: true } }, asset: true, serviceRequest: true },
     orderBy: { createdAt: "desc" },
   });
   const recommended = await prisma.recommendedWork.findMany({
@@ -54,7 +55,7 @@ export default async function MechanicCustomer360({ params }: { params: Promise<
             <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-xl border border-line bg-card p-4">
               <p className="font-medium text-ink">{job.serviceRequest.problemText}</p>
               <p className="text-sm text-muted">
-                {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.status.toLowerCase()}
+                {jobAssetLabel(job)} · {job.status.toLowerCase()}
               </p>
             </Link>
           ))}

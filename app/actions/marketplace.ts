@@ -5,9 +5,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { createAutomotiveAsset, createGenericAsset } from "@/services/assets";
+import type { IndustryKey } from "@/lib/catalog";
 import {
   disputeSchema,
   estimateSchema,
+  genericAssetSchema,
   messageSchema,
   reviewSchema,
   serviceRequestSchema,
@@ -42,7 +45,51 @@ export async function createVehicleAction(formData: FormData) {
     notes: formData.get("notes") || undefined,
   });
   if (!parsed.success) throw new Error("Check your vehicle details.");
-  await prisma.vehicle.create({ data: { ...parsed.data, customerId: session.id } });
+  const vehicle = await prisma.vehicle.create({ data: { ...parsed.data, customerId: session.id } });
+  const make = await prisma.vehicleMake.findUniqueOrThrow({ where: { id: vehicle.makeId } });
+  const model = await prisma.vehicleModel.findUniqueOrThrow({ where: { id: vehicle.modelId } });
+  await createAutomotiveAsset({
+    id: vehicle.id,
+    customerId: session.id,
+    year: vehicle.year,
+    mileage: vehicle.mileage,
+    vin: vehicle.vin,
+    plate: vehicle.plate,
+    trim: vehicle.trim,
+    nickname: vehicle.nickname,
+    photoUrl: vehicle.photoUrl,
+    makeName: make.name,
+    modelName: model.name,
+  });
+  revalidatePath("/vehicles");
+  revalidatePath("/home");
+  redirect(`/vehicles`);
+}
+
+export async function createGenericAssetAction(formData: FormData) {
+  const session = await requireUser();
+  const parsed = genericAssetSchema.safeParse({
+    industryKey: formData.get("industryKey"),
+    assetTypeKey: formData.get("assetTypeKey"),
+    year: formData.get("year") || undefined,
+    manufacturer: formData.get("manufacturer"),
+    model: formData.get("model"),
+    nickname: formData.get("nickname") || undefined,
+    usageValue: formData.get("usageValue") || undefined,
+    serial: formData.get("serial") || undefined,
+  });
+  if (!parsed.success) throw new Error("Check the equipment details.");
+  await createGenericAsset({
+    ownerId: session.id,
+    industryKey: parsed.data.industryKey as IndustryKey,
+    assetTypeKey: parsed.data.assetTypeKey,
+    year: parsed.data.year,
+    manufacturer: parsed.data.manufacturer,
+    model: parsed.data.model,
+    nickname: parsed.data.nickname,
+    usageValue: parsed.data.usageValue,
+    identifiers: parsed.data.serial ? [{ kind: "SERIAL_NUMBER", value: parsed.data.serial }] : undefined,
+  });
   revalidatePath("/vehicles");
   revalidatePath("/home");
   redirect("/vehicles");
@@ -51,7 +98,8 @@ export async function createVehicleAction(formData: FormData) {
 export async function createRequestAction(formData: FormData) {
   const session = await requireUser();
   const parsed = serviceRequestSchema.safeParse({
-    vehicleId: formData.get("vehicleId"),
+    vehicleId: formData.get("vehicleId") || undefined,
+    assetId: formData.get("assetId") || undefined,
     problemText: formData.get("problemText"),
     description: formData.get("description") || undefined,
     zip: formData.get("zip"),
@@ -64,6 +112,7 @@ export async function createRequestAction(formData: FormData) {
     startedWhen: formData.get("startedWhen") || undefined,
     warningLights: formData.get("warningLights") || undefined,
     drivability: formData.get("drivability") || undefined,
+    requestKind: formData.get("prePurchase") === "on" ? "PRE_PURCHASE" : "REPAIR",
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check your request.");
   const result = await createServiceRequest({
@@ -226,6 +275,7 @@ export async function saveRepairRecordAction(formData: FormData) {
     create: {
       jobId,
       vehicleId: job.vehicleId,
+      assetId: job.assetId,
       title: String(formData.get("title")),
       diagnosis: String(formData.get("diagnosis") ?? ""),
       workPerformed: String(formData.get("workPerformed") ?? ""),

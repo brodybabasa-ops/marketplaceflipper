@@ -1,66 +1,48 @@
 import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
-import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
-import { createRequestAction } from "@/app/actions/marketplace";
+import { IntakeForm } from "@/components/intake/intake-form";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { assetLabel, vehicleLabel } from "@/lib/asset-display";
+import { industryByKey } from "@/lib/catalog";
 
 export const metadata = { title: "Request service" };
 
 export default async function RequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vehicle?: string; mechanic?: string }>;
+  searchParams: Promise<{ vehicle?: string; mechanic?: string; asset?: string }>;
 }) {
   const session = await requireSession("CUSTOMER");
   const params = await searchParams;
-  const vehicles = await prisma.vehicle.findMany({
-    where: { customerId: session.id },
-    include: { make: true, model: true },
+  const assets = await prisma.asset.findMany({
+    where: { ownerId: session.id, status: "ACTIVE" },
+    include: { industry: true, vehicle: { include: { make: true, model: true } } },
+    orderBy: { createdAt: "desc" },
   });
   const profile = await prisma.customerProfile.findUnique({ where: { userId: session.id } });
+  const defaultAsset =
+    assets.find((item) => item.id === params.asset || item.vehicleId === params.vehicle) ?? assets[0];
+  const copy = industryByKey(defaultAsset?.industry.key ?? "AUTOMOTIVE");
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <AppNav items={CUSTOMER_NAV} current="/request" />
-      <h1 className="text-3xl font-bold text-ink">What does your vehicle need?</h1>
-      <p className="mt-2 text-sm text-muted">Use everyday language. “Truck shakes when braking” is enough.</p>
-      <form action={createRequestAction} className="mt-6 space-y-4">
-        {params.mechanic ? <input type="hidden" name="mechanicProfileId" value={params.mechanic} /> : null}
-        <Field label="Vehicle">
-          <Select name="vehicleId" defaultValue={params.vehicle ?? vehicles[0]?.id} required>
-            {vehicles.map((vehicle) => (
-              <option key={vehicle.id} value={vehicle.id}>
-                {vehicle.year} {vehicle.make.name} {vehicle.model.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="What does your vehicle need?">
-          <Input name="problemText" required placeholder="Truck shakes when braking." />
-        </Field>
-        <Field label="More detail (optional)">
-          <Textarea name="description" placeholder="When it happens, warning lights, recent work..." />
-        </Field>
-        <Field label="ZIP code">
-          <Input name="zip" required defaultValue={profile?.zip ?? "84101"} />
-        </Field>
-        <Field label="Preferred date">
-          <Input name="preferredDate" type="date" />
-        </Field>
-        <Field label="Preferred time">
-          <Select name="preferredTimeWindow" defaultValue="morning">
-            <option value="morning">Morning</option>
-            <option value="afternoon">Afternoon</option>
-            <option value="evening">Evening</option>
-            <option value="saturday">Saturday</option>
-          </Select>
-        </Field>
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input type="checkbox" name="mobilePreferred" defaultChecked className="h-4 w-4" />
-          Prefer a mechanic who can come to me
-        </label>
-        <Button type="submit">{params.mechanic ? "Request this mechanic" : "Find Mechanics"}</Button>
-      </form>
+      <h1 className="text-3xl font-bold text-ink">{copy.intakePrompt}</h1>
+      <p className="mt-2 text-sm text-muted">Use everyday language. Pocket Mechanic matches providers — it does not diagnose.</p>
+      {assets.length ? (
+        <IntakeForm
+          assets={assets.map((asset) => ({
+            id: asset.id,
+            vehicleId: asset.vehicleId,
+            label: asset.vehicle ? vehicleLabel(asset.vehicle) : assetLabel(asset),
+            industryKey: asset.industry.key,
+          }))}
+          defaultAssetId={defaultAsset?.id}
+          mechanicProfileId={params.mechanic}
+          defaultZip={profile?.zip ?? "84101"}
+        />
+      ) : (
+        <p className="mt-6 text-sm text-muted">Add a vehicle to your garage first.</p>
+      )}
     </div>
   );
 }

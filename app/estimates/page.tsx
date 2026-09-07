@@ -5,6 +5,7 @@ import { EstimateCard } from "@/components/jobs/estimate-card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel } from "@/lib/asset-display";
 
 export const metadata = { title: "Estimates" };
 
@@ -13,7 +14,7 @@ export default async function CustomerEstimatesPage() {
   const estimates = await prisma.estimate.findMany({
     where: { job: { customerId: session.id } },
     include: {
-      job: { include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } } } },
+      job: { include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, asset: true } },
       lineItems: true,
       approvals: true,
       repairGroups: { include: { lineItems: true }, orderBy: { sortOrder: "asc" } },
@@ -30,7 +31,7 @@ export default async function CustomerEstimatesPage() {
         {estimates.map((estimate) => (
           <div key={estimate.id} className="space-y-3">
             <Link href={`/jobs/${estimate.jobId}`} className="block text-sm text-accent">
-              {estimate.job.mechanicProfile.businessName} · {estimate.job.vehicle.year} {estimate.job.vehicle.make.name} ·{" "}
+              {estimate.job.mechanicProfile.businessName} · {jobAssetLabel(estimate.job)} ·{" "}
               {formatCents(estimate.totalCents)} · {estimate.status.toLowerCase()}
             </Link>
             {estimate.repairGroups.length ? (

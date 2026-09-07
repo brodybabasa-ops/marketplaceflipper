@@ -180,6 +180,7 @@ export async function submitAuthorization(input: { estimateId: string; customerI
         customerId: estimate.job.customerId,
         mechanicProfileId: estimate.job.mechanicProfileId,
         vehicleId: estimate.job.vehicleId,
+        assetId: estimate.job.assetId,
         jobId: estimate.jobId,
         estimateId: estimate.id,
         repairGroupId: group.id,

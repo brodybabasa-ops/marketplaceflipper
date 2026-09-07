@@ -49,6 +49,14 @@ export default async function AdminSearchPage({ searchParams }: { searchParams: 
             </p>
           ))}
         </Card>
+        <Card className="p-5">
+          <h2 className="font-semibold">Assets</h2>
+          {results.assets.map((item) => (
+            <p key={item.id} className="mt-2 text-sm">
+              {item.year} {item.manufacturer} {item.model} · {item.industry.name} · {item.owner.email}
+            </p>
+          ))}
+        </Card>
       </div>
     </div>
   );

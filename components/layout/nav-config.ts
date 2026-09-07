@@ -34,6 +34,7 @@ export const MECHANIC_SIDEBAR = MECHANIC_NAV;
 export const HQ_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/marketplace", label: "Marketplace" },
+  { href: "/admin/industries", label: "Industries" },
   { href: "/admin/customers", label: "Customers" },
   { href: "/admin/mechanics", label: "Providers" },
   { href: "/admin/verification", label: "Verification" },

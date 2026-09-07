@@ -9,6 +9,7 @@ const mechanicCardInclude = {
   specialties: true,
   makeExpertise: { include: { make: true } },
   availability: true,
+  industries: { include: { industry: true } },
 } satisfies Prisma.MechanicProfileInclude;
 
 export function toMatchableMechanic(
@@ -42,6 +43,8 @@ export function toMatchableMechanic(
     makeNames: profile.makeExpertise.map((item) => item.make.name),
     availabilityDays: profile.availability.map((item) => item.dayOfWeek),
     isSponsored: profile.isSponsored,
+    industryKeys: profile.industries.map((item) => item.industry.key),
+    verifiedIndustryKeys: profile.industries.filter((item) => item.verified).map((item) => item.industry.key),
   };
 }
 
@@ -63,6 +66,7 @@ export async function getMechanicBySlug(slug: string) {
       serviceAreas: true,
       availability: true,
       makeExpertise: { include: { make: true } },
+      industries: { include: { industry: true } },
       reviews: {
         where: { hidden: false },
         include: { customer: true, response: true, job: { include: { vehicle: { include: { make: true, model: true } } } } },

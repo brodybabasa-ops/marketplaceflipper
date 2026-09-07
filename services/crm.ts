@@ -1,9 +1,10 @@
+import { jobAssetLabel } from "@/lib/asset-display";
 import { prisma } from "@/lib/db";
 
 export async function getMechanicCrm(mechanicProfileId: string, mechanicUserId: string, query?: string) {
   const jobs = await prisma.job.findMany({
     where: { mechanicProfileId },
-    include: { customer: true, vehicle: { include: { make: true, model: true } }, payments: true, serviceRequest: true },
+    include: { customer: true, vehicle: { include: { make: true, model: true } }, asset: true, payments: true, serviceRequest: true },
     orderBy: { updatedAt: "desc" },
   });
   const recommended = await prisma.recommendedWork.findMany({
@@ -34,7 +35,7 @@ export async function getMechanicCrm(mechanicProfileId: string, mechanicUserId: 
       name: `${person.firstName} ${person.lastName}`,
       email: person.email,
       phone: person.phone,
-      vehicles: [...new Set(customerJobs.map((job) => `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`))],
+      vehicles: [...new Set(customerJobs.map((job) => jobAssetLabel(job)))],
       lastVisit: last.completedAt ?? last.updatedAt,
       nextAction,
       lifetimeSpendCents: spend,

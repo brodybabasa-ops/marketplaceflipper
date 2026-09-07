@@ -89,9 +89,10 @@ export function SiteFooter() {
           <Logo />
           <p className="mt-3 max-w-sm text-sm text-muted">FIND. FIX. DRIVE ON.</p>
           <p className="mt-4 max-w-lg text-xs leading-5 text-muted">
-            Pocket Mechanic connects customers with independent automotive service providers. Mechanics are independent
-            service providers and are responsible for the services they perform. Pocket Assurance is a dispute workflow,
-            not insurance.
+            Pocket Mechanic connects customers with independent mechanical service providers. Automotive is the launch
+            vertical. Boats, bikes, RVs, and equipment share the same trust network when you need them. Mechanics are
+            independent and responsible for the services they perform. Pocket Assurance is a dispute workflow, not
+            insurance.
           </p>
         </div>
         <div>

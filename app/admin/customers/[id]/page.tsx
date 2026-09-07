@@ -13,6 +13,7 @@ export default async function HqCustomer360({ params }: { params: Promise<{ id: 
     where: { id },
     include: {
       vehicles: { include: { make: true, model: true } },
+      assets: { include: { industry: true, assetType: true } },
       jobsAsCustomer: { include: { mechanicProfile: true, serviceRequest: true }, orderBy: { createdAt: "desc" } },
       disputesOpened: true,
     },
@@ -29,7 +30,7 @@ export default async function HqCustomer360({ params }: { params: Promise<{ id: 
       </h1>
       <p className="text-sm text-muted">{customer.email}</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
-        <KpiCard label="Vehicles" value={customer.vehicles.length} />
+        <KpiCard label="Garage" value={customer.assets.length || customer.vehicles.length} />
         <KpiCard label="Jobs" value={customer.jobsAsCustomer.length} />
         <KpiCard label="Lifetime spend" value={formatCents(spend)} />
         <KpiCard label="Assurance claims" value={customer.disputesOpened.length} />
@@ -43,6 +44,13 @@ export default async function HqCustomer360({ params }: { params: Promise<{ id: 
               {vehicle.vin ? ` · ${vehicle.vin}` : ""}
             </p>
           ))}
+          {customer.assets
+            .filter((asset) => !asset.vehicleId)
+            .map((asset) => (
+              <p key={asset.id} className="mt-2 text-sm">
+                {asset.year} {asset.manufacturer} {asset.model} · {asset.industry.name}
+              </p>
+            ))}
         </Card>
         <Card className="p-5">
           <h2 className="font-semibold">Jobs</h2>

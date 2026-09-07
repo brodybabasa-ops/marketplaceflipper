@@ -16,6 +16,8 @@ import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel, jobUsageLabel } from "@/lib/asset-display";
+import { INSPECTION_TEMPLATES } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Job" };
@@ -53,12 +55,18 @@ export default async function MechanicJobPage({
   const nextStatuses = ALLOWED_JOB_TRANSITIONS[job.status];
   const findings = job.inspections.flatMap((inspection) => inspection.findings);
   const href = (value: string) => `/mechanic/jobs/${job.id}?tab=${value}`;
+  const industryKey = job.asset?.industry.key ?? "AUTOMOTIVE";
+  const inspectionSections =
+    INSPECTION_TEMPLATES.find((item) => item.industry === industryKey)?.sections ?? INSPECTION_SECTIONS;
+  const primaryId =
+    job.asset?.identifiers.find((item) => ["VIN", "HIN", "SERIAL_NUMBER"].includes(item.kind))?.value ??
+    job.vehicle?.vin;
 
   return (
     <div>
       <AppNav items={MECHANIC_NAV} current="/mechanic/jobs" />
       <p className="text-sm text-muted">
-        {job.customer.firstName} {job.customer.lastName} · {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+        {job.customer.firstName} {job.customer.lastName} · {jobAssetLabel(job)}
       </p>
       <h1 className="text-3xl font-bold text-ink">{job.serviceRequest.problemText}</h1>
       <div className="mt-6 flex gap-2 overflow-x-auto text-sm">
@@ -105,8 +113,9 @@ export default async function MechanicJobPage({
             ) : null}
             {job.serviceRequest.summary ? <p className="mt-2 text-sm text-muted">{job.serviceRequest.summary}</p> : null}
             <p className="mt-3 text-sm text-muted">
-              VIN {job.vehicle.vin || "—"} · {job.vehicle.mileage.toLocaleString()} miles
-              {job.vehicle.engine ? ` · ${job.vehicle.engine}` : ""}
+              {primaryId ? `${primaryId} · ` : ""}
+              {jobUsageLabel(job) || (job.vehicle ? `${job.vehicle.mileage.toLocaleString()} miles` : "")}
+              {job.vehicle?.engine ? ` · ${job.vehicle.engine}` : ""}
             </p>
             <p className="mt-1 text-sm text-muted">
               {job.serviceRequest.mobilePreferred ? "Mobile service" : "Shop"} · {job.serviceRequest.zip}
@@ -164,7 +173,7 @@ export default async function MechanicJobPage({
             <form action={addInspectionFindingAction} className="mt-4 grid gap-3 md:grid-cols-2">
               <input type="hidden" name="jobId" value={job.id} />
               <Select name="section" defaultValue="Brakes">
-                {INSPECTION_SECTIONS.map((section) => (
+                {inspectionSections.map((section) => (
                   <option key={section}>{section}</option>
                 ))}
               </Select>
@@ -274,7 +283,7 @@ export default async function MechanicJobPage({
                 <Input name="laborHours" defaultValue={job.repairRecord?.laborHours ?? ""} />
               </Field>
               <Field label="Mileage">
-                <Input name="mileage" defaultValue={job.repairRecord?.mileage ?? job.vehicle.mileage} />
+                <Input name="mileage" defaultValue={job.repairRecord?.mileage ?? job.vehicle?.mileage ?? job.asset?.usageValue ?? ""} />
               </Field>
               <Field label="Warranty">
                 <Input name="warrantySummary" defaultValue={job.repairRecord?.warrantySummary ?? "12 months / 12,000 miles"} />

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { staffRoles } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import { marketplaceCoverage } from "@/services/hq";
 
 export const metadata = { title: "Marketplace" };
 
@@ -15,6 +16,7 @@ export default async function MarketplaceHqPage() {
     prisma.job.count({ where: { status: "COMPLETED" } }),
   ]);
   const byCity = await prisma.serviceRequest.groupBy({ by: ["city"], _count: { _all: true } });
+  const coverage = await marketplaceCoverage();
   return (
     <div>
       <AppNav items={ADMIN_NAV} current="/admin/marketplace" />
@@ -32,6 +34,20 @@ export default async function MarketplaceHqPage() {
           </Card>
         ))}
       </div>
+      <Card className="mt-6 p-5">
+        <h2 className="font-semibold">Coverage by industry</h2>
+        <p className="mt-1 text-xs text-muted">Use this to recruit where demand outruns supply. Automotive stays the launch focus.</p>
+        <ul className="mt-3 space-y-2 text-sm">
+          {coverage.map((item) => (
+            <li key={item.key} className="flex flex-wrap items-center justify-between gap-2">
+              <span>{item.name}</span>
+              <span className="text-muted">
+                {item.coverage} · {item.providers} providers · {item.verifiedProviders} verified · {item.demand} requests
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Card>
       <Card className="mt-6 p-5">
         <h2 className="font-semibold">Demand by city</h2>
         <ul className="mt-3 space-y-2 text-sm">

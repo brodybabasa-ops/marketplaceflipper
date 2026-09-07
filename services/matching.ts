@@ -30,6 +30,8 @@ export type MatchableMechanic = {
   makeNames: string[];
   availabilityDays: string[];
   isSponsored: boolean;
+  industryKeys: string[];
+  verifiedIndustryKeys: string[];
 };
 
 export type MechanicMatch = MatchableMechanic & {
@@ -49,11 +51,24 @@ export type MatchFilters = {
   maxDistanceMiles?: number | null;
   availableDay?: string | null;
   sort?: MechanicSort;
+  industryKey?: string | null;
+  taxonomyKey?: string | null;
 };
 
-function verificationLabel(level: VerificationLevel) {
-  if (level === "POCKET_VERIFIED") return "Pocket Mechanic Verified";
+function verificationLabel(level: VerificationLevel, industryKey?: string | null, verifiedIndustryKeys: string[] = []) {
+  if (industryKey && industryKey !== "AUTOMOTIVE") {
+    return verifiedIndustryKeys.includes(industryKey) ? `Pocket Mechanic Verified ${industryTitle(industryKey)}` : null;
+  }
+  if (level === "POCKET_VERIFIED" || verifiedIndustryKeys.includes("AUTOMOTIVE")) return "Pocket Mechanic Verified";
   return null;
+}
+
+function industryTitle(key: string) {
+  return key
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function responseCopy(minutes: number) {
@@ -67,7 +82,7 @@ export function recommendationReasons(mechanic: MatchableMechanic, distanceMiles
   const reasons: string[] = [];
   if (filters.makeName && mechanic.makeNames.some((name) => name.toLowerCase() === filters.makeName?.toLowerCase())) {
     reasons.push(`Specializes in ${filters.makeName}`);
-  } else if (mechanic.makeNames[0]) {
+  } else if (mechanic.makeNames[0] && (!filters.industryKey || filters.industryKey === "AUTOMOTIVE")) {
     reasons.push(`Experienced with ${mechanic.makeNames.slice(0, 2).join(" and ")}`);
   }
   if (mechanic.completedJobsCount > 0) {
@@ -82,7 +97,7 @@ export function recommendationReasons(mechanic: MatchableMechanic, distanceMiles
   if (filters.availableDay && mechanic.availabilityDays.includes(filters.availableDay)) {
     reasons.push(`Available ${filters.availableDay.toLowerCase()}`);
   }
-  const verified = verificationLabel(mechanic.verificationLevel);
+  const verified = verificationLabel(mechanic.verificationLevel, filters.industryKey, mechanic.verifiedIndustryKeys);
   if (verified) reasons.push(verified);
   if (mechanic.isSelect) reasons.push("Pocket Mechanic Select");
   if (mechanic.isFoundingProvider && mechanic.foundingNumber) {
@@ -94,6 +109,7 @@ export function recommendationReasons(mechanic: MatchableMechanic, distanceMiles
 export function matchMechanics(mechanics: MatchableMechanic[], filters: MatchFilters = {}): MechanicMatch[] {
   const origin = filters.origin;
   const sort = filters.sort ?? "recommended";
+  const industryKey = filters.industryKey ?? "AUTOMOTIVE";
 
   const filtered = mechanics
     .map((mechanic) => {
@@ -103,19 +119,27 @@ export function matchMechanics(mechanics: MatchableMechanic[], filters: MatchFil
       return { mechanic, distanceMiles };
     })
     .filter(({ mechanic, distanceMiles }) => {
+      const serves = mechanic.industryKeys.length ? mechanic.industryKeys : ["AUTOMOTIVE"];
+      if (!serves.includes(industryKey)) return false;
       if (origin && distanceMiles > mechanic.serviceRadiusMiles) return false;
       if (filters.maxDistanceMiles != null && distanceMiles > filters.maxDistanceMiles) return false;
-      if (filters.category && !mechanic.specialties.includes(filters.category) && !mechanic.specialties.includes("DIAGNOSTICS")) {
+      if (industryKey === "AUTOMOTIVE" && filters.category && !mechanic.specialties.includes(filters.category) && !mechanic.specialties.includes("DIAGNOSTICS")) {
         return false;
       }
-      if (filters.makeName && !mechanic.makeNames.some((name) => name.toLowerCase() === filters.makeName?.toLowerCase())) {
+      if (filters.makeName && industryKey === "AUTOMOTIVE" && !mechanic.makeNames.some((name) => name.toLowerCase() === filters.makeName?.toLowerCase())) {
         return mechanic.specialties.includes("DIAGNOSTICS");
       }
       if (filters.serviceMode && filters.serviceMode !== "ANY") {
         if (mechanic.serviceMode !== "BOTH" && mechanic.serviceMode !== filters.serviceMode) return false;
       }
       if (filters.minRating != null && mechanic.averageRating < filters.minRating) return false;
-      if (filters.verifiedOnly && mechanic.verificationLevel === "UNVERIFIED") return false;
+      if (filters.verifiedOnly) {
+        if (industryKey !== "AUTOMOTIVE") {
+          if (!mechanic.verifiedIndustryKeys.includes(industryKey)) return false;
+        } else if (mechanic.verificationLevel === "UNVERIFIED" && !mechanic.verifiedIndustryKeys.includes("AUTOMOTIVE")) {
+          return false;
+        }
+      }
       if (filters.maxPriceCents != null && mechanic.startingPriceCents > filters.maxPriceCents) return false;
       if (filters.availableDay && !mechanic.availabilityDays.includes(filters.availableDay)) return false;
       return true;
@@ -136,4 +160,14 @@ export function matchMechanics(mechanics: MatchableMechanic[], filters: MatchFil
 
 export function responseTimeLabel(minutes: number) {
   return responseCopy(minutes);
+}
+
+export function isVerifiedForIndustry(
+  mechanic: Pick<MatchableMechanic, "verificationLevel" | "verifiedIndustryKeys">,
+  industryKey: string,
+) {
+  if (industryKey === "AUTOMOTIVE") {
+    return mechanic.verificationLevel === "POCKET_VERIFIED" || mechanic.verifiedIndustryKeys.includes("AUTOMOTIVE");
+  }
+  return mechanic.verifiedIndustryKeys.includes(industryKey);
 }

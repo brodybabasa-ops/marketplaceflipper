@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel } from "@/lib/asset-display";
 
 export const metadata = { title: "My jobs" };
 
@@ -12,7 +13,7 @@ export default async function JobsPage() {
   const session = await requireSession("CUSTOMER");
   const jobs = await prisma.job.findMany({
     where: { customerId: session.id },
-    include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+    include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, asset: true, serviceRequest: true },
     orderBy: { createdAt: "desc" },
   });
   return (
@@ -29,7 +30,7 @@ export default async function JobsPage() {
                 <div>
                   <p className="font-semibold text-ink">{job.mechanicProfile.businessName}</p>
                   <p className="text-sm text-muted">
-                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
+                    {jobAssetLabel(job)} · {job.serviceRequest.problemText}
                   </p>
                   {job.status === "COMPLETED" && job.paymentStatus !== "PAID" && job.totalCents > 0 ? (
                     <p className="mt-1 text-sm font-semibold text-accent">Pay {formatCents(job.totalCents)}</p>

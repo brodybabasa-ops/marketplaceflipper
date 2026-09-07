@@ -1,12 +1,14 @@
-import type { JobStatus } from "@prisma/client";
+import type { JobStatus, RequestKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
 import { notifyUser } from "@/services/notifications";
-import { classifyProblem } from "@/services/problem-classifier";
+import { classifyNeed } from "@/services/problem-classifier";
+import { createAutomotiveAsset } from "@/services/assets";
 
 export async function createServiceRequest(input: {
   customerId: string;
-  vehicleId: string;
+  vehicleId?: string;
+  assetId?: string;
   mechanicProfileId?: string;
   problemText: string;
   description?: string;
@@ -21,23 +23,63 @@ export async function createServiceRequest(input: {
   warningLights?: string;
   drivability?: string;
   summary?: string;
+  requestKind?: RequestKind;
 }) {
-  const vehicle = await prisma.vehicle.findFirst({
-    where: { id: input.vehicleId, customerId: input.customerId },
-  });
-  if (!vehicle) throw new Error("Vehicle not found.");
+  const vehicle = input.vehicleId
+    ? await prisma.vehicle.findFirst({
+        where: { id: input.vehicleId, customerId: input.customerId },
+        include: { make: true, model: true },
+      })
+    : null;
 
+  let asset = input.assetId
+    ? await prisma.asset.findFirst({
+        where: { id: input.assetId, ownerId: input.customerId },
+        include: { industry: true },
+      })
+    : vehicle
+      ? await prisma.asset.findUnique({ where: { vehicleId: vehicle.id }, include: { industry: true } })
+      : null;
+
+  if (!asset && vehicle) {
+    const created = await createAutomotiveAsset({
+      id: vehicle.id,
+      customerId: vehicle.customerId,
+      year: vehicle.year,
+      mileage: vehicle.mileage,
+      vin: vehicle.vin,
+      plate: vehicle.plate,
+      trim: vehicle.trim,
+      nickname: vehicle.nickname,
+      photoUrl: vehicle.photoUrl,
+      makeName: vehicle.make.name,
+      modelName: vehicle.model.name,
+    });
+    asset = await prisma.asset.findFirstOrThrow({
+      where: { id: created.id },
+      include: { industry: true },
+    });
+  }
+
+  if (!asset && !vehicle) throw new Error("Choose something from your garage.");
+  if (asset && asset.ownerId !== input.customerId) throw new Error("Choose something from your garage.");
+
+  const industryKey = asset?.industry.key ?? "AUTOMOTIVE";
   const zip = await prisma.zipCode.findUnique({ where: { zip: input.zip.slice(0, 5) } });
-  const category = classifyProblem(input.problemText);
+  const classified = classifyNeed(input.problemText, industryKey);
 
   const request = await prisma.serviceRequest.create({
     data: {
       customerId: input.customerId,
-      vehicleId: input.vehicleId,
+      vehicleId: vehicle?.id ?? asset?.vehicleId,
+      assetId: asset?.id,
+      industryId: asset?.industryId,
+      requestKind: input.requestKind ?? "REPAIR",
+      taxonomyKey: classified.taxonomyKey,
       mechanicProfileId: input.mechanicProfileId,
       problemText: input.problemText,
       description: input.description,
-      category,
+      category: classified.category,
       zip: input.zip.slice(0, 5),
       city: zip?.city,
       state: zip?.stateCode,
@@ -69,7 +111,8 @@ export async function createServiceRequest(input: {
       customerId: input.customerId,
       mechanicUserId: mechanic.userId,
       mechanicProfileId: mechanic.id,
-      vehicleId: input.vehicleId,
+      vehicleId: vehicle?.id ?? asset?.vehicleId,
+      assetId: asset?.id,
       status: "REQUESTED",
       events: { create: { status: "REQUESTED", note: "Customer requested service." } },
     },
@@ -178,7 +221,8 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       mechanicUser: true,
       mechanicProfile: { include: { user: true, specialties: true } },
       vehicle: { include: { make: true, model: true } },
-      serviceRequest: true,
+      asset: { include: { industry: true, assetType: true, identifiers: true, components: true } },
+      serviceRequest: { include: { industry: true } },
       estimates: { include: { lineItems: true, approvals: true, repairGroups: { include: { lineItems: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "asc" } },
       photos: true,

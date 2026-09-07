@@ -23,6 +23,7 @@ export default async function SavedPage() {
           specialties: true,
           makeExpertise: { include: { make: true } },
           availability: true,
+          industries: { include: { industry: true } },
         },
       },
     },

@@ -13,6 +13,7 @@ import { JobPhotoGallery } from "@/components/jobs/job-photos";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel, jobUsageLabel } from "@/lib/asset-display";
 import Link from "next/link";
 
 export const metadata = { title: "Job" };
@@ -29,7 +30,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <p className="text-sm text-muted">{job.mechanicProfile.businessName}</p>
       <h1 className="text-3xl font-bold text-ink">{job.serviceRequest.problemText}</h1>
       <p className="mt-1 text-muted">
-        {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+        {jobAssetLabel(job)}
       </p>
       {session.role === "CUSTOMER" &&
       job.paymentStatus !== "PAID" &&
@@ -74,8 +75,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <h2 className="font-semibold text-ink">Repair completed</h2>
               <p className="mt-2 text-lg font-semibold">{job.repairRecord.title}</p>
               <p className="text-sm text-muted">
-                {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
-                {job.repairRecord.mileage ? ` · ${job.repairRecord.mileage.toLocaleString()} miles` : ""}
+                {jobAssetLabel(job)}
+                {job.repairRecord.mileage ? ` · ${job.repairRecord.mileage.toLocaleString()} miles` : jobUsageLabel(job) ? ` · ${jobUsageLabel(job)}` : ""}
               </p>
               {job.repairRecord.partsReplaced ? <p className="mt-2 text-sm">Parts: {job.repairRecord.partsReplaced}</p> : null}
               {job.repairRecord.laborHours ? <p className="text-sm">Labor: {job.repairRecord.laborHours} hours</p> : null}

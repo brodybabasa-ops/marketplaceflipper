@@ -1,8 +1,10 @@
 import { PrismaClient, type DayOfWeek, type JobStatus, type ServiceCategory, type ServiceMode, type VerificationLevel } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_RANKING_WEIGHTS } from "../lib/constants";
+import { REVENUE_STREAMS } from "../lib/catalog";
 import { computeMechanicScore } from "../services/ranking";
-import { classifyProblem } from "../services/problem-classifier";
+import { classifyNeed } from "../services/problem-classifier";
+import { attachProviderIndustries, createAutomotiveAsset, createGenericAsset, seedIndustryCatalog } from "../services/assets";
 
 const prisma = new PrismaClient();
 
@@ -233,6 +235,7 @@ const EXTRA_MECHANICS: Omit<MechanicSeed, "email" | "slug">[] = [
   { firstName: "Ben", lastName: "Iverson", businessName: "Iverson Auto", bio: "General repair with a calm explanation of what actually needs to be done.", years: 20, mode: "SHOP", city: "Kaysville", zip: "84037", lat: 41.0352, lng: -111.9386, radius: 22, diagnostic: 9000, labor: 10800, mobile: 0, level: "PROFILE_VERIFIED", specialties: ["ENGINE", "BRAKES", "COOLING", "MAINTENANCE"], makes: ["Chevrolet", "GMC", "Ford", "Toyota"], response: 42, onTime: 90, accuracy: 89, cancel: 3.1, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Certified", issuer: "ASE", verified: true }] },
   { firstName: "Grace", lastName: "Patel", businessName: "Patel Hybrid Care", bio: "Hybrids and late-model electronics. I explain warning lights in plain language.", years: 8, mode: "MOBILE", city: "Sandy", zip: "84094", lat: 40.572, lng: -111.86, radius: 20, diagnostic: 11500, labor: 12000, mobile: 2500, level: "PROFESSIONAL_VERIFIED", specialties: ["ELECTRICAL", "DIAGNOSTICS", "CHARGING", "ENGINE"], makes: ["Toyota", "Honda", "Ford"], response: 21, onTime: 96, accuracy: 95, cancel: 1.1, days: ["MONDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "Toyota Hybrid Training", issuer: "Toyota", verified: true }] },
   { firstName: "Calvin", lastName: "Ortiz", businessName: "Ortiz Starting & Charging", bio: "Batteries, starters, and alternators done the same day when parts are in stock.", years: 9, mode: "MOBILE", city: "Ogden", zip: "84403", lat: 41.192, lng: -111.944, radius: 28, diagnostic: 7000, labor: 9200, mobile: 1800, level: "PROFILE_VERIFIED", specialties: ["STARTING", "CHARGING", "ELECTRICAL"], makes: ["Ford", "Chevrolet", "Nissan", "Honda"], response: 11, onTime: 97, accuracy: 94, cancel: 1.6, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "ASE Electrical", issuer: "ASE", verified: true }] },
+  { firstName: "Dana", lastName: "Whitlock", businessName: "Great Salt Lake Marine", bio: "Wake boats, sterndrives, and outboards. Impellers, ballast, and annuals. I do not take automotive work.", years: 14, mode: "SHOP", city: "Salt Lake City", zip: "84101", lat: 40.7608, lng: -111.891, radius: 40, diagnostic: 12500, labor: 13000, mobile: 0, level: "PROFESSIONAL_VERIFIED", specialties: ["ENGINE", "ELECTRICAL", "MAINTENANCE", "DIAGNOSTICS"], makes: [], response: 24, onTime: 95, accuracy: 94, cancel: 1.5, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "Mercury Certified", issuer: "Mercury", verified: true }] },
   { firstName: "Riley", lastName: "McCabe", businessName: "McCabe Truck Repair", bio: "F-250s, Silverados, and towing setups. I work on the trucks people actually use.", years: 13, mode: "BOTH", city: "South Jordan", zip: "84009", lat: 40.55, lng: -112.0, radius: 30, diagnostic: 11000, labor: 12200, mobile: 3200, level: "POCKET_VERIFIED", specialties: ["BRAKES", "SUSPENSION", "ENGINE", "DIAGNOSTICS"], makes: ["Ford", "Chevrolet", "GMC", "Ram"], response: 17, onTime: 96, accuracy: 95, cancel: 1.3, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Master", issuer: "ASE", verified: true }, { name: "Garage Keepers Insurance", issuer: "Travelers", verified: true }] },
 ];
 
@@ -301,6 +304,17 @@ async function main() {
     prisma.job.deleteMany(),
     prisma.serviceRequest.deleteMany(),
     prisma.savedMechanic.deleteMany(),
+    prisma.assetIdentifier.deleteMany(),
+    prisma.assetComponent.deleteMany(),
+    prisma.providerOffering.deleteMany(),
+    prisma.providerIndustry.deleteMany(),
+    prisma.financingOffer.deleteMany(),
+    prisma.maintenanceRule.deleteMany(),
+    prisma.inspectionTemplate.deleteMany(),
+    prisma.serviceTaxonomy.deleteMany(),
+    prisma.asset.deleteMany(),
+    prisma.assetType.deleteMany(),
+    prisma.industry.deleteMany(),
     prisma.vehicle.deleteMany(),
     prisma.mechanicAvailability.deleteMany(),
     prisma.mechanicCertification.deleteMany(),
@@ -323,6 +337,7 @@ async function main() {
   ]);
 
   await prisma.zipCode.createMany({ data: ZIPS });
+  await seedIndustryCatalog();
 
   const makeRecords = [];
   for (const make of MAKES) {
@@ -403,6 +418,7 @@ async function main() {
   }
 
   const vehicles = [];
+  const assetByVehicleId = new Map<string, string>();
   const vehiclePlan = [
     { owner: 0, year: 2020, make: "Ford", model: "F-250", trim: "Lariat", engine: "6.7 Power Stroke", drivetrain: "4x4", mileage: 87000, nickname: "The truck" },
     { owner: 0, year: 2018, make: "Honda", model: "CR-V", trim: "EX", engine: "1.5T", drivetrain: "AWD", mileage: 64000, nickname: "Daily" },
@@ -440,6 +456,18 @@ async function main() {
       },
     });
     vehicles.push(vehicle);
+    const asset = await createAutomotiveAsset({
+      id: vehicle.id,
+      customerId: vehicle.customerId,
+      year: vehicle.year,
+      mileage: vehicle.mileage,
+      trim: vehicle.trim,
+      nickname: vehicle.nickname,
+      makeName: make.name,
+      modelName: model.name,
+      assetTypeKey: model.name.toLowerCase().includes("f-") || model.name.toLowerCase().includes("silverado") || model.name.toLowerCase().includes("sierra") || model.name.toLowerCase().includes("ram") || model.name.toLowerCase().includes("tundra") || model.name.toLowerCase().includes("tacoma") ? "TRUCK" : "CAR",
+    });
+    assetByVehicleId.set(vehicle.id, asset.id);
   }
 
   const mechanicSeeds: MechanicSeed[] = [
@@ -523,6 +551,59 @@ async function main() {
     mechanicProfiles.push(user.mechanicProfile!);
   }
 
+  for (const profile of mechanicProfiles) {
+    if (profile.slug === "mikes-mobile-auto") {
+      await attachProviderIndustries(profile.id, ["AUTOMOTIVE", "MARINE", "POWERSPORTS"], "AUTOMOTIVE");
+    } else if (profile.slug === "great-salt-lake-marine") {
+      await attachProviderIndustries(profile.id, ["MARINE"], "MARINE");
+    } else {
+      await attachProviderIndustries(
+        profile.id,
+        ["AUTOMOTIVE"],
+        profile.verificationLevel === "POCKET_VERIFIED" ? "AUTOMOTIVE" : undefined,
+      );
+    }
+  }
+
+  await createGenericAsset({
+    ownerId: customers[0].id,
+    industryKey: "MARINE",
+    assetTypeKey: "WAKE_BOAT",
+    year: 2026,
+    manufacturer: "Centurion",
+    model: "Ri230",
+    nickname: "The boat",
+    usageValue: 428,
+    usageUnit: "ENGINE_HOURS",
+    identifiers: [
+      { kind: "HIN", value: "CNT12345G526" },
+      { kind: "ENGINE_SERIAL", value: "PCM-88221" },
+    ],
+    components: [
+      { name: "Port engine" },
+      { name: "Starboard engine" },
+      { name: "Transmission" },
+      { name: "V-drive" },
+      { name: "Surf system" },
+      { name: "Bilge system" },
+      { name: "Trailer" },
+      { name: "Batteries" },
+    ],
+  });
+  await createGenericAsset({
+    ownerId: customers[0].id,
+    industryKey: "POWERSPORTS",
+    assetTypeKey: "DIRT_BIKE",
+    year: 2020,
+    manufacturer: "KTM",
+    model: "450",
+    nickname: "The 450",
+    usageValue: 91,
+    usageUnit: "ENGINE_HOURS",
+    identifiers: [{ kind: "VIN", value: "VBKMXA409LM123456" }],
+    components: [{ name: "Engine" }, { name: "Suspension" }, { name: "Driveline" }],
+  });
+
   const mike = mechanicProfiles[0];
   const priya = mechanicProfiles.find((profile) => profile.slug === "desai-mobile-repair");
   const activeStatuses: JobStatus[] = ["REQUESTED", "ACCEPTED", "SCHEDULED", "EN_ROUTE", "DIAGNOSING", "AWAITING_APPROVAL", "IN_PROGRESS"];
@@ -539,16 +620,18 @@ async function main() {
     const isActiveDemo = i < 8 && mechanic.id === mike.id;
     const status: JobStatus = isActiveDemo ? activeStatuses[i % activeStatuses.length] : "COMPLETED";
     const createdAt = new Date(Date.UTC(2026, (i % 8) + 1, (i % 27) + 1, 15));
-    const category = classifyProblem(problem.text);
-
+    const classified = classifyNeed(problem.text, "AUTOMOTIVE");
     const request = await prisma.serviceRequest.create({
       data: {
         customerId,
         vehicleId: vehicle.id,
+        assetId: assetByVehicleId.get(vehicle.id),
+        industryId: (await prisma.industry.findUniqueOrThrow({ where: { key: "AUTOMOTIVE" } })).id,
+        taxonomyKey: classified.taxonomyKey,
         mechanicProfileId: mechanic.id,
         status: status === "REQUESTED" ? "OPEN" : "ACCEPTED",
         problemText: problem.text,
-        category,
+        category: classified.category,
         zip: ZIPS[i % ZIPS.length].zip,
         city: ZIPS[i % ZIPS.length].city,
         state: "UT",
@@ -569,6 +652,7 @@ async function main() {
         mechanicUserId: mechanicUser.id,
         mechanicProfileId: mechanic.id,
         vehicleId: vehicle.id,
+        assetId: assetByVehicleId.get(vehicle.id),
         status,
         totalCents: problem.price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
@@ -763,6 +847,8 @@ async function main() {
         maxResponseMinutes: 20,
         minRepeatCustomers: 5,
       },
+      marketplaceName: "Pocket Mechanic",
+      revenueStreams: [...REVENUE_STREAMS],
       verificationStandards: {
         shop: ["Facility condition", "Repair equipment", "Diagnostics", "Insurance", "Professionalism"],
         mobile: ["Service vehicle", "Tool inventory", "Diagnostics", "Insurance", "Professionalism"],
@@ -824,6 +910,8 @@ async function main() {
   }
 
   const alexTruck = vehicles[0];
+  const alexAssetId = assetByVehicleId.get(alexTruck.id);
+  const crvAssetId = assetByVehicleId.get(vehicles[1].id);
   const mikeUser = await prisma.user.findUniqueOrThrow({ where: { id: mike.userId } });
   const unpaidCreatedAt = new Date();
   unpaidCreatedAt.setDate(unpaidCreatedAt.getDate() - 2);
@@ -831,6 +919,7 @@ async function main() {
     data: {
       customerId: customers[0].id,
       vehicleId: alexTruck.id,
+      assetId: alexAssetId,
       mechanicProfileId: mike.id,
       status: "ACCEPTED",
       problemText: "Squeal from the left rear brake after the last service.",
@@ -850,6 +939,7 @@ async function main() {
       mechanicUserId: mikeUser.id,
       mechanicProfileId: mike.id,
       vehicleId: alexTruck.id,
+      assetId: alexAssetId,
       status: "COMPLETED",
       totalCents: 36500,
       paymentStatus: "UNPAID",
@@ -891,6 +981,7 @@ async function main() {
     data: {
       jobId: unpaidJob.id,
       vehicleId: alexTruck.id,
+      assetId: alexAssetId,
       title: "Rear brake hardware service",
       diagnosis: "Squeal from the left rear brake after the last service.",
       workPerformed: "Replaced rear pads and hardware, cleaned and lubricated slides.",
@@ -936,6 +1027,7 @@ async function main() {
     data: {
       customerId: customers[0].id,
       vehicleId: alexTruck.id,
+      assetId: alexAssetId,
       mechanicProfileId: mike.id,
       status: "ACCEPTED",
       problemText: "My F-150 clicks when I turn left.",
@@ -958,6 +1050,7 @@ async function main() {
       mechanicUserId: mikeUser.id,
       mechanicProfileId: mike.id,
       vehicleId: alexTruck.id,
+      assetId: alexAssetId,
       status: "AWAITING_APPROVAL",
       totalCents: 192900,
       paymentStatus: "UNPAID",
@@ -1104,6 +1197,7 @@ async function main() {
     data: {
       customerId: customers[0].id,
       vehicleId: vehicles[1].id,
+      assetId: crvAssetId,
       mechanicProfileId: mike.id,
       status: "ACCEPTED",
       problemText: "Pre-trip inspection before a canyon drive.",
@@ -1122,6 +1216,7 @@ async function main() {
       mechanicUserId: mikeUser.id,
       mechanicProfileId: mike.id,
       vehicleId: vehicles[1].id,
+      assetId: crvAssetId,
       status: "SCHEDULED",
       totalCents: 12000,
       paymentStatus: "UNPAID",

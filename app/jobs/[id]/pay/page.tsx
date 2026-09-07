@@ -42,6 +42,9 @@ export default async function PayJobPage({ params }: { params: Promise<{ id: str
             ? "Charged through Stripe Connect."
             : "Demo mode: this completes a mock Stripe Connect charge. No real card is collected or stored."}
         </p>
+        <p className="text-xs text-muted">
+          Repair financing, if offered later, is through integrated regulated partners. Pocket Mechanic is not the lender.
+        </p>
       </Card>
       {alreadyPaid ? (
         <p className="mt-6 text-sm text-success">This job is already paid.</p>

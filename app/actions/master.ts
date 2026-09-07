@@ -109,7 +109,11 @@ export async function createGroupedEstimateAction(formData: FormData) {
 
 export async function applyVerificationAction(formData: FormData) {
   const session = await requireUser();
-  await applyForVerification(session.id, (String(formData.get("kind") || "MOBILE") as InspectionKind) || "MOBILE");
+  await applyForVerification(
+    session.id,
+    (String(formData.get("kind") || "MOBILE") as InspectionKind) || "MOBILE",
+    String(formData.get("industryKey") || "AUTOMOTIVE"),
+  );
   revalidatePath("/mechanic/profile");
   revalidatePath("/mechanic");
 }
@@ -171,7 +175,7 @@ export async function addInspectionFindingAction(formData: FormData) {
   let inspection = await prisma.vehicleInspection.findFirst({ where: { jobId } });
   if (!inspection) {
     inspection = await prisma.vehicleInspection.create({
-      data: { jobId, vehicleId: job.vehicleId, mechanicUserId: session.id },
+      data: { jobId, vehicleId: job.vehicleId, assetId: job.assetId, mechanicUserId: session.id },
     });
   }
   await prisma.inspectionFinding.create({

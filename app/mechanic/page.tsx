@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { formatCents } from "@/lib/money";
+import { jobAssetLabel } from "@/lib/asset-display";
 import { applyVerificationAction } from "@/app/actions/master";
 
 export const metadata = { title: "Mechanic dashboard" };
@@ -29,7 +30,7 @@ export default async function MechanicDashboardPage() {
     }),
     prisma.job.findMany({
       where: { mechanicProfileId: profile.id, status: { notIn: ["COMPLETED", "CANCELLED"] } },
-      include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+      include: { customer: true, vehicle: { include: { make: true, model: true } }, asset: true, serviceRequest: true },
       orderBy: { scheduledAt: "asc" },
       take: 8,
     }),
@@ -74,7 +75,7 @@ export default async function MechanicDashboardPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold text-ink">
-                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                    {jobAssetLabel(job)}
                   </p>
                   <p className="text-sm text-muted">
                     {job.customer.firstName} {job.customer.lastName} · {job.serviceRequest.problemText}

@@ -76,6 +76,7 @@ export default async function LandingPage() {
         </div>
         <p className="mt-8 text-xs text-muted">{PLATFORM_DISCLAIMER}</p>
         <p className="mt-2 text-xs text-muted">{APP_NAME} does not diagnose vehicles. Independent mechanics do.</p>
+        <p className="mt-2 text-xs text-muted">Also for boats, bikes, RVs, and equipment — when you need them.</p>
       </section>
     </div>
   );

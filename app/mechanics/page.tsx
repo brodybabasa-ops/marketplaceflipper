@@ -27,6 +27,9 @@ export default async function MechanicsSearchPage({
     distance: one(params.distance),
     sort: one(params.sort),
     day: one(params.day),
+    request: one(params.request),
+    industry: one(params.industry),
+    asset: one(params.asset),
   };
   const { matches, zip, category } = await searchMechanics(query);
   const best = matches.filter((item) => item.isBestMatch);

@@ -24,8 +24,20 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
               isSelect={mechanic.isSelect}
               isFoundingProvider={mechanic.isFoundingProvider}
               foundingNumber={mechanic.foundingNumber}
+              verifiedIndustries={mechanic.verifiedIndustryKeys.map((key) =>
+                key
+                  .toLowerCase()
+                  .split("_")
+                  .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                  .join(" "),
+              )}
             />
             {mechanic.serviceMode !== "SHOP" ? <Badge tone="muted">Mobile mechanic</Badge> : null}
+            {mechanic.industryKeys.filter((key) => key !== "AUTOMOTIVE").map((key) => (
+              <Badge key={key} tone="muted">
+                {key.replaceAll("_", " ").toLowerCase()}
+              </Badge>
+            ))}
             {mechanic.isSponsored ? <Badge tone="warning">Sponsored</Badge> : null}
           </div>
           <p className="text-sm text-muted">

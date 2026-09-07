@@ -45,25 +45,33 @@ export function checklistFor(kind: "SHOP" | "MOBILE") {
   return kind === "SHOP" ? SHOP_CATEGORIES : MOBILE_CATEGORIES;
 }
 
-export async function applyForVerification(mechanicUserId: string, kind: "SHOP" | "MOBILE") {
+export async function applyForVerification(mechanicUserId: string, kind: "SHOP" | "MOBILE", industryKey = "AUTOMOTIVE") {
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: mechanicUserId } });
+  const industry = await prisma.industry.findUnique({ where: { key: industryKey } });
   const existing = await prisma.verificationApplication.findFirst({
-    where: { mechanicProfileId: profile.id, status: { notIn: ["DENIED", "EXPIRED", "REVOKED"] } },
+    where: {
+      mechanicProfileId: profile.id,
+      industryId: industry?.id ?? null,
+      status: { notIn: ["DENIED", "EXPIRED", "REVOKED"] },
+    },
     orderBy: { createdAt: "desc" },
   });
   if (existing && existing.status !== "VERIFIED") return existing;
   const application = await prisma.verificationApplication.create({
     data: {
       mechanicProfileId: profile.id,
+      industryId: industry?.id,
       kind,
       status: "APPLICATION_RECEIVED",
-      events: { create: { toStatus: "APPLICATION_RECEIVED", reason: "Provider applied for in-person evaluation." } },
+      events: { create: { toStatus: "APPLICATION_RECEIVED", reason: `Provider applied for ${industry?.name ?? "Automotive"} evaluation.` } },
     },
   });
-  await prisma.mechanicProfile.update({
-    where: { id: profile.id },
-    data: { verificationPipeline: "APPLICATION_RECEIVED" },
-  });
+  if (industryKey === "AUTOMOTIVE") {
+    await prisma.mechanicProfile.update({
+      where: { id: profile.id },
+      data: { verificationPipeline: "APPLICATION_RECEIVED" },
+    });
+  }
   await audit({
     actorId: mechanicUserId,
     action: "verification.applied",
@@ -85,6 +93,7 @@ export async function setVerificationStatus(input: {
 }) {
   const application = await prisma.verificationApplication.findUniqueOrThrow({
     where: { id: input.applicationId },
+    include: { industry: true },
   });
   await prisma.verificationApplication.update({
     where: { id: application.id },
@@ -114,12 +123,30 @@ export async function setVerificationStatus(input: {
   }
 
   const verified = input.status === "VERIFIED";
+  const industryKey = application.industry?.key ?? "AUTOMOTIVE";
+  const isAutomotive = industryKey === "AUTOMOTIVE";
+  if (application.industryId) {
+    await prisma.providerIndustry.updateMany({
+      where: { mechanicProfileId: application.mechanicProfileId, industryId: application.industryId },
+      data: {
+        verified,
+        verifiedAt: verified ? new Date() : null,
+        verificationLevel: verified ? "POCKET_VERIFIED" : PUBLIC_VERIFIED_GONE.has(input.status) ? "UNVERIFIED" : undefined,
+      },
+    });
+  }
   await prisma.mechanicProfile.update({
     where: { id: application.mechanicProfileId },
     data: {
-      verificationPipeline: input.status,
-      verificationLevel: verified ? "POCKET_VERIFIED" : PUBLIC_VERIFIED_GONE.has(input.status) ? "PROFILE_VERIFIED" : undefined,
-      lastVerifiedAt: verified ? new Date() : undefined,
+      verificationPipeline: isAutomotive ? input.status : undefined,
+      verificationLevel: isAutomotive
+        ? verified
+          ? "POCKET_VERIFIED"
+          : PUBLIC_VERIFIED_GONE.has(input.status)
+            ? "PROFILE_VERIFIED"
+            : undefined
+        : undefined,
+      lastVerifiedAt: isAutomotive && verified ? new Date() : undefined,
     },
   });
   await audit({

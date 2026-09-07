@@ -3,6 +3,7 @@ import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
 import { Badge } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { jobAssetLabel } from "@/lib/asset-display";
 import type { JobStatus } from "@prisma/client";
 
 export const metadata = { title: "Job board" };
@@ -24,7 +25,7 @@ export default async function JobBoardPage() {
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const jobs = await prisma.job.findMany({
     where: { mechanicProfileId: profile.id, status: { not: "CANCELLED" } },
-    include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+    include: { customer: true, vehicle: { include: { make: true, model: true } }, asset: true, serviceRequest: true },
     orderBy: { updatedAt: "desc" },
     take: 120,
   });
@@ -46,7 +47,7 @@ export default async function JobBoardPage() {
                 {items.slice(0, 8).map((job) => (
                   <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-xl border border-line bg-card p-3">
                     <p className="text-sm font-semibold text-ink">
-                      {job.vehicle.year} {job.vehicle.make.name}
+                      {jobAssetLabel(job)}
                     </p>
                     <p className="text-xs text-muted">
                       {job.customer.firstName} · {job.serviceRequest.problemText.slice(0, 48)}

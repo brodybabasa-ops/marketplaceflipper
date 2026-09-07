@@ -5,6 +5,7 @@ import { Field, Input } from "@/components/ui/input";
 import { addBlockedDateAction, saveAvailabilityAction } from "@/app/actions/phase2";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { jobAssetLabel } from "@/lib/asset-display";
 import type { DayOfWeek } from "@prisma/client";
 import Link from "next/link";
 
@@ -24,7 +25,7 @@ export default async function MechanicSchedulePage() {
       scheduledAt: { gte: new Date() },
       status: { notIn: ["CANCELLED"] },
     },
-    include: { customer: true, vehicle: { include: { make: true, model: true } } },
+    include: { customer: true, vehicle: { include: { make: true, model: true } }, asset: true },
     orderBy: { scheduledAt: "asc" },
     take: 12,
   });
@@ -87,7 +88,7 @@ export default async function MechanicSchedulePage() {
                 {job.customer.firstName} {job.customer.lastName}
               </p>
               <p className="text-sm text-muted">
-                {job.scheduledAt?.toLocaleString()} · {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                {job.scheduledAt?.toLocaleString()} · {jobAssetLabel(job)}
                 {job.scheduledConfirmedAt ? " · confirmed" : " · awaiting confirmation"}
               </p>
             </Link>

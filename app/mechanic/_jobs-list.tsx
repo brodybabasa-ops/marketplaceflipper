@@ -4,13 +4,14 @@ import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { jobAssetLabel } from "@/lib/asset-display";
 
 export default async function MechanicJobsList({ title, href, statuses }: { title: string; href: string; statuses?: ("REQUESTED" | "ACCEPTED" | "SCHEDULED" | "EN_ROUTE" | "ARRIVED" | "DIAGNOSING" | "AWAITING_APPROVAL" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DISPUTED")[] }) {
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const jobs = await prisma.job.findMany({
     where: { mechanicProfileId: profile.id, ...(statuses ? { status: { in: statuses } } : {}) },
-    include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+    include: { customer: true, vehicle: { include: { make: true, model: true } }, asset: true, serviceRequest: true },
     orderBy: { createdAt: "desc" },
   });
   return (
@@ -29,7 +30,7 @@ export default async function MechanicJobsList({ title, href, statuses }: { titl
                     {job.customer.firstName} {job.customer.lastName}
                   </p>
                   <p className="text-sm text-muted">
-                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
+                    {jobAssetLabel(job)} · {job.serviceRequest.problemText}
                   </p>
                 </div>
                 <JobStatusLabel status={job.status} />
