@@ -156,8 +156,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </Card>
           ) : null}
           {job.status === "COMPLETED" && session.role === "CUSTOMER" && !job.outcome ? (
-            <Card className="p-5">
-              <h2 className="font-semibold text-ink">Did this repair solve your original problem?</h2>
+            <Card className="border-success/40 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-success">Service completed</p>
+              <h2 className="mt-2 text-xl font-semibold text-ink">Did this repair solve your original problem?</h2>
               <p className="mt-1 text-sm text-muted">{job.serviceRequest.problemText}</p>
               <form action={submitOutcomeAction} className="mt-4 flex flex-wrap gap-2">
                 <input type="hidden" name="jobId" value={job.id} />
@@ -171,6 +172,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   No
                 </Button>
               </form>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {job.paymentStatus !== "PAID" && job.totalCents > 0 ? (
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href={`/jobs/${job.id}/pay`}>View invoice</Link>
+                  </Button>
+                ) : null}
+                {job.warranties.length || job.repairRecord?.warrantySummary ? (
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href={`/vehicles/${job.asset?.vehicleId ?? job.assetId ?? job.vehicleId}?tab=warranties`}>View warranty</Link>
+                  </Button>
+                ) : null}
+              </div>
             </Card>
           ) : null}
           {job.outcome ? (

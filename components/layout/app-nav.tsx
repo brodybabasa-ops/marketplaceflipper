@@ -15,14 +15,16 @@ export function AppNav({
   items,
   current,
   more,
+  className,
 }: {
   items: { href: string; label: string }[];
   current: string;
   more?: { href: string; label: string }[];
+  className?: string;
 }) {
   const extra = more ?? [];
   return (
-    <nav className="mb-6 overflow-x-auto rounded-2xl border border-line bg-card px-2 py-2" aria-label="Section">
+    <nav className={cn("mb-6 overflow-x-auto rounded-2xl border border-line bg-card px-2 py-2", className)} aria-label="Section">
       <div className="flex min-w-max items-center gap-1">
         {items.map((item) => (
           <Link
@@ -58,7 +60,7 @@ export function AppNav({
 }
 
 export function CustomerAppNav({ current }: { current: string }) {
-  return <AppNav items={CUSTOMER_NAV} more={CUSTOMER_MORE} current={current} />;
+  return <AppNav items={CUSTOMER_NAV} more={CUSTOMER_MORE} current={current} className="lg:hidden" />;
 }
 
 export function MechanicAppNav({ current }: { current: string }) {

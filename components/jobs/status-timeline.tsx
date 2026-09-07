@@ -19,27 +19,48 @@ const LABELS: Record<string, string> = {
   DISPUTED: "In dispute",
 };
 
+export function jobProgressPercent(status: JobStatus) {
+  const map: Partial<Record<JobStatus, number>> = {
+    REQUESTED: 8,
+    ACCEPTED: 18,
+    SCHEDULED: 28,
+    EN_ROUTE: 36,
+    ARRIVED: 42,
+    CHECKED_IN: 48,
+    DIAGNOSING: 56,
+    AWAITING_APPROVAL: 64,
+    IN_PROGRESS: 78,
+    QUALITY_CHECK: 88,
+    READY: 96,
+    COMPLETED: 100,
+  };
+  return map[status] ?? 0;
+}
+
 export function StatusTimeline({ status }: { status: JobStatus }) {
   if (status === "CANCELLED" || status === "DISPUTED") {
     return <p className="text-sm font-medium text-danger">{LABELS[status]}</p>;
   }
   const currentIndex = JOB_STATUS_ORDER.indexOf(status as (typeof JOB_STATUS_ORDER)[number]);
+  const compact = ["REQUESTED", "ACCEPTED", "SCHEDULED", "DIAGNOSING", "AWAITING_APPROVAL", "IN_PROGRESS", "READY", "COMPLETED"] as const;
+  const steps = compact.filter((step) => JOB_STATUS_ORDER.includes(step));
   return (
-    <ol className="space-y-2">
-      {JOB_STATUS_ORDER.map((step, index) => {
+    <ol className="space-y-3">
+      {steps.map((step) => {
+        const index = JOB_STATUS_ORDER.indexOf(step);
         const done = index < currentIndex || status === "COMPLETED";
-        const current = step === status;
+        const current = step === status || (step === "IN_PROGRESS" && ["EN_ROUTE", "ARRIVED", "CHECKED_IN", "QUALITY_CHECK"].includes(status));
         return (
-          <li key={step} className="flex items-center gap-3 text-sm">
+          <li key={step} className="flex items-start gap-3 text-sm">
             <span
               className={cn(
-                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
                 done ? "bg-success text-white" : current ? "bg-accent text-white" : "border border-line text-muted",
               )}
             >
-              {done ? "✓" : current ? "→" : "○"}
+              {done ? "✓" : current ? "→" : ""}
             </span>
-            <span className={cn(current ? "font-semibold text-ink" : done ? "text-ink" : "text-muted")}>
+            <span className={cn("pt-0.5", current ? "font-semibold text-ink" : done ? "text-ink" : "text-muted")}>
               {LABELS[step]}
             </span>
           </li>

@@ -19,6 +19,24 @@ export const CUSTOMER_MORE = [
   { href: "/account", label: "Profile" },
 ];
 
+export const CUSTOMER_SIDEBAR_PRIMARY = [
+  { href: "/home", label: "Home" },
+  { href: "/vehicles", label: "My Garage" },
+  { href: "/fix", label: "Fix It" },
+  { href: "/home#maintenance", label: "Maintenance" },
+  { href: "/jobs", label: "Active repairs" },
+  { href: "/history", label: "Service history" },
+];
+
+export const CUSTOMER_SIDEBAR_SECONDARY = [
+  { href: "/help-now", label: "Roadside & towing" },
+  { href: "/mechanics", label: "Find a provider" },
+  { href: "/inspect", label: "Inspections (PPI)" },
+  { href: "/messages", label: "Messages" },
+  { href: "/wallet", label: "Wallet & payments" },
+  { href: "/account", label: "Membership" },
+];
+
 export const MECHANIC_NAV = [
   { href: "/mechanic", label: "Attention" },
   { href: "/mechanic/requests", label: "Requests" },

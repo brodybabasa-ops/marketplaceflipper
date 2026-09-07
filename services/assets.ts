@@ -223,11 +223,18 @@ export async function createGenericAsset(input: {
 export function healthFromFindings(
   findings: { section: string; status: "GOOD" | "MONITOR" | "NEEDS_ATTENTION" }[],
 ) {
-  if (!findings.length) return { score: null as number | null, sections: [] as { section: string; status: string }[] };
+  if (!findings.length) return { score: null as number | null, label: null as string | null, sections: [] as { section: string; status: string }[] };
   const latest = new Map<string, string>();
   for (const finding of findings) latest.set(finding.section, finding.status);
+  const values = [...latest.values()].map((status) => {
+    if (status === "GOOD") return 100;
+    if (status === "MONITOR") return 72;
+    return 42;
+  });
+  const score = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
   return {
-    score: null,
+    score,
+    label: score >= 85 ? "Good" : score >= 70 ? "Fair" : "Needs attention",
     sections: [...latest.entries()].map(([section, status]) => ({ section, status })),
   };
 }
@@ -269,6 +276,7 @@ export function garageCardCopy(asset: GarageAsset) {
     industryKey: asset.industry.key,
     typeName: asset.assetType.name,
     nickname: asset.nickname,
+    photoUrl: asset.photoUrl,
     usage: formatUsage(asset.usageValue, asset.usageUnit),
     health,
     upcoming:

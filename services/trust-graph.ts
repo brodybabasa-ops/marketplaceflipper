@@ -124,7 +124,7 @@ export function repairConfidence(input: {
   }
   if (why.length < 2) {
     return {
-      level: null as const,
+      level: null as null,
       why,
       note: "Not enough evidence yet to show a repair-confidence label. This is never a guarantee.",
     };

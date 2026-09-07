@@ -1,21 +1,24 @@
 import Link from "next/link";
-import { CustomerAppNav } from "@/components/layout/app-nav";
 import { GarageCard } from "@/components/jobs/garage-card";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState } from "@/components/ui/card";
-import { JobStatusLabel } from "@/components/jobs/status-timeline";
+import { JobStatusLabel, jobProgressPercent } from "@/components/jobs/status-timeline";
+import { FixItHero } from "@/components/home/fix-it-hero";
+import { DemoBanner } from "@/components/ui/vision";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
 import { jobAssetLabel } from "@/lib/asset-display";
 import { garageCardCopy, listGarage } from "@/services/assets";
 import { garageMaintenance } from "@/services/maintenance";
+import { isVisionDemoEnabled } from "@/lib/vision";
+import { visionFixtures } from "@/lib/vision-fixtures";
 
 export const metadata = { title: "Home" };
 
 export default async function CustomerHomePage() {
   const session = await requireSession("CUSTOMER");
-  const [garage, jobs, repairs, unpaid, maintenance] = await Promise.all([
+  const [garage, jobs, repairs, unpaid, maintenance, recommended] = await Promise.all([
     listGarage(session.id),
     prisma.job.findMany({
       where: { customerId: session.id, status: { notIn: ["COMPLETED", "CANCELLED"] } },
@@ -35,57 +38,43 @@ export default async function CustomerHomePage() {
       take: 3,
     }),
     garageMaintenance(session.id),
+    prisma.recommendedWork.findMany({
+      where: { customerId: session.id, status: "OPEN" },
+      select: { estimatedCents: true },
+    }),
   ]);
-  const needsAttention = [
-    ...unpaid.map((job) => ({ href: `/jobs/${job.id}/pay`, label: `Pay ${formatCents(job.totalCents)} · ${job.mechanicProfile.businessName}` })),
-    ...maintenance.filter((item) => item.status === "DUE" || item.status === "OVERDUE").map((item) => ({
-      href: `/fix?asset=${item.assetId}&kind=maintenance`,
-      label: `${item.title} · ${item.assetLabel}`,
-    })),
-    ...garage.assets.filter((asset) => asset.recommendedWork.length).map((asset) => ({
-      href: `/vehicles/${asset.vehicleId ?? asset.id}`,
-      label: `${garageCardCopy(asset).title} has open recommendations`,
-    })),
-  ];
+  const recommendedCents = recommended.reduce((sum, item) => sum + item.estimatedCents, 0);
+  const fixtures = isVisionDemoEnabled() ? visionFixtures() : null;
+  const cards = garage.assets.map((asset) => garageCardCopy(asset));
 
   return (
     <div>
-      <CustomerAppNav current="/home" />
-      <h1 className="text-3xl font-bold text-ink">Whatever you own. Whatever’s wrong with it.</h1>
-      <p className="mt-2 max-w-xl text-sm text-muted">
-        {garage.headline.body} Pocket Mechanic handles matching, approval, payment, and history.
-      </p>
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Button asChild size="lg">
-          <Link href="/fix">Fix It</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link href="/vehicles">{garage.headline.title}</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link href="/help-now">Urgent help</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link href="/inspect">Inspect before buying</Link>
-        </Button>
-      </div>
-
-      {needsAttention.length ? (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold text-ink">Needs attention</h2>
-          <div className="mt-4 space-y-2">
-            {needsAttention.slice(0, 6).map((item) => (
-              <Link key={item.href + item.label} href={item.href} className="block rounded-2xl border border-line bg-card p-4 text-sm text-ink">
-                {item.label}
-              </Link>
-            ))}
+      <section className="overflow-hidden rounded-3xl border border-line bg-navy p-5 md:p-8">
+        <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Whatever you own. Whatever’s wrong with it.</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink md:text-5xl">
+              Fix It.
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-muted">
+              {garage.headline.body} Describe the problem in everyday language. Pocket Mechanic finds the right people — it does not diagnose from a description.
+            </p>
+            <FixItHero defaultAssetId={garage.assets[0]?.id} />
           </div>
-        </section>
-      ) : (
-        <section className="mt-10">
-          <EmptyState title="You’re clear" body="Nothing needs attention right now. Fix It is one tap when something breaks." />
-        </section>
-      )}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <Link href="/help-now" className="rounded-2xl border border-line bg-slate p-4 hover:border-accent/50">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-warning">Need help now?</p>
+              <p className="mt-1 font-semibold text-ink">Roadside & towing</p>
+              <p className="mt-1 text-sm text-muted">Urgent matching for breakdowns, jumps, and tows.</p>
+            </Link>
+            <Link href="/inspect" className="rounded-2xl border border-line bg-slate p-4 hover:border-accent/50">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Inspect before you buy</p>
+              <p className="mt-1 font-semibold text-ink">Pre-purchase inspection</p>
+              <p className="mt-1 text-sm text-muted">Same inspection architecture. No invented risk scores.</p>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="mt-10">
         <div className="flex items-center justify-between">
@@ -94,7 +83,7 @@ export default async function CustomerHomePage() {
             Open garage
           </Link>
         </div>
-        {garage.assets.length === 0 ? (
+        {cards.length === 0 ? (
           <div className="mt-4">
             <EmptyState title="Add your first vehicle" body="Year, make, and model is enough.">
               <Button asChild>
@@ -103,67 +92,118 @@ export default async function CustomerHomePage() {
             </EmptyState>
           </div>
         ) : (
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {garage.assets.slice(0, 6).map((asset) => {
-              const card = garageCardCopy(asset);
-              return <GarageCard key={asset.id} card={card} href={`/vehicles/${asset.vehicleId ?? asset.id}`} ctaHref={`/fix?asset=${asset.id}`} ctaLabel="Fix It" />;
-            })}
+          <div className="mt-4 flex snap-x gap-4 overflow-x-auto pb-2">
+            {cards.map((card) => (
+              <GarageCard key={card.id} card={card} href={`/vehicles/${card.vehicleId ?? card.id}`} ctaHref={`/fix?asset=${card.id}`} />
+            ))}
           </div>
         )}
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold text-ink">Active repairs</h2>
-        <div className="mt-4 space-y-3">
-          {jobs.length === 0 ? (
-            <p className="text-sm text-muted">No active repairs. When you Fix It, tracking lives here.</p>
-          ) : (
-            jobs.map((job) => (
-              <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-card p-4">
-                <div className="flex items-center justify-between gap-3">
+      <section className="mt-10 grid gap-4 lg:grid-cols-3">
+        <Card className="p-5" id="maintenance">
+          <h2 className="font-semibold text-ink">Upcoming for you</h2>
+          <div className="mt-4 space-y-3">
+            {maintenance.length === 0 ? (
+              <p className="text-sm text-muted">No due items from your records yet. Pocket Mechanic does not invent a schedule.</p>
+            ) : (
+              maintenance.slice(0, 4).map((item) => (
+                <div key={item.assetId + item.title} className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-ink">{job.mechanicProfile.businessName}</p>
-                    <p className="text-sm text-muted">{jobAssetLabel(job)} · {job.serviceRequest.problemText}</p>
+                    <p className="text-sm font-semibold text-ink">{item.title}</p>
+                    <p className="text-xs text-muted">{item.assetLabel} · {item.remainingLabel}</p>
                   </div>
-                  <JobStatusLabel status={job.status} />
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/fix?asset=${item.assetId}&kind=maintenance`}>Schedule</Link>
+                  </Button>
                 </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </section>
+              ))
+            )}
+          </div>
+        </Card>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold text-ink">Upcoming maintenance</h2>
-        <div className="mt-4 space-y-2">
-          {maintenance.length === 0 ? (
-            <p className="text-sm text-muted">No due items from your records yet. Pocket Mechanic does not invent a schedule.</p>
+        <Card className="p-5">
+          <h2 className="font-semibold text-ink">Maintenance estimate</h2>
+          {recommendedCents > 0 ? (
+            <>
+              <p className="number mt-3 text-3xl font-bold text-ink">{formatCents(recommendedCents)}</p>
+              <p className="mt-1 text-xs text-muted">Open recommended work from Pocket Mechanic jobs on this account.</p>
+            </>
           ) : (
-            maintenance.slice(0, 6).map((item) => (
-              <Link key={item.assetId + item.title} href={`/fix?asset=${item.assetId}&kind=maintenance`} className="block rounded-2xl border border-line bg-card p-4">
-                <p className="font-semibold text-ink">{item.title}</p>
-                <p className="text-sm text-muted">{item.assetLabel} · {item.remainingLabel} · {item.status.replaceAll("_", " ").toLowerCase()}</p>
-              </Link>
-            ))
+            <p className="mt-3 text-sm text-muted">Dollar estimates appear after a provider records recommended work. Nothing is invented here.</p>
           )}
-        </div>
+          {fixtures?.maintenanceOutlook ? (
+            <div className="mt-4">
+              <DemoBanner>{fixtures.maintenanceOutlook.note}</DemoBanner>
+              <div className="mt-3 flex h-24 items-end gap-2">
+                {fixtures.maintenanceOutlook.bars.map((bar) => (
+                  <div key={bar.label} className="flex flex-1 flex-col items-center gap-1">
+                    <div className="w-full rounded-t-lg bg-accent/80" style={{ height: `${bar.height}%` }} />
+                    <span className="text-[10px] text-muted">{bar.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted">
+                Illustration {formatCents(fixtures.maintenanceOutlook.minCents)}–{formatCents(fixtures.maintenanceOutlook.maxCents)}
+              </p>
+            </div>
+          ) : null}
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="font-semibold text-ink">Active repairs</h2>
+          <div className="mt-4 space-y-3">
+            {jobs.length === 0 ? (
+              <p className="text-sm text-muted">No active repairs. When you Fix It, tracking lives here.</p>
+            ) : (
+              jobs.map((job) => {
+                const percent = jobProgressPercent(job.status);
+                return (
+                  <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-xl border border-line bg-navy-soft p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold text-ink">{job.serviceRequest.problemText}</p>
+                      <JobStatusLabel status={job.status} />
+                    </div>
+                    <p className="mt-1 text-xs text-muted">{jobAssetLabel(job)} · {job.mechanicProfile.businessName}</p>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate">
+                      <div className="h-full rounded-full bg-accent" style={{ width: `${percent}%` }} />
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+            {unpaid.map((job) => (
+              <Link key={job.id} href={`/jobs/${job.id}/pay`} className="block rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
+                Pay {formatCents(job.totalCents)} · {job.mechanicProfile.businessName}
+              </Link>
+            ))}
+          </div>
+        </Card>
       </section>
 
-      <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-ink">Recent activity</h2>
-          <Link className="text-sm font-semibold text-accent" href="/history">History</Link>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {repairs.map((record) => (
-            <Link key={record.id} href={`/jobs/${record.jobId}`} className="rounded-2xl border border-line bg-card p-4">
-              <p className="font-semibold text-ink">{record.title}</p>
-              <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
-              {record.job.outcome ? <p className="mt-1 text-xs text-muted">Outcome: {record.job.outcome.resolved.toLowerCase()}</p> : <p className="mt-1 text-xs text-warning">Did this repair solve the original problem?</p>}
+      {repairs.length ? (
+        <section className="mt-10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-ink">Recent activity</h2>
+            <Link className="text-sm font-semibold text-accent" href="/history">
+              History
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {repairs.map((record) => (
+              <Link key={record.id} href={`/jobs/${record.jobId}`} className="rounded-2xl border border-line bg-card p-4">
+                <p className="font-semibold text-ink">{record.title}</p>
+                <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
+                {record.job.outcome ? (
+                  <p className="mt-1 text-xs text-muted">Outcome: {record.job.outcome.resolved.toLowerCase()}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-warning">Did this repair solve the original problem?</p>
+                )}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -124,6 +124,11 @@ export default async function GarageItemPage({
       {tab === "health" ? (
         <Card className="mt-6 p-5">
           <h2 className="font-semibold text-ink">From inspections</h2>
+          {health.score != null ? (
+            <p className="number mt-2 text-3xl font-bold text-ink">
+              {health.score}<span className="text-base font-medium text-muted">/100 · {health.label}</span>
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-muted">Pocket Mechanic does not invent a health score. This is only recorded findings.</p>
           {health.sections.length ? (
             <ul className="mt-3 space-y-1 text-sm">

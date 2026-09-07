@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { formatUsage } from "../lib/asset-display";
+import { healthFromFindings } from "../services/assets";
 import { garageHeadline } from "../lib/catalog";
 import { classifyNeed, classifyProblem, classifyTaxonomy } from "../services/problem-classifier";
 import { isVerifiedForIndustry, matchMechanics, type MatchableMechanic } from "../services/matching";
@@ -111,4 +112,16 @@ test("automotive verification is not inherited by marine", () => {
   });
   assert.equal(isVerifiedForIndustry(mike, "AUTOMOTIVE"), true);
   assert.equal(isVerifiedForIndustry(mike, "MARINE"), false);
+});
+
+test("asset health score is only computed from inspection findings", () => {
+  const empty = healthFromFindings([]);
+  assert.equal(empty.score, null);
+  const scored = healthFromFindings([
+    { section: "Brakes", status: "GOOD" },
+    { section: "Tires", status: "MONITOR" },
+    { section: "Battery", status: "NEEDS_ATTENTION" },
+  ]);
+  assert.equal(scored.score, 71);
+  assert.equal(scored.label, "Fair");
 });

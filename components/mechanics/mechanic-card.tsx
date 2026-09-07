@@ -43,16 +43,25 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
           <p className="text-sm text-muted">
             {mechanic.firstName} {mechanic.lastName}
           </p>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {mechanic.completedJobsCount >= 8 ? (
+              <p className="number text-lg font-bold text-accent">{Math.round(mechanic.mechanicScore)}% match</p>
+            ) : (
+              <p className="text-sm font-semibold text-ink">Recommended</p>
+            )}
             <Rating value={mechanic.averageRating} />
           </div>
+          {mechanic.completedJobsCount >= 8 ? (
+            <p className="mt-1 text-[11px] text-muted">From verified Pocket Mechanic history — not a diagnosis and not a purchased rank.</p>
+          ) : mechanic.precisionNote ? (
+            <p className="mt-1 text-[11px] text-muted">{mechanic.precisionNote}</p>
+          ) : null}
           <p className="mt-1 text-sm text-muted">
             {mechanic.completedJobsCount.toLocaleString()} verified Pocket Mechanic jobs · {formatDistance(mechanic.distanceMiles)}
           </p>
           {mechanic.reasons.length ? (
             <p className="mt-2 text-xs text-muted">{mechanic.reasons.join(" · ")}</p>
           ) : null}
-          {mechanic.precisionNote ? <p className="mt-1 text-xs text-muted">{mechanic.precisionNote}</p> : null}
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">

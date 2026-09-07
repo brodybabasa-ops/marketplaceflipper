@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/app/actions/auth";
 import { homeForRole, type SessionUser } from "@/lib/session-token";
 import { cn } from "@/lib/utils";
-import { MECHANIC_SIDEBAR, hqNavFor } from "@/components/layout/nav-config";
+import { MECHANIC_SIDEBAR, hqNavFor, CUSTOMER_SIDEBAR_PRIMARY, CUSTOMER_SIDEBAR_SECONDARY } from "@/components/layout/nav-config";
 
 function HeaderActions({ user, unreadCount }: { user: SessionUser | null; unreadCount: number }) {
   return (
@@ -137,31 +137,89 @@ export function CustomerShell({
 }) {
   const path = usePathname();
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-40 border-b border-line bg-navy/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Logo compact={false} />
-          <HeaderActions user={user} unreadCount={unreadCount} />
+    <div className="flex min-h-full">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-navy lg:flex">
+        <div className="border-b border-line px-4 py-5">
+          <Logo />
+          <p className="mt-3 text-[11px] font-semibold uppercase leading-4 tracking-[0.14em] text-muted">
+            Whatever you own. Whatever’s wrong with it.
+            <span className="mt-1 block text-accent">Fix It.</span>
+          </p>
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6 md:pb-10">{children}</main>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/95 backdrop-blur md:hidden">
-        <div className="grid grid-cols-5">
-          {CUSTOMER_BOTTOM.map((item) => {
-            const active = path === item.href || (item.href !== "/home" && path.startsWith(item.href));
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3" aria-label="Customer">
+          {CUSTOMER_SIDEBAR_PRIMARY.map((item) => {
+            const href = item.href.split("#")[0];
+            const active = item.href.includes("#")
+              ? false
+              : path === href || (href !== "/home" && path.startsWith(`${href}/`));
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn("flex flex-col items-center gap-1 py-2 text-[11px]", active ? "text-accent" : "text-muted")}
+                className={cn(
+                  "block rounded-xl px-3 py-2 text-sm font-medium",
+                  active ? "bg-accent text-white" : "text-muted hover:bg-slate hover:text-ink",
+                )}
               >
-                <item.icon className="h-5 w-5" />
                 {item.label}
               </Link>
             );
           })}
+          <p className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">More</p>
+          {CUSTOMER_SIDEBAR_SECONDARY.map((item) => {
+            const active = path === item.href || path.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "block rounded-xl px-3 py-2 text-sm font-medium",
+                  active ? "bg-slate text-ink" : "text-muted hover:bg-slate hover:text-ink",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="border-t border-line px-4 py-4">
+          <p className="text-sm font-semibold text-ink">
+            {user.firstName} {user.lastName}
+          </p>
+          <Link href="/account" className="text-xs text-muted hover:text-accent">
+            Profile & membership
+          </Link>
         </div>
-      </nav>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 border-b border-line bg-navy/95 backdrop-blur">
+          <div className="flex h-14 items-center justify-between px-4">
+            <div className="lg:hidden">
+              <Logo compact={false} />
+            </div>
+            <p className="hidden text-sm text-muted lg:block">Whatever you own. Whatever’s wrong with it. Fix it.</p>
+            <HeaderActions user={user} unreadCount={unreadCount} />
+          </div>
+        </header>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6 lg:pb-10">{children}</main>
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/95 backdrop-blur lg:hidden">
+          <div className="grid grid-cols-5">
+            {CUSTOMER_BOTTOM.map((item) => {
+              const active = path === item.href || (item.href !== "/home" && path.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn("flex min-h-12 flex-col items-center justify-center gap-1 py-2 text-[11px]", active ? "text-accent" : "text-muted")}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }
@@ -274,7 +332,7 @@ export function AppChrome({
   const path = usePathname();
   const customerApp =
     user?.role === "CUSTOMER" &&
-    ["/home", "/vehicles", "/jobs", "/messages", "/history", "/account", "/request", "/intake", "/fix", "/inspect", "/help-now", "/fleet", "/wallet", "/saved", "/disputes", "/notifications", "/estimates", "/compare"].some(
+    ["/home", "/vehicles", "/jobs", "/messages", "/history", "/account", "/request", "/intake", "/fix", "/inspect", "/help-now", "/fleet", "/wallet", "/saved", "/disputes", "/notifications", "/estimates", "/compare", "/mechanics"].some(
       (item) => path === item || path.startsWith(`${item}/`),
     );
 

@@ -8,7 +8,7 @@ export type IntakeDraft = {
   taxonomyKey: string;
   routingNote: string;
   specialties: string[];
-  followUps: { id: string; prompt: string; placeholder: string }[];
+  followUps: { id: string; prompt: string; placeholder: string; choices?: string[] }[];
 };
 
 function taxonomyLabel(industryKey: string, taxonomyKey: string) {
@@ -26,7 +26,16 @@ export function assistIntake(problemText: string, industryKey: string = "AUTOMOT
     : `This sounds consistent with a ${label.toLowerCase()} concern on a ${industry.consumerLabel}. Several components could cause it, so an inspection is appropriate. Pocket Mechanic routes and explains — it does not diagnose without a physical inspection.`;
 
   const followUps: IntakeDraft["followUps"] = [
-    { id: "conditions", prompt: "When does it happen?", placeholder: "Highway speed, after warmup, hitting bumps…" },
+    {
+      id: "conditions",
+      prompt: "When does it happen?",
+      placeholder: "Highway speed, after warmup, hitting bumps…",
+      choices: haystack.includes("shake") || haystack.includes("65")
+        ? ["Only at highway speed", "At all speeds", "When braking", "Not sure"]
+        : haystack.includes("bump") || haystack.includes("clunk")
+          ? ["Hitting bumps", "Turning", "All the time", "Not sure"]
+          : ["Just started", "Comes and goes", "All the time", "Not sure"],
+    },
     { id: "attempts", prompt: "Have you already tried a repair?", placeholder: "New battery last month, shop looked at it…" },
   ];
   if (classified.industryKey === "AUTOMOTIVE") {

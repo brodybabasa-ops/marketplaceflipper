@@ -24,6 +24,18 @@ export function visionFixtures() {
     priceExamples: [
       { taxonomyKey: "BRAKES", label: "Front brake replacement", minCents: 68000, maxCents: 81000, sampleSize: 24, region: "Salt Lake metro" },
     ],
+    maintenanceOutlook: {
+      minCents: 125000,
+      maxCents: 180000,
+      note: "Development fixture for a 12-month illustration — not a prediction from your assets.",
+      bars: [
+        { label: "Now", height: 28 },
+        { label: "Q2", height: 46 },
+        { label: "Q3", height: 62 },
+        { label: "Q4", height: 40 },
+        { label: "12mo", height: 74 },
+      ],
+    },
     membershipBenefits: [
       "Maintenance monitoring",
       "Priority support",

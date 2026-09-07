@@ -11,7 +11,7 @@ export const metadata = { title: "Fix It" };
 export default async function FixItPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vehicle?: string; mechanic?: string; asset?: string; kind?: string; urgent?: string }>;
+  searchParams: Promise<{ vehicle?: string; mechanic?: string; asset?: string; kind?: string; urgent?: string; q?: string }>;
 }) {
   const session = await requireSession("CUSTOMER");
   const params = await searchParams;
@@ -47,6 +47,7 @@ export default async function FixItPage({
           industryKey: asset.industry.key,
         }))}
         defaultAssetId={defaultAsset?.id}
+        defaultProblem={params.q}
         mechanicProfileId={params.mechanic}
         defaultZip={profile?.zip ?? "84101"}
         urgency={urgent ? "URGENT" : "NORMAL"}

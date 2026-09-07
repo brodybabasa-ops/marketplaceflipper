@@ -37,8 +37,12 @@ export default async function MechanicsSearchPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <p className="text-sm font-semibold uppercase tracking-wide text-muted">Mechanic search</p>
-      <h1 className="mt-1 text-3xl font-bold text-ink">Find a mechanic you can trust</h1>
+      <p className="text-sm font-semibold uppercase tracking-wide text-muted">
+        {query.request ? "Providers for your repair" : "Mechanic search"}
+      </p>
+      <h1 className="mt-1 text-3xl font-bold text-ink">
+        {query.request ? "Here are the right people" : "Find a mechanic you can trust"}
+      </h1>
       <p className="mt-2 text-muted">
         {zip ? `${zip.city}, ${zip.stateCode}` : "Near you"}
         {category ? ` · looking at ${category.toLowerCase().replaceAll("_", " ")}` : ""}
