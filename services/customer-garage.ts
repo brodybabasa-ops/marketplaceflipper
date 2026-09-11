@@ -12,6 +12,7 @@ export type GarageVehicle = {
   copyable?: boolean;
   usage: string;
   photo: string;
+  photoClass?: string;
   status: "ok" | "due";
   statusLabel: string;
   primary?: boolean;
@@ -45,6 +46,7 @@ const DISPLAY: Array<{
   copyable?: boolean;
   usage: string;
   photo: string;
+  photoClass?: string;
   status: "ok" | "due";
   statusLabel: string;
   primary?: boolean;
@@ -61,6 +63,7 @@ const DISPLAY: Array<{
     copyable: true,
     usage: "78,432 mi",
     photo: "/landing/hero-truck.png",
+    photoClass: "object-[78%_center]",
     status: "ok",
     statusLabel: "No Recalls",
     primary: true,
@@ -132,6 +135,7 @@ export async function getCustomerGarage(userId: string) {
       copyable: row.copyable,
       usage: row.usage,
       photo: row.photo,
+      photoClass: row.photoClass,
       status: row.status,
       statusLabel: row.statusLabel,
       primary: row.primary,

@@ -65,7 +65,7 @@ export function GarageShell({
           <Menu className="h-5 w-5" />
         </button>
         <Logo light stacked />
-        <nav className="ml-4 hidden flex-1 items-center gap-6 text-[13px] font-medium text-white/80 xl:flex">
+        <nav className="ml-8 hidden flex-1 items-center gap-7 text-[13px] font-medium text-white/80 xl:flex">
           {NAV.map((link) => (
             <Link key={link.label} href={link.href} className="transition hover:text-white">
               {link.label}
@@ -73,7 +73,7 @@ export function GarageShell({
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          <form action="/mechanics" className="relative hidden w-[220px] sm:block">
+          <form action="/mechanics" className="relative hidden w-[196px] sm:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/45" />
             <input
               name="q"
@@ -133,7 +133,7 @@ function GarageSidebar({ unreadMessages, onNavigate }: { unreadMessages: number;
               onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold",
-                active ? "bg-[#1b3d63] text-white shadow-[inset_0_0_0_1px_rgba(47,123,255,0.18)]" : "text-white/60 hover:bg-white/5 hover:text-white",
+                active ? "bg-[#1a334f] text-white" : "text-white/60 hover:bg-white/5 hover:text-white",
               )}
             >
               <Icon className="h-4 w-4" />
@@ -147,10 +147,10 @@ function GarageSidebar({ unreadMessages, onNavigate }: { unreadMessages: number;
           );
         })}
       </nav>
-      <div className="px-3 pb-4 pt-6">
+      <div className="mt-auto px-3 pb-5 pt-6">
         <div className="relative overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/dashboard-hero.png" alt="" className="h-52 w-full object-cover object-[80%_center]" />
+          <img src="/landing/dashboard-hero.png" alt="" className="h-56 w-full object-cover object-[82%_18%]" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,20,34,0.15)_0%,rgba(7,20,34,0.82)_55%,rgba(7,20,34,0.95)_100%)]" />
           <div className="absolute inset-x-0 bottom-0 p-4">
             <p className="text-lg font-extrabold leading-tight">Keep your vehicles on track.</p>

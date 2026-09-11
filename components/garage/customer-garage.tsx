@@ -55,23 +55,23 @@ export function CustomerGarage({
 }) {
   return (
     <div className="relative min-h-full bg-[#071422] pb-8 text-white">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[430px] overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[390px] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/hero-truck.png" alt="" className="h-full w-full object-cover object-[82%_42%]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.58)_36%,rgba(7,20,34,0.08)_70%),linear-gradient(180deg,rgba(7,20,34,0.2)_0%,rgba(7,20,34,0)_38%,rgba(7,20,34,0.92)_100%)]" />
+        <img src="/landing/hero-truck.png" alt="" className="h-full w-full object-cover object-[88%_28%]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.82)_0%,rgba(7,20,34,0.42)_34%,rgba(7,20,34,0.06)_68%),linear-gradient(180deg,rgba(7,20,34,0.18)_0%,rgba(7,20,34,0)_32%,rgba(7,20,34,0.88)_100%)]" />
       </div>
 
-      <div className="relative px-4 pt-5 sm:px-6 lg:px-7">
+      <div className="relative px-4 pt-4 sm:px-6 lg:px-7">
         <p className="text-[11px] font-bold tracking-[0.22em] text-[#2f7bff]">MY GARAGE</p>
-        <h1 className="mt-2 max-w-xl text-[40px] font-extrabold leading-[1.05] tracking-tight sm:text-[44px]">
+        <h1 className="mt-1.5 max-w-xl text-[38px] font-extrabold leading-[1.05] tracking-tight sm:text-[42px]">
           All Your Vehicles.
           <br />
           All in One Place.
         </h1>
-        <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
+        <p className="mt-2.5 max-w-md text-sm leading-relaxed text-white/70">
           Track maintenance, view repair history, and never miss a service again.
         </p>
-        <p className="font-script pointer-events-none absolute right-8 top-8 hidden max-w-[200px] rotate-[7deg] text-right text-[30px] leading-[1.05] text-white/90 xl:block">
+        <p className="font-script pointer-events-none absolute right-10 top-6 hidden max-w-[210px] rotate-[8deg] text-right text-[32px] leading-[1.05] text-white/95 xl:block">
           Good Vehicles
           <br />
           Lead to
@@ -79,16 +79,16 @@ export function CustomerGarage({
           Great Adventures.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
           {vehicles.map((vehicle) => (
             <VehicleTile key={`${vehicle.make}-${vehicle.model}`} vehicle={vehicle} />
           ))}
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-3.5 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
           <Link
             href="/vehicles/new"
-            className="flex min-h-[148px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#2f7bff]/40 px-4 text-center"
+            className="flex min-h-[132px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#2f7bff]/45 px-4 text-center"
           >
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#2f7bff] text-white">
               <Plus className="h-5 w-5" />
@@ -102,19 +102,19 @@ export function CustomerGarage({
             <Link
               key={action.title}
               href={action.href}
-              className="relative flex min-h-[148px] flex-col rounded-2xl bg-[#0d1f33] px-5 py-5"
+              className="relative flex min-h-[132px] flex-col rounded-2xl bg-[#0d1f33] px-5 py-4"
             >
               <action.icon className="h-5 w-5 text-white/85" />
-              <span className="mt-4 text-sm font-bold">{action.title}</span>
+              <span className="mt-3 text-sm font-bold">{action.title}</span>
               <span className="mt-1 text-xs text-white/50">{action.body}</span>
               <ChevronRight className="absolute bottom-5 right-5 h-4 w-4 text-[#2f7bff]" />
             </Link>
           ))}
         </div>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
-          <section className="rounded-2xl bg-[#0d1f33] p-5">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="mt-3.5 grid gap-3.5 xl:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
+          <section className="rounded-2xl bg-[#0d1f33] p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-bold">Upcoming Maintenance</h2>
               <Link href="/appointments" className="text-sm font-semibold text-[#2f7bff]">
                 View All
@@ -122,7 +122,7 @@ export function CustomerGarage({
             </div>
             <div className="space-y-2.5">
               {maintenance.map((item) => (
-                <article key={item.vehicleLabel} className="flex items-center gap-3 rounded-xl bg-[#0a1829] px-3 py-2.5">
+                <article key={item.vehicleLabel} className="flex items-center gap-3 rounded-xl bg-[#0a1829] px-3 py-2">
                   <Link href={item.href} className="flex min-w-0 flex-1 items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={item.photo} alt="" className="h-12 w-[72px] rounded-lg object-cover" />
@@ -143,8 +143,8 @@ export function CustomerGarage({
             </div>
           </section>
 
-          <section className="rounded-2xl bg-[#0d1f33] p-5">
-            <div className="mb-4 flex items-center justify-between">
+          <section className="rounded-2xl bg-[#0d1f33] p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-bold">Garage Insights</h2>
               <InsightsPeriod />
             </div>
@@ -154,13 +154,13 @@ export function CustomerGarage({
               <Insight icon={LineChart} value={insights.totalMaintenance} label="Total Maintenance" />
               <Insight icon={Shield} value={String(insights.openRecalls)} label="Open Recalls" />
             </div>
-            <p className="mt-5 text-center text-sm italic text-white/55">“Well maintained vehicles take you further.”</p>
+            <p className="mt-4 text-center text-sm italic text-white/55">“Well maintained vehicles take you further.”</p>
           </section>
         </div>
 
-        <section className="mt-4 rounded-2xl bg-[#0d1f33] px-5 py-4">
+        <section className="mt-3.5 rounded-2xl bg-[#0d1f33] px-5 py-4">
           <h2 className="text-lg font-bold">We Support All Types of Vehicles</h2>
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-medium text-white/70">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 text-xs font-medium text-white/70">
             {SUPPORT.map((item) => (
               <span key={item.label} className="inline-flex items-center gap-2">
                 <item.icon className="h-4 w-4 text-white/80" />
@@ -179,7 +179,7 @@ function VehicleTile({ vehicle }: { vehicle: GarageVehicle }) {
     <Link href={vehicle.href} className="overflow-hidden rounded-2xl bg-[#0d1f33]">
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={vehicle.photo} alt="" className="h-36 w-full object-cover" />
+        <img src={vehicle.photo} alt="" className={cn("h-[128px] w-full object-cover", vehicle.photoClass)} />
         {vehicle.primary ? (
           <span className="absolute right-3 top-3 rounded-full bg-[#2f7bff] px-2.5 py-0.5 text-[11px] font-semibold">Primary</span>
         ) : null}
