@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowRight, Calendar, ChevronDown, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -184,32 +182,44 @@ function RepairItem({ row }: { row: RepairRow }) {
 }
 
 function Stepper({ steps, current }: { steps: string[]; current: number }) {
+  const progress = current <= 0 ? 0 : (current / (steps.length - 1)) * 80;
   return (
-    <ol className="mt-3 flex w-full min-w-[268px] items-start">
-      {steps.map((step, index) => {
-        const done = index < current;
-        const active = index === current;
-        return (
-          <li key={step} className="flex min-w-0 flex-1 flex-col items-center">
-            <div className="flex w-full items-center">
-              <span className={cn("h-[2px] flex-1", index === 0 ? "bg-transparent" : done || active ? "bg-[#2f7bff]" : "bg-[#d5dee8]")} />
-              <span
-                className={cn(
-                  "z-[1] shrink-0 rounded-full",
-                  active
-                    ? "h-3.5 w-3.5 bg-[#2f7bff] ring-[5px] ring-[#2f7bff]/20"
-                    : done
-                      ? "h-2.5 w-2.5 bg-[#2f7bff]"
-                      : "h-2.5 w-2.5 border border-[#c5d0dc] bg-white",
-                )}
-              />
-              <span className={cn("h-[2px] flex-1", index === steps.length - 1 ? "bg-transparent" : done ? "bg-[#2f7bff]" : "bg-[#d5dee8]")} />
-            </div>
-            <span className="mt-1.5 px-0.5 text-center text-[11px] leading-tight text-[#7a8794]">{step}</span>
+    <div className="mt-3 min-w-[280px]">
+      <div className="relative h-3.5">
+        <span className="absolute left-[10%] right-[10%] top-1/2 h-[2px] -translate-y-1/2 bg-[#d5dee8]" />
+        <span
+          className="absolute top-1/2 h-[2px] -translate-y-1/2 bg-[#2f7bff]"
+          style={{ left: "10%", width: `${progress}%` }}
+        />
+        <ol className="relative grid h-full grid-cols-5">
+          {steps.map((step, index) => {
+            const done = index < current;
+            const active = index === current;
+            return (
+              <li key={step} className="flex items-center justify-center">
+                <span
+                  className={cn(
+                    "rounded-full",
+                    active
+                      ? "h-3.5 w-3.5 bg-[#2f7bff] ring-[5px] ring-[#2f7bff]/20"
+                      : done
+                        ? "h-2.5 w-2.5 bg-[#2f7bff]"
+                        : "h-2.5 w-2.5 border border-[#c5d0dc] bg-white",
+                  )}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <ol className="mt-1.5 grid grid-cols-5">
+        {steps.map((step) => (
+          <li key={step} className="px-0.5 text-center text-[9px] leading-tight text-[#7a8794]">
+            {step}
           </li>
-        );
-      })}
-    </ol>
+        ))}
+      </ol>
+    </div>
   );
 }
 
