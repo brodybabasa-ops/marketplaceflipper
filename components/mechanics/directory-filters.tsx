@@ -1,10 +1,14 @@
 "use client";
 
-import type { ComponentProps, FormEvent } from "react";
-import { DIRECTORY_SERVICES } from "@/lib/landing";
+import { useState, type ComponentProps, type FormEvent } from "react";
+import { Star } from "lucide-react";
+import { DIRECTORY_MORE_SERVICES, DIRECTORY_SERVICES, LANDING_LOCATION } from "@/lib/landing";
 import type { DirectoryQuery } from "@/components/mechanics/directory-search";
 
 const AMENITIES = ["Loaner Vehicles", "Shuttle Service", "After Hours Drop-Off", "Financing Available", "Warranty on Repairs"];
+
+const CHECK =
+  "h-3.5 w-3.5 shrink-0 appearance-none rounded-[3px] border border-white/35 bg-transparent checked:border-[#2f7bff] checked:bg-[#2f7bff] checked:bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22none%22 stroke=%22white%22 stroke-width=%222%22 d=%22M2.2 6.2 4.8 8.7 9.8 3.3%22/%3E%3C/svg%3E')] checked:bg-[length:10px_10px] checked:bg-center checked:bg-no-repeat";
 
 export function AutoSubmitSelect({ className, children, ...props }: ComponentProps<"select">) {
   return (
@@ -19,6 +23,11 @@ export function AutoSubmitSelect({ className, children, ...props }: ComponentPro
 }
 
 export function DirectoryFilters({ query }: { query: DirectoryQuery }) {
+  const extraOpen =
+    Boolean(query.category) &&
+    DIRECTORY_MORE_SERVICES.some((item) => item.value === query.category);
+  const [more, setMore] = useState(extraOpen);
+
   function submit(event: FormEvent<HTMLInputElement | HTMLSelectElement>) {
     event.currentTarget.form?.requestSubmit();
   }
@@ -27,7 +36,7 @@ export function DirectoryFilters({ query }: { query: DirectoryQuery }) {
     <aside className="rounded-2xl bg-[#102033] p-4 text-white">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Filters</h2>
-        <a href="/mechanics?zip=Layton%2C%20UT" className="text-xs font-semibold text-[#7eb0ff]">
+        <a href={`/mechanics?zip=${encodeURIComponent(LANDING_LOCATION)}`} className="text-xs font-semibold text-[#7eb0ff]">
           Clear all
         </a>
       </div>
@@ -57,103 +66,132 @@ export function DirectoryFilters({ query }: { query: DirectoryQuery }) {
 
       <section className="mt-6">
         <p className="text-sm font-semibold">Shop Type</p>
-        <div className="mt-3 space-y-2 text-sm">
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" value="" defaultChecked={!query.mode} onChange={submit} className="accent-[#2f7bff]" />
+        <div className="mt-3 space-y-2.5 text-sm">
+          <FilterOption name="mode" value="" defaultChecked={!query.mode} onChange={submit}>
             All Shops
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" value="DEALERSHIP" defaultChecked={query.mode === "DEALERSHIP"} onChange={submit} className="accent-[#2f7bff]" />
+          </FilterOption>
+          <FilterOption name="mode" value="DEALERSHIP" defaultChecked={query.mode === "DEALERSHIP"} onChange={submit}>
             Dealerships
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" value="SHOP" defaultChecked={query.mode === "SHOP"} onChange={submit} className="accent-[#2f7bff]" />
+          </FilterOption>
+          <FilterOption name="mode" value="SHOP" defaultChecked={query.mode === "SHOP"} onChange={submit}>
             Independent Shops
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="mode" value="MOBILE" defaultChecked={query.mode === "MOBILE"} onChange={submit} className="accent-[#2f7bff]" />
+          </FilterOption>
+          <FilterOption name="mode" value="MOBILE" defaultChecked={query.mode === "MOBILE"} onChange={submit}>
             Mobile Mechanics
-          </label>
+          </FilterOption>
         </div>
       </section>
 
       <section className="mt-6">
         <p className="text-sm font-semibold">Services</p>
-        <div className="mt-3 space-y-2 text-sm">
+        <div className="mt-3 space-y-2.5 text-sm">
           {DIRECTORY_SERVICES.map((item) => (
-            <label key={item.value} className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="serviceFilter"
-                value={item.value}
-                defaultChecked={query.category === item.value}
-                onChange={(event) => {
-                  const select = event.currentTarget.form?.elements.namedItem("category");
-                  if (select instanceof HTMLSelectElement) select.value = event.currentTarget.value;
-                  event.currentTarget.form?.requestSubmit();
-                }}
-                className="accent-[#2f7bff]"
-              />
+            <FilterOption
+              key={item.value}
+              name="category"
+              value={item.value}
+              defaultChecked={query.category === item.value}
+              onChange={submit}
+            >
               {item.label}
-            </label>
+            </FilterOption>
           ))}
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="serviceFilter"
-              value=""
-              defaultChecked={!query.category}
-              onChange={(event) => {
-                const select = event.currentTarget.form?.elements.namedItem("category");
-                if (select instanceof HTMLSelectElement) select.value = "";
-                event.currentTarget.form?.requestSubmit();
-              }}
-              className="accent-[#2f7bff]"
-            />
-            Any service
-          </label>
+          {more
+            ? DIRECTORY_MORE_SERVICES.map((item) => (
+                <FilterOption
+                  key={item.value}
+                  name="category"
+                  value={item.value}
+                  defaultChecked={query.category === item.value}
+                  onChange={submit}
+                >
+                  {item.label}
+                </FilterOption>
+              ))
+            : null}
+          {more ? (
+            <FilterOption name="category" value="" defaultChecked={!query.category} onChange={submit}>
+              Any service
+            </FilterOption>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setMore((value) => !value)}
+            className="pt-1 text-xs font-semibold text-[#7eb0ff]"
+          >
+            {more ? "Show less" : "Show more"}
+          </button>
         </div>
       </section>
 
       <section className="mt-6">
         <p className="text-sm font-semibold">Ratings</p>
-        <div className="mt-3 space-y-2 text-sm">
+        <div className="mt-3 space-y-2.5 text-sm">
           {[
-            { value: "4.5", label: "4.5+ ★" },
-            { value: "4", label: "4+ ★" },
-            { value: "3", label: "3+ ★" },
+            { value: "4.5", stars: 5, label: "4.5+ " },
+            { value: "4", stars: 4, label: "4+ " },
+            { value: "3", stars: 3, label: "3+ " },
           ].map((item) => (
-            <label key={item.value} className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="rating"
-                value={item.value}
-                defaultChecked={query.rating === item.value}
-                onChange={submit}
-                className="accent-[#2f7bff]"
-              />
-              {item.label}
-            </label>
+            <FilterOption
+              key={item.value}
+              name="rating"
+              value={item.value}
+              defaultChecked={query.rating === item.value}
+              onChange={submit}
+            >
+              <span className="inline-flex items-center gap-1">
+                {item.label}
+                {Array.from({ length: item.stars }).map((_, index) => (
+                  <Star key={index} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                ))}
+              </span>
+            </FilterOption>
           ))}
-          <label className="flex items-center gap-2">
-            <input type="radio" name="rating" value="" defaultChecked={!query.rating} onChange={submit} className="accent-[#2f7bff]" />
+          <FilterOption name="rating" value="" defaultChecked={!query.rating} onChange={submit}>
             Any rating
-          </label>
+          </FilterOption>
         </div>
       </section>
 
       <section className="mt-6">
         <p className="text-sm font-semibold">Amenities</p>
-        <p className="mt-1 text-[11px] text-white/45">Not in the current directory — these do not filter results.</p>
-        <div className="mt-3 space-y-2 text-sm text-white/45">
+        <div className="mt-3 space-y-2.5 text-sm text-white/45">
           {AMENITIES.map((item) => (
-            <label key={item} className="flex items-center gap-2">
-              <input type="checkbox" disabled className="accent-[#2f7bff]" />
+            <label key={item} className="flex items-center gap-2.5">
+              <input type="checkbox" disabled className={`${CHECK} opacity-50`} />
               {item}
             </label>
           ))}
         </div>
       </section>
     </aside>
+  );
+}
+
+function FilterOption({
+  name,
+  value,
+  defaultChecked,
+  onChange,
+  children,
+}: {
+  name: string;
+  value: string;
+  defaultChecked?: boolean;
+  onChange: (event: FormEvent<HTMLInputElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5">
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        defaultChecked={defaultChecked}
+        onChange={onChange}
+        className={CHECK}
+      />
+      {children}
+    </label>
   );
 }

@@ -26,7 +26,8 @@ export function DirectorySearchBar({ query }: { query: DirectoryQuery }) {
   const action = tab === "question" ? "/sign-up" : "/mechanics";
 
   return (
-    <div className="rounded-[28px] bg-[#102033] p-4 text-white shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-5">
+    <form action={action} className="rounded-[28px] bg-[#102033] p-4 text-white shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-5">
+      <CommittedFilters query={query} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           <TabButton active={tab === "shop"} onClick={() => setTab("shop")} icon={Search}>
@@ -102,15 +103,14 @@ export function DirectorySearchBar({ query }: { query: DirectoryQuery }) {
         <div className="flex items-end">
           <button
             type="submit"
-            formAction={action}
-            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#2f7bff] px-6 text-sm font-semibold text-white hover:bg-[#2568e8] lg:w-auto"
+            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#2f7bff] px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(47,123,255,0.35)] hover:bg-[#2568e8] lg:w-auto"
           >
             {tab === "question" ? "Ask a Question" : "Update Search"}
           </button>
         </div>
       </div>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-[1.6fr_auto]">
+      <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
         <DarkField label="Describe the issue (optional)">
           <input
             name="q"
@@ -127,7 +127,18 @@ export function DirectorySearchBar({ query }: { query: DirectoryQuery }) {
           </label>
         </div>
       </div>
-    </div>
+    </form>
+  );
+}
+
+function CommittedFilters({ query }: { query: DirectoryQuery }) {
+  return (
+    <>
+      {query.mode ? <input type="hidden" name="mode" value={query.mode} /> : null}
+      {query.rating ? <input type="hidden" name="rating" value={query.rating} /> : null}
+      <input type="hidden" name="distance" value={query.distance ?? "50"} />
+      <input type="hidden" name="sort" value={query.sort ?? "recommended"} />
+    </>
   );
 }
 

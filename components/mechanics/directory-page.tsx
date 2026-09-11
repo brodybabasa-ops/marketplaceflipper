@@ -12,6 +12,7 @@ import { DirectorySearchBar, type DirectoryQuery } from "@/components/mechanics/
 import { DirectoryFilters, AutoSubmitSelect } from "@/components/mechanics/directory-filters";
 import { DirectoryMap } from "@/components/mechanics/directory-map";
 import { EmptyState } from "@/components/ui/card";
+import { LANDING_LOCATION } from "@/lib/landing";
 import type { DirectoryShop } from "@/services/landing";
 
 export function DirectoryPage({
@@ -29,61 +30,73 @@ export function DirectoryPage({
   return (
     <div data-landing className="bg-[#071422] text-white">
       <Hero />
-      <form action="/mechanics" className="relative z-10 mx-auto -mt-6 max-w-[1280px] px-4 pb-8 sm:-mt-10 sm:px-6">
+      <div className="relative z-10 mx-auto -mt-14 max-w-[1280px] px-4 pb-8 sm:-mt-16 sm:px-6">
         <DirectorySearchBar query={query} />
-        <div className="mt-6 rounded-[28px] bg-[#eef2f6] p-4 text-navy sm:p-5">
-        <div className="grid items-start gap-4 xl:grid-cols-[240px_minmax(0,1fr)_320px]">
-          <DirectoryFilters query={query} />
-          <Results shops={visible} total={shops.length} locationLabel={locationLabel} query={query} />
-          <aside className="space-y-4">
-            <DirectoryMap shops={visible} origin={origin} />
-            <Link href="/request" className="block overflow-hidden rounded-2xl bg-[#102033] p-5">
-              <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#7eb0ff]">
-                <Wrench className="h-4 w-4" />
-                Need a custom repair?
-              </p>
-              <p className="mt-2 text-sm text-white/70">
-                Can&apos;t find exactly what you need? Send a request and we&apos;ll help you find the right shop.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-white">
-                Request a Shop
-                <ArrowRight className="h-4 w-4" />
-              </span>
-            </Link>
-            <Link href="/for-mechanics" className="block overflow-hidden rounded-2xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/landing/shop-1.png" alt="" className="h-28 w-full object-cover" />
-              <span className="block bg-[#102033] p-5">
-                <span className="block text-sm font-semibold">Shops: Want to be listed?</span>
-                <span className="mt-1 block text-sm text-white/70">
-                  Join thousands of repair shops growing with Pocket Mechanic.
-                </span>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#7eb0ff]">
-                  Learn More
+        <form action="/mechanics" className="mt-6 rounded-[28px] bg-[#eef2f6] p-4 text-navy sm:p-5">
+          <CommittedSearch query={query} />
+          <div className="grid items-start gap-4 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
+            <DirectoryFilters query={query} />
+            <Results shops={visible} total={shops.length} locationLabel={locationLabel} query={query} />
+            <aside className="space-y-4">
+              <DirectoryMap shops={visible} origin={origin} />
+              <Link href="/request" className="block overflow-hidden rounded-2xl bg-[#102033] p-5 text-white">
+                <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#7eb0ff]">
+                  <Wrench className="h-4 w-4" />
+                  Need a custom repair?
+                </p>
+                <p className="mt-2 text-sm text-white/70">
+                  Can&apos;t find exactly what you need? Send a request and we&apos;ll help you find the right shop.
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-white">
+                  Request a Shop
                   <ArrowRight className="h-4 w-4" />
                 </span>
-              </span>
-            </Link>
-          </aside>
-        </div>
-        </div>
-      </form>
+              </Link>
+              <Link href="/for-mechanics" className="block overflow-hidden rounded-2xl bg-[#102033] text-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/landing/shop-1.png" alt="" className="h-28 w-full object-cover" />
+                <span className="block p-5">
+                  <span className="block text-sm font-semibold">Shops: Want to be listed?</span>
+                  <span className="mt-1 block text-sm text-white/70">
+                    Join thousands of repair shops growing with Pocket Mechanic.
+                  </span>
+                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#7eb0ff]">
+                    Learn More
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </span>
+              </Link>
+            </aside>
+          </div>
+        </form>
+      </div>
       <TrustBar />
     </div>
   );
 }
 
+function CommittedSearch({ query }: { query: DirectoryQuery }) {
+  return (
+    <>
+      <input type="hidden" name="zip" value={query.zip ?? LANDING_LOCATION} />
+      {query.vehicleType ? <input type="hidden" name="vehicleType" value={query.vehicleType} /> : null}
+      {query.vehicle ? <input type="hidden" name="vehicle" value={query.vehicle} /> : null}
+      {query.q ? <input type="hidden" name="q" value={query.q} /> : null}
+    </>
+  );
+}
+
 function Hero() {
   return (
-    <section className="relative overflow-hidden pb-16 pt-24 sm:pb-20 sm:pt-28">
+    <section className="relative overflow-hidden pb-20 pt-20 sm:pb-24 sm:pt-24">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/landing/hero-truck.png"
         alt="Pickup truck on a mountain road at sunset"
         className="absolute inset-0 h-full w-full object-cover object-[72%_center]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_42%,rgba(7,20,34,0.25)_100%)]" />
-      <p className="font-script absolute right-[7%] top-28 hidden max-w-[200px] text-right text-2xl leading-tight text-white/90 lg:block">
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.68)_42%,rgba(7,20,34,0.22)_100%)]" />
+      <p className="font-script absolute right-[7%] top-24 hidden max-w-[200px] text-right text-2xl leading-tight text-white/90 lg:block">
         Same Roads.
         <br />
         Different Machines.
@@ -91,7 +104,7 @@ function Hero() {
         Same Solution.
       </p>
       <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
-        <h1 className="max-w-xl text-4xl font-extrabold tracking-tight sm:text-6xl">
+        <h1 className="max-w-xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-[56px]">
           Find the <span className="text-[#2f7bff]">Right Shop</span>
         </h1>
         <p className="mt-3 text-lg text-white/80">Trusted. Local. Verified. Get back to what you love.</p>
@@ -157,67 +170,65 @@ function Results({
           />
         </div>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-3">
           {shops.map((shop) => (
-            <article key={shop.slug} className="grid overflow-hidden rounded-2xl border border-line bg-white text-navy shadow-[0_10px_30px_rgba(14,28,47,0.06)] md:grid-cols-[150px_minmax(0,1fr)_210px]">
-              <div className="relative min-h-36">
+            <article
+              key={shop.slug}
+              className="grid overflow-hidden rounded-2xl border border-line bg-white text-navy shadow-[0_10px_30px_rgba(14,28,47,0.06)] md:grid-cols-[138px_minmax(0,1fr)_186px]"
+            >
+              <div className="relative min-h-32">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={shop.photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
               </div>
-              <div className="p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  {shop.verified ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
-                      <BadgeCheck className="h-4 w-4" />
-                      Verified
-                    </span>
-                  ) : null}
-                  {shop.sponsored ? (
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-warning">Sponsored</span>
-                  ) : null}
-                </div>
-                <h2 className="mt-1 text-xl font-bold">{shop.businessName}</h2>
+              <div className="px-4 py-3">
+                {shop.verified ? (
+                  <p className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                    <BadgeCheck className="h-4 w-4" />
+                    Verified
+                  </p>
+                ) : null}
+                {shop.sponsored ? (
+                  <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-warning">Sponsored</span>
+                ) : null}
+                <h2 className="text-lg font-bold leading-tight">{shop.businessName}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-1 text-sm text-muted">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                   <span className="font-semibold text-navy">{shop.averageRating.toFixed(1)}</span>
                   <span>({shop.reviewCount} reviews)</span>
                 </p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-0.5 text-sm text-muted">
                   {shop.distanceLabel}
                   {shop.distanceLabel ? " · " : ""}
                   {shop.city}, {shop.state}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {shop.specialties.map((item) => (
-                    <span key={item} className="rounded-full bg-paper px-2.5 py-1 text-[11px] font-semibold">
+                    <span key={item} className="rounded-full bg-paper px-2.5 py-0.5 text-[11px] font-semibold">
                       {item}
                     </span>
                   ))}
-                  {shop.serviceMode !== "SHOP" ? (
-                    <span className="rounded-full bg-paper px-2.5 py-1 text-[11px] font-semibold">Mobile</span>
+                  {shop.serviceMode === "MOBILE" ? (
+                    <span className="rounded-full bg-paper px-2.5 py-0.5 text-[11px] font-semibold">Mobile</span>
                   ) : null}
                 </div>
               </div>
-              <div className="flex flex-col justify-center gap-2 border-t border-line p-4 md:border-l md:border-t-0">
+              <div className="flex flex-col justify-center gap-1.5 border-t border-line px-4 py-3 md:border-l md:border-t-0">
                 {shop.openNow ? (
                   <p className="inline-flex items-center gap-1 text-sm font-semibold text-success">
-                    <span className="h-2 w-2 rounded-full bg-success" />
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-success text-[9px] text-white">✓</span>
                     Open Now
                   </p>
                 ) : (
                   <p className="text-sm font-semibold text-muted">Currently closed</p>
                 )}
-                <p className="text-xs text-muted">
-                  Earliest Availability
-                  <br />
-                  <span className="font-semibold text-navy">{shop.availabilityLabel}</span>
-                </p>
+                <p className="text-xs text-muted">Earliest Availability</p>
+                <p className="text-sm font-semibold text-navy">{shop.availabilityLabel}</p>
                 <Link href={`/mechanics/${shop.slug}`} className="text-sm font-semibold text-[#2f7bff]">
                   View Availability
                 </Link>
                 <Link
                   href={`/mechanics/${shop.slug}`}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2f7bff] text-sm font-semibold text-white hover:bg-[#2568e8]"
+                  className="mt-1 inline-flex h-10 items-center justify-center rounded-xl bg-[#2f7bff] text-sm font-semibold text-white hover:bg-[#2568e8]"
                 >
                   View Shop →
                 </Link>
@@ -234,14 +245,16 @@ function TrustBar() {
   return (
     <section className="relative overflow-hidden border-t border-white/10 bg-[#071422]">
       <div className="mx-auto grid max-w-[1280px] gap-6 px-4 py-8 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
-        {[
-          ["Verified Shops", "Shops you can trust"],
-          ["Real Reviews", "From real customers"],
-          ["Transparent information", "Know before you book"],
-          ["Easy Booking", "Get it done"],
-        ].map(([title, body]) => (
+        {(
+          [
+            [ShieldCheck, "Verified Shops", "Shops you can trust"],
+            [Star, "Real Reviews", "From real customers"],
+            [ClipboardList, "Transparent information", "Know before you book"],
+            [CalendarCheck, "Easy Booking", "Get it done"],
+          ] as const
+        ).map(([Icon, title, body]) => (
           <div key={title} className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-[#2f7bff]" />
+            <Icon className="mt-0.5 h-5 w-5 text-[#2f7bff]" />
             <div>
               <p className="font-semibold">{title}</p>
               <p className="text-sm text-white/60">{body}</p>

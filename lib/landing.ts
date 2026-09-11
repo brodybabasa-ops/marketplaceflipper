@@ -124,8 +124,13 @@ export function shopPhotoFor(slug: string) {
 export const DIRECTORY_SERVICES = [
   { value: "SUSPENSION", label: "Suspension & Steering" },
   { value: "BRAKES", label: "Brakes" },
+  { value: "STEERING", label: "Alignment" },
   { value: "DIAGNOSTICS", label: "Diagnostics" },
   { value: "MAINTENANCE", label: "General Repair" },
+  { value: "OTHER", label: "Custom / Performance" },
+] as const;
+
+export const DIRECTORY_MORE_SERVICES = [
   { value: "ENGINE", label: "Engine" },
   { value: "ELECTRICAL", label: "Electrical" },
   { value: "TRANSMISSION", label: "Transmission" },
