@@ -43,7 +43,7 @@ export function CustomerShell({
         </div>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className={overlay ? "relative flex-1" : "flex flex-1 flex-col"}>
+        <div className={overlay ? "relative flex min-h-full flex-1 flex-col" : "flex flex-1 flex-col"}>
           <button
             type="button"
             className="absolute left-4 top-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#071422] text-white lg:hidden"
@@ -53,7 +53,7 @@ export function CustomerShell({
             <Menu className="h-5 w-5" />
           </button>
           <CustomerHeader user={user} location={location} unreadNotifications={unreadNotifications} overlay={overlay} />
-          <div className={overlay ? "" : "flex-1 px-6 py-6"}>{children}</div>
+          <div className={overlay ? "flex min-h-full flex-1 flex-col" : "flex-1 px-6 py-6"}>{children}</div>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ export default async function MobileMechanicsPage() {
       title="Mobile"
       accent="mechanics."
       subtitle="Mechanics who can come to you. Still independent service providers — Pocket Mechanic is the marketplace, not the shop."
+      script="We'll get you there."
       wide
     >
       <div className="grid gap-4">

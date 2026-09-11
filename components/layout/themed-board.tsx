@@ -24,7 +24,7 @@ export function ThemedBoard({
   wide?: boolean;
 }) {
   return (
-    <div className="bg-[#e8eef4] text-navy">
+    <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <section className="relative overflow-hidden bg-[#071422] pb-16 pt-24">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className={cn("absolute inset-0 h-full w-full object-cover", objectPosition)} />
@@ -44,7 +44,7 @@ export function ThemedBoard({
           {script ? <p className="font-script mt-4 text-2xl text-white/90">{script}</p> : null}
         </div>
       </section>
-      <div className={cn("relative z-10 mx-auto -mt-8 w-full px-4 pb-12 sm:px-6", wide ? "max-w-[1180px]" : "max-w-[840px]")}>
+      <div className={cn("relative z-10 mx-auto -mt-8 w-full flex-1 px-4 pb-12 sm:px-6", wide ? "max-w-[1180px]" : "max-w-[840px]")}>
         <div className="overflow-hidden rounded-[28px] bg-white p-5 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-6">
           {children}
         </div>

@@ -24,7 +24,7 @@ export function MarketingShell({
   wide?: boolean;
 }) {
   return (
-    <div data-landing className="bg-[#071422] text-white">
+    <div data-landing className="flex min-h-screen flex-col bg-[#071422] text-white">
       <section className="relative overflow-hidden pb-16 pt-28 sm:pt-32">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className={cn("absolute inset-0 h-full w-full object-cover", objectPosition)} />
@@ -43,7 +43,7 @@ export function MarketingShell({
           {script ? <p className="font-script mt-4 text-2xl text-white/90">{script}</p> : null}
         </div>
       </section>
-      <div className={cn("relative z-10 mx-auto -mt-10 px-4 pb-16 sm:px-6", wide ? "max-w-[1100px]" : "max-w-[840px]")}>
+      <div className={cn("relative z-10 mx-auto -mt-10 flex-1 px-4 pb-16 sm:px-6", wide ? "max-w-[1100px]" : "max-w-[840px]")}>
         <div className="rounded-[28px] bg-[#eef2f6] p-6 text-navy shadow-[0_18px_40px_rgba(14,28,47,0.12)] sm:p-8">{children}</div>
       </div>
       <MarketingFooter />
