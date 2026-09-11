@@ -25,7 +25,7 @@ export function CustomerShell({
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div data-dashboard className="flex min-h-screen bg-[#e8eef4] text-navy">
-      <div className="hidden lg:flex">
+      <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">
         <CustomerSidebar unreadMessages={unreadMessages} />
       </div>
       {menuOpen ? (

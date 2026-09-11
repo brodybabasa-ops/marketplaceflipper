@@ -29,11 +29,6 @@ export function MarketingShell({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className={cn("absolute inset-0 h-full w-full object-cover", objectPosition)} />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_48%,rgba(7,20,34,0.28)_100%)]" />
-        {script ? (
-          <p className="font-script absolute right-[7%] top-28 hidden max-w-[200px] text-right text-2xl leading-tight text-white/90 lg:block">
-            {script}
-          </p>
-        ) : null}
         <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl">
             {title}
@@ -45,6 +40,7 @@ export function MarketingShell({
             ) : null}
           </h1>
           {subtitle ? <p className="mt-4 max-w-xl text-lg text-white/75">{subtitle}</p> : null}
+          {script ? <p className="font-script mt-4 text-2xl text-white/90">{script}</p> : null}
         </div>
       </section>
       <div className={cn("relative z-10 mx-auto -mt-10 px-4 pb-16 sm:px-6", wide ? "max-w-[1100px]" : "max-w-[840px]")}>

@@ -47,7 +47,7 @@ function StoreBadge({ href, store }: { href: string; store: "apple" | "google" }
 export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages: number; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <aside className="flex w-[240px] shrink-0 flex-col bg-[#071422] text-white">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col overflow-y-auto bg-[#071422] text-white">
       <div className="px-5 py-5">
         <Logo light stacked />
       </div>
@@ -76,27 +76,21 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
           );
         })}
       </nav>
-      <div className="px-4 pb-5">
-        <div className="overflow-hidden rounded-2xl bg-white/5 p-3">
-          <div className="flex items-end gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/landing/app-phone.png" alt="" className="h-[100px] w-[72px] shrink-0 object-contain object-bottom" />
-            <div className="min-w-0 pb-1">
-              <p className="text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
-              <Link
-                href="/sign-up"
-                className="mt-2 inline-flex h-9 items-center justify-center rounded-lg bg-[#2f7bff] px-3 text-sm font-semibold text-white"
-              >
-                Get the App
-              </Link>
-            </div>
-          </div>
+      <div className="mt-auto px-4 pb-5 pt-4">
+        <div className="rounded-2xl bg-white/5 p-3">
+          <p className="text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
+          <Link
+            href="/sign-up"
+            className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2f7bff] text-sm font-semibold text-white"
+          >
+            Get the App
+          </Link>
           <div className="mt-3 flex gap-1.5">
             <StoreBadge href="/sign-up" store="apple" />
             <StoreBadge href="/sign-up" store="google" />
           </div>
         </div>
-        <div className="mt-5 px-1">
+        <div className="mt-4 px-1">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">
             <HelpCircle className="h-4 w-4 text-[#2f7bff]" />
             Need Help?
