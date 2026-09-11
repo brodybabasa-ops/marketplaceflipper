@@ -35,6 +35,7 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --font-sans: var(--font-plus-jakarta);
+  --font-script: var(--font-caveat);
   --radius-xl: 1.1rem;
   --radius-2xl: 1.5rem;
 }
@@ -58,6 +59,19 @@ body {
   color: var(--navy);
 }
 
-.number {
-  font-variant-numeric: tabular-nums;
+.font-script {
+  font-family: var(--font-caveat), "Segoe Script", cursive;
+}
+
+.landing-header {
+  display: none;
+}
+
+body:has([data-landing]) .landing-header {
+  display: block;
+}
+
+body:has([data-landing]) .app-header,
+body:has([data-landing]) .app-footer {
+  display: none;
 }
