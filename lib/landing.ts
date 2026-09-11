@@ -144,16 +144,16 @@ export function shopPhotoFor(slug: string) {
 
 export function vehiclePhotoFor(make: string, model: string) {
   const hay = `${make} ${model}`.toLowerCase();
-  if (hay.includes("centurion") || hay.includes("ri245") || hay.includes("wake") || hay.includes("boat")) {
+  if (hay.includes("centurion") || hay.includes("ri245") || hay.includes("ri257") || hay.includes("wake") || hay.includes("boat")) {
     return "/landing/vehicle-boat.png";
   }
-  if (hay.includes("ktm") || hay.includes("sx-f") || hay.includes("dirt") || hay.includes("motorcycle")) {
+  if (hay.includes("ktm") || hay.includes("sx-f") || hay.includes("xc-f") || hay.includes("dirt") || hay.includes("motorcycle")) {
     return "/landing/vehicle-dirtbike.png";
   }
   if (hay.includes("winnebago") || hay.includes("minnie") || hay.includes("rv")) {
     return "/landing/vehicle-rv.png";
   }
-  if (hay.includes("yamaha") || hay.includes("fx cruiser") || hay.includes("jet") || hay.includes("pwc")) {
+  if (hay.includes("yamaha") || hay.includes("sea-doo") || hay.includes("fx cruiser") || hay.includes("jet") || hay.includes("pwc")) {
     return "/landing/vehicle-jetski.png";
   }
   if (hay.includes("haulmark") || hay.includes("trailer")) {

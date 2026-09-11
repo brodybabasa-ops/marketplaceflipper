@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { CustomerSidebar } from "@/components/layout/customer-sidebar";
 import { CustomerHeader } from "@/components/layout/customer-header";
+import { GarageShell } from "@/components/garage/garage-shell";
 import type { SessionUser } from "@/lib/session-token";
 
 export function CustomerShell({
@@ -19,7 +21,15 @@ export function CustomerShell({
   unreadNotifications: number;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  if (pathname === "/vehicles") {
+    return (
+      <GarageShell user={user} unreadMessages={unreadMessages} unreadNotifications={unreadNotifications}>
+        {children}
+      </GarageShell>
+    );
+  }
   const overlay = true;
   return (
     <div data-dashboard className="flex min-h-screen bg-[#e8eef4] text-navy">
