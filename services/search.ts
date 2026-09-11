@@ -43,6 +43,18 @@ export async function searchMechanics(input: {
       ? classifyProblem(input.q)
       : undefined;
 
+  if (input.mode === "DEALERSHIP") {
+    const emptyFilters: MatchFilters = {
+      origin: zip ? { latitude: zip.latitude, longitude: zip.longitude } : undefined,
+      category,
+      makeName: input.make || input.vehicle?.split(" ").slice(1, 2)[0],
+      verifiedOnly: input.verified === "1",
+      maxDistanceMiles: input.distance ? Number(input.distance) : undefined,
+      sort: (input.sort as MechanicSort) || "recommended",
+    };
+    return { matches: [], zip, category, filters: emptyFilters };
+  }
+
   const filters: MatchFilters = {
     origin: zip ? { latitude: zip.latitude, longitude: zip.longitude } : undefined,
     category,

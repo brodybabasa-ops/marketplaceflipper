@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, MapPin, Menu, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
@@ -67,6 +68,7 @@ function AppHeader({ user }: { user: SessionUser | null }) {
 }
 
 function LandingHeader({ user }: { user: SessionUser | null }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
 
@@ -76,7 +78,16 @@ function LandingHeader({ user }: { user: SessionUser | null }) {
         <Logo light stacked />
         <nav className="hidden items-center gap-6 text-[13px] font-medium text-white/80 lg:flex">
           {LANDING_LINKS.map((link) => (
-            <Link key={`${link.href}-${link.label}`} href={link.href} className="hover:text-white">
+            <Link
+              key={`${link.href}-${link.label}`}
+              href={link.href}
+              className={
+                (link.label === "Find a Shop" && pathname === "/mechanics") ||
+                (link.href === pathname && link.label !== "Find a Shop" && link.label !== "Services")
+                  ? "border-b-2 border-white pb-0.5 text-white"
+                  : "hover:text-white"
+              }
+            >
               {link.label}
             </Link>
           ))}

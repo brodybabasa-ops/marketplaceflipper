@@ -96,3 +96,38 @@ export function formatReviewer(firstName: string, lastName: string) {
   const last = lastName.trim();
   return last ? `${firstName} ${last.charAt(0)}.` : firstName;
 }
+
+export function isOpenNow(
+  slots: { dayOfWeek: string; startTime: string; endTime: string }[],
+  now = new Date(),
+) {
+  if (!slots.length) return false;
+  const tz = "America/Denver";
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: tz }).format(now).toUpperCase();
+  const clock = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: tz,
+  }).format(now);
+  const nowMinutes = minutesFromClock(clock.replace(" ", ""));
+  const slot = slots.find((item) => item.dayOfWeek === weekday);
+  if (!slot) return false;
+  return nowMinutes >= minutesFromClock(slot.startTime) && nowMinutes < minutesFromClock(slot.endTime);
+}
+
+export function shopPhotoFor(slug: string) {
+  const sum = slug.split("").reduce((total, char) => total + char.charCodeAt(0), 0);
+  return SHOP_PHOTOS[sum % SHOP_PHOTOS.length];
+}
+
+export const DIRECTORY_SERVICES = [
+  { value: "SUSPENSION", label: "Suspension & Steering" },
+  { value: "BRAKES", label: "Brakes" },
+  { value: "DIAGNOSTICS", label: "Diagnostics" },
+  { value: "MAINTENANCE", label: "General Repair" },
+  { value: "ENGINE", label: "Engine" },
+  { value: "ELECTRICAL", label: "Electrical" },
+  { value: "TRANSMISSION", label: "Transmission" },
+  { value: "AC_HEATING", label: "A/C & heating" },
+] as const;
