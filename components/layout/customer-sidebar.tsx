@@ -30,6 +30,20 @@ const LINKS = [
   { href: "/account", label: "Account Settings", icon: Settings },
 ];
 
+function StoreBadge({ href, store }: { href: string; store: "apple" | "google" }) {
+  return (
+    <Link href={href} className="inline-flex h-8 flex-1 items-center gap-1.5 rounded-md bg-black px-2 text-white">
+      <span className="text-base leading-none">{store === "apple" ? "" : "▶"}</span>
+      <span className="min-w-0 leading-tight">
+        <span className="block text-[7px] uppercase tracking-wide text-white/70">
+          {store === "apple" ? "Download on the" : "Get it on"}
+        </span>
+        <span className="block truncate text-[10px] font-semibold">{store === "apple" ? "App Store" : "Google Play"}</span>
+      </span>
+    </Link>
+  );
+}
+
 export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages: number; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
@@ -62,18 +76,25 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
           );
         })}
       </nav>
-      <div className="px-4 pb-4">
-        <div className="overflow-hidden rounded-2xl bg-white/5 p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/app-phone.png" alt="" className="mx-auto h-28 w-auto object-contain" />
-          <p className="mt-3 text-sm font-semibold">Take Pocket Mechanic on the go.</p>
-          <Link
-            href="/sign-up"
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-[#2f7bff] px-4 text-sm font-semibold text-white"
-          >
-            Get the App
-          </Link>
-          <p className="mt-2 text-[11px] text-white/45">Sign in on any phone. Store listings open sign-up until apps are live.</p>
+      <div className="px-4 pb-5">
+        <div className="overflow-hidden rounded-2xl bg-white/5 p-3">
+          <div className="flex items-end gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/landing/app-phone.png" alt="" className="h-[108px] w-auto object-contain" />
+            <div className="min-w-0 pb-1">
+              <p className="text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
+              <Link
+                href="/sign-up"
+                className="mt-2 inline-flex h-9 items-center justify-center rounded-lg bg-[#2f7bff] px-3 text-sm font-semibold text-white"
+              >
+                Get the App
+              </Link>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-1.5">
+            <StoreBadge href="/sign-up" store="apple" />
+            <StoreBadge href="/sign-up" store="google" />
+          </div>
         </div>
         <div className="mt-5 px-1">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">
@@ -93,10 +114,6 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
             </Link>
           </div>
         </div>
-      </div>
-      <div className="border-t border-white/10 px-5 py-4">
-        <Logo light stacked className="scale-90 origin-left" />
-        <p className="mt-2 text-[11px] text-white/45">Anything Mechanical. Anywhere.</p>
       </div>
     </aside>
   );

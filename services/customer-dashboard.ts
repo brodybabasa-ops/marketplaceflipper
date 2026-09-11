@@ -109,7 +109,12 @@ export async function getCustomerDashboard(userId: string) {
     }),
   ]);
 
-  const activeJobs = jobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED");
+  const dashboardVehicles = vehicles.slice(0, 3);
+  const dashboardVehicleIds = new Set(dashboardVehicles.map((vehicle) => vehicle.id));
+  const activeJobs = jobs.filter(
+    (job) =>
+      dashboardVehicleIds.has(job.vehicleId) && job.status !== "COMPLETED" && job.status !== "CANCELLED",
+  );
   const { shops, zip } = await getDirectoryShops({
     zip: chrome.zip ?? "84041",
     distance: "50",
@@ -118,7 +123,7 @@ export async function getCustomerDashboard(userId: string) {
 
   const statusOrder: JobStatus[] = ["IN_PROGRESS", "DIAGNOSING", "EN_ROUTE", "ARRIVED", "AWAITING_APPROVAL", "REQUESTED", "SCHEDULED", "ACCEPTED"];
   const sortedActive = [...activeJobs].sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
-  const repairs: DashboardRepair[] = sortedActive.slice(0, 4).map((job) => {
+  const repairs: DashboardRepair[] = sortedActive.slice(0, 3).map((job) => {
     const estimate = job.estimates[0];
     const estimateReady = Boolean(estimate && (estimate.status === "SENT" || job.status === "AWAITING_APPROVAL"));
     const appointmentReady = Boolean(job.scheduledAt && job.status !== "REQUESTED");
@@ -159,7 +164,7 @@ export async function getCustomerDashboard(userId: string) {
 
   return {
     locationLabel: chrome.location ?? (zip ? `${zip.city}, ${zip.stateCode}` : "Utah"),
-    vehicles: vehicles.map((vehicle): DashboardVehicle => ({
+    vehicles: dashboardVehicles.map((vehicle): DashboardVehicle => ({
       id: vehicle.id,
       label: `${vehicle.make.name} ${vehicle.model.name}`,
       year: vehicle.year,

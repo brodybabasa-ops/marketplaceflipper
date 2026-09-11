@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, MapPin, Search } from "lucide-react";
+import { Bell, ChevronDown, MapPin, Search } from "lucide-react";
 import { initials } from "@/lib/utils";
 import type { SessionUser } from "@/lib/session-token";
 import { cn } from "@/lib/utils";
@@ -33,10 +33,11 @@ export function CustomerHeader({
         />
       </form>
       <div className="flex items-center gap-3 text-white">
-        <span className="hidden items-center gap-1.5 text-sm text-white/80 md:inline-flex">
+        <Link href="/account" className="hidden items-center gap-1.5 text-sm text-white/80 md:inline-flex">
           <MapPin className="h-4 w-4 text-[#2f7bff]" />
           {location}
-        </span>
+          <ChevronDown className="h-3.5 w-3.5 text-white/55" />
+        </Link>
         <Link
           href="/messages"
           className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white"
@@ -54,6 +55,7 @@ export function CustomerHeader({
           <span className="hidden text-sm font-semibold sm:inline">
             {user.firstName} {user.lastName.charAt(0)}.
           </span>
+          <ChevronDown className="hidden h-3.5 w-3.5 text-white/55 sm:block" />
         </Link>
       </div>
     </header>
