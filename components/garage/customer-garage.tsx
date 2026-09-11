@@ -55,9 +55,9 @@ export function CustomerGarage({
 }) {
   return (
     <div className="relative min-h-full bg-[#071422] pb-8 text-white">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[390px] overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/hero-truck.png" alt="" className="h-full w-full object-cover object-[88%_28%]" />
+        <img src="/landing/hero-truck.png" alt="" className="h-full w-full object-cover object-[80%_center]" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.82)_0%,rgba(7,20,34,0.42)_34%,rgba(7,20,34,0.06)_68%),linear-gradient(180deg,rgba(7,20,34,0.18)_0%,rgba(7,20,34,0)_32%,rgba(7,20,34,0.88)_100%)]" />
       </div>
 
