@@ -14,15 +14,12 @@ export default async function MechanicReviewsPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-navy">Reviews</h1>
-      <div className="mt-6 space-y-4">
-        {reviews.length === 0 ? (
-          <EmptyState title="No reviews yet" body="Completed jobs can be reviewed by the customer who booked them." />
-        ) : (
-          reviews.map((review) => <ReviewCard key={review.id} review={review} />)
-        )}
-      </div>
+    <div className="space-y-4">
+      {reviews.length === 0 ? (
+        <EmptyState title="No reviews yet" body="Completed jobs can be reviewed by the customer who booked them." />
+      ) : (
+        reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+      )}
     </div>
   );
 }

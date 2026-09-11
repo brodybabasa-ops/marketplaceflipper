@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { StatCard } from "@/components/layout/themed-board";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -16,24 +16,14 @@ export default async function EarningsPage() {
   const gross = jobs.reduce((sum, job) => sum + job.totalCents, 0);
   const commission = Math.round(gross * ((config?.commissionPercent ?? 10) / 100));
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-navy">Earnings</h1>
-      <p className="mt-2 text-sm text-muted">
+    <div>
+      <p className="text-sm text-muted">
         Payments are not processed in this MVP. When Stripe Connect is enabled, payouts will use the same job totals and configurable commission.
       </p>
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <Card className="p-5">
-          <p className="text-sm text-muted">Completed job volume</p>
-          <p className="number mt-1 text-2xl font-bold text-navy">{formatCents(gross)}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Platform commission ({config?.commissionPercent ?? 10}%)</p>
-          <p className="number mt-1 text-2xl font-bold text-navy">{formatCents(commission)}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Mechanic net</p>
-          <p className="number mt-1 text-2xl font-bold text-navy">{formatCents(gross - commission)}</p>
-        </Card>
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <StatCard label="Completed job volume" value={formatCents(gross)} />
+        <StatCard label={`Platform commission (${config?.commissionPercent ?? 10}%)`} value={formatCents(commission)} />
+        <StatCard label="Mechanic net" value={formatCents(gross - commission)} />
       </div>
     </div>
   );

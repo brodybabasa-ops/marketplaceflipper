@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { CustomerSidebar } from "@/components/layout/customer-sidebar";
 import { CustomerHeader } from "@/components/layout/customer-header";
@@ -20,9 +19,8 @@ export function CustomerShell({
   unreadNotifications: number;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const overlay = pathname === "/home" || pathname === "/jobs";
   const [menuOpen, setMenuOpen] = useState(false);
+  const overlay = true;
   return (
     <div data-dashboard className="flex min-h-screen bg-[#e8eef4] text-navy">
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">
@@ -45,7 +43,7 @@ export function CustomerShell({
         </div>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className={overlay ? "relative flex-1" : "flex flex-1 flex-col"}>
+        <div className={overlay ? "relative flex min-h-full flex-1 flex-col" : "flex flex-1 flex-col"}>
           <button
             type="button"
             className="absolute left-4 top-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#071422] text-white lg:hidden"
@@ -55,7 +53,7 @@ export function CustomerShell({
             <Menu className="h-5 w-5" />
           </button>
           <CustomerHeader user={user} location={location} unreadNotifications={unreadNotifications} overlay={overlay} />
-          <div className={overlay ? "" : "flex-1 px-6 py-6"}>{children}</div>
+          <div className={overlay ? "flex min-h-full flex-1 flex-col" : "flex-1 px-6 py-6"}>{children}</div>
         </div>
       </div>
     </div>

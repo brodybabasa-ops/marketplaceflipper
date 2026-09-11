@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { BoardRow } from "@/components/layout/themed-board";
 import { hideReviewAction } from "@/app/actions/admin";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -13,29 +14,26 @@ export default async function AdminReviewsPage() {
     take: 50,
   });
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-3xl font-bold text-navy">Reviews</h1>
-      <div className="mt-6 space-y-3">
-        {reviews.map((review) => (
-          <div key={review.id} className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-semibold text-navy">
-              {review.overallRating}★ · {review.mechanic.businessName}
-            </p>
-            <p className="text-sm">{review.body}</p>
-            <p className="mt-1 text-xs text-muted">
-              {review.customer.email} {review.hidden ? "· hidden" : ""}
-            </p>
-            {!review.hidden ? (
-              <form action={hideReviewAction} className="mt-3">
-                <input type="hidden" name="reviewId" value={review.id} />
-                <Button size="sm" variant="secondary">
-                  Hide review
-                </Button>
-              </form>
-            ) : null}
-          </div>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {reviews.map((review) => (
+        <BoardRow key={review.id}>
+          <p className="font-semibold text-navy">
+            {review.overallRating}★ · {review.mechanic.businessName}
+          </p>
+          <p className="text-sm">{review.body}</p>
+          <p className="mt-1 text-xs text-muted">
+            {review.customer.email} {review.hidden ? "· hidden" : ""}
+          </p>
+          {!review.hidden ? (
+            <form action={hideReviewAction} className="mt-3">
+              <input type="hidden" name="reviewId" value={review.id} />
+              <Button size="sm" variant="secondary">
+                Hide review
+              </Button>
+            </form>
+          ) : null}
+        </BoardRow>
+      ))}
     </div>
   );
 }

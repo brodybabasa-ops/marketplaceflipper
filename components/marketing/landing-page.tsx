@@ -109,7 +109,7 @@ function HowItWorks() {
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
             A better way
             <br />
-            to find a mechanic.
+            to find a <span className="text-[#2f7bff]">mechanic.</span>
           </h2>
           <p className="mt-4 max-w-md text-white/70">
             No more guessing. Pocket Mechanic connects you with trusted, verified shops that specialize in your exact
@@ -161,7 +161,7 @@ function HowItWorks() {
 
 function FeaturedShops({ shops }: { shops: FeaturedShop[] }) {
   return (
-    <section className="bg-white py-16 text-navy sm:py-20">
+    <section className="bg-[#e8eef4] py-16 text-navy sm:py-20">
       <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="flex items-end justify-between gap-4 lg:pr-[300px]">
             <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Featured Shops Near You</h2>

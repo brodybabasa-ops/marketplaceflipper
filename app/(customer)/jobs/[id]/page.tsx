@@ -5,10 +5,12 @@ import { ReviewCard } from "@/components/jobs/review-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea, Input } from "@/components/ui/input";
+import { ThemedBoard } from "@/components/layout/themed-board";
 import { createDisputeAction, createReviewAction, sendMessageAction } from "@/app/actions/marketplace";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
+import { vehiclePhotoFor } from "@/lib/landing";
 
 export const metadata = { title: "Job" };
 
@@ -17,17 +19,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const job = await getJobForUser(id, session.id, session.role);
   if (!job) notFound();
+  const vehicleLabel = `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`;
   return (
-    <div className="mx-auto max-w-5xl">
-      <p className="text-sm text-muted">{job.mechanicProfile.businessName}</p>
-      <h1 className="text-3xl font-bold text-navy">{job.serviceRequest.problemText}</h1>
-      <p className="mt-1 text-muted">
-        {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
-      </p>
-
-      <div className="mt-8 grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+    <ThemedBoard
+      eyebrow={job.mechanicProfile.businessName.toUpperCase()}
+      title={job.serviceRequest.problemText}
+      subtitle={vehicleLabel}
+      script="Stay in the Loop."
+      image={vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name)}
+    >
+      <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <Card className="p-5">
+          <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
             <h2 className="font-semibold text-navy">Status</h2>
             <div className="mt-4">
               <StatusTimeline status={job.status} />
@@ -37,7 +40,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
           ))}
           {job.repairRecord ? (
-            <Card className="p-5">
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
               <h2 className="font-semibold text-navy">Repair completed</h2>
               <p className="mt-2 text-lg font-semibold">{job.repairRecord.title}</p>
               <p className="text-sm text-muted">
@@ -51,7 +54,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </Card>
           ) : null}
           {job.status === "COMPLETED" && !job.review && session.role === "CUSTOMER" ? (
-            <Card className="p-5">
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
               <h2 className="font-semibold text-navy">Leave a review</h2>
               <p className="text-sm text-muted">Only completed Pocket Mechanic jobs can be reviewed.</p>
               <form action={createReviewAction} className="mt-4 space-y-3">
@@ -84,7 +87,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="space-y-4">
           {job.thread ? (
-            <Card className="p-5">
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
               <h2 className="font-semibold text-navy">Messages</h2>
               <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">
                 {job.thread.messages.map((message) => (
@@ -104,7 +107,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </Card>
           ) : null}
           {session.role === "CUSTOMER" ? (
-            <Card className="p-5">
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
               <h2 className="font-semibold text-navy">Report a problem</h2>
               <form action={createDisputeAction} className="mt-3 space-y-3">
                 <input type="hidden" name="jobId" value={job.id} />
@@ -126,6 +129,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           ) : null}
         </div>
       </div>
-    </div>
+    </ThemedBoard>
   );
 }

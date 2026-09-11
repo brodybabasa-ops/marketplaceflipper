@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { BoardRow } from "@/components/layout/themed-board";
 import { reviewVerificationAction } from "@/app/actions/admin";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -12,31 +13,28 @@ export default async function AdminVerificationPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-3xl font-bold text-navy">Verification queue</h1>
-      <div className="mt-6 space-y-3">
-        {items.map((item) => (
-          <div key={item.id} className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-semibold text-navy">
-              {item.mechanic.businessName} · {item.level}
-            </p>
-            <p className="text-sm text-muted">
-              {item.mechanic.user.email} · {item.status}
-            </p>
-            {item.status === "PENDING" ? (
-              <form action={reviewVerificationAction} className="mt-3 flex gap-2">
-                <input type="hidden" name="verificationId" value={item.id} />
-                <Button name="status" value="APPROVED" size="sm">
-                  Approve
-                </Button>
-                <Button name="status" value="REJECTED" size="sm" variant="secondary">
-                  Reject
-                </Button>
-              </form>
-            ) : null}
-          </div>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {items.map((item) => (
+        <BoardRow key={item.id}>
+          <p className="font-semibold text-navy">
+            {item.mechanic.businessName} · {item.level}
+          </p>
+          <p className="text-sm text-muted">
+            {item.mechanic.user.email} · {item.status.toLowerCase()}
+          </p>
+          {item.status === "PENDING" ? (
+            <form action={reviewVerificationAction} className="mt-3 flex gap-2">
+              <input type="hidden" name="verificationId" value={item.id} />
+              <Button name="status" value="APPROVED" size="sm">
+                Approve
+              </Button>
+              <Button name="status" value="REJECTED" size="sm" variant="secondary">
+                Reject
+              </Button>
+            </form>
+          ) : null}
+        </BoardRow>
+      ))}
     </div>
   );
 }

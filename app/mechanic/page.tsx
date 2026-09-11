@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatCard, BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
@@ -27,72 +28,54 @@ export default async function MechanicDashboardPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <h1 className="text-3xl font-bold text-navy">Good morning, {session.firstName}.</h1>
-      <p className="mt-1 text-muted">{profile.businessName}</p>
+    <div>
+      <p className="text-muted">{profile.businessName}</p>
       {profile.profileCompletePct < 100 ? (
-        <Card className="mt-4 p-4">
+        <Card className="mt-4 border-0 bg-[#f7f9fc] p-4 shadow-none">
           <p className="font-medium text-navy">Profile {profile.profileCompletePct}% complete</p>
           <Button asChild size="sm" className="mt-3">
             <Link href="/mechanic/onboarding">Continue setup</Link>
           </Button>
         </Card>
       ) : null}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-5">
-          <p className="text-sm text-muted">Today&apos;s jobs</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{todayJobs}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Pending requests</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{pending.length}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">This month&apos;s jobs</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{monthJobs}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Average rating</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{profile.averageRating.toFixed(1)}</p>
-        </Card>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Today's jobs" value={todayJobs} />
+        <StatCard label="Pending requests" value={pending.length} />
+        <StatCard label="This month's jobs" value={monthJobs} />
+        <StatCard label="Average rating" value={profile.averageRating.toFixed(1)} />
       </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <Card className="p-5">
-          <p className="text-sm text-muted">Pocket Score</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{Math.round(profile.mechanicScore)}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Completed jobs</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{profile.completedJobsCount}</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Unread notices</p>
-          <p className="number mt-1 text-3xl font-bold text-navy">{unread}</p>
-        </Card>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <StatCard label="Pocket Score" value={Math.round(profile.mechanicScore)} />
+        <StatCard label="Completed jobs" value={profile.completedJobsCount} />
+        <StatCard label="Unread notices" value={unread} />
       </div>
-      <section className="mt-10">
+      <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-navy">Pending requests</h2>
-          <Link className="text-sm font-semibold text-accent" href="/mechanic/requests">
-            View all
+          <h2 className="text-lg font-bold text-navy">Pending requests</h2>
+          <Link className="text-sm font-semibold text-[#2f7bff]" href="/mechanic/requests">
+            View all →
           </Link>
         </div>
         <div className="mt-4 space-y-3">
-          {pending.map((job) => (
-            <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-navy">
-                    {job.customer.firstName} {job.customer.lastName}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
-                  </p>
+          {pending.length === 0 ? (
+            <p className="text-sm text-muted">No pending requests right now.</p>
+          ) : (
+            pending.map((job) => (
+              <BoardLink key={job.id} href={`/mechanic/jobs/${job.id}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-navy">
+                      {job.customer.firstName} {job.customer.lastName}
+                    </p>
+                    <p className="text-sm text-muted">
+                      {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
+                    </p>
+                  </div>
+                  <JobStatusLabel status={job.status} />
                 </div>
-                <JobStatusLabel status={job.status} />
-              </div>
-            </Link>
-          ))}
+              </BoardLink>
+            ))
+          )}
         </div>
       </section>
     </div>

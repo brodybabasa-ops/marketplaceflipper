@@ -39,7 +39,7 @@ export function CustomerDashboard({
   messages: DashboardMessage[];
 }) {
   return (
-    <div className="bg-[#e8eef4] text-navy">
+    <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero firstName={firstName} />
       <div className="relative z-10 mx-auto -mt-8 max-w-[1180px] px-6 pb-10">
         <QuickActions />
@@ -56,7 +56,7 @@ export function CustomerDashboard({
           <AppCta />
         </div>
       </div>
-      <footer className="relative overflow-hidden bg-[#071422]">
+      <footer className="relative mt-auto overflow-hidden bg-[#071422]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/landing/lifestyle.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />
         <div className="absolute inset-0 bg-[#071422]/55" />

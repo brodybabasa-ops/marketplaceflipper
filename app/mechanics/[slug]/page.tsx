@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { MechanicCard } from "@/components/mechanics/mechanic-card";
 import { searchMechanics } from "@/services/search";
 import { shopPhotoFor } from "@/lib/landing";
+import { MarketingFooter, MarketingShell } from "@/components/marketing/marketing-shell";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -67,15 +68,13 @@ function SeoList({
   matches: Awaited<ReturnType<typeof searchMechanics>>["matches"];
 }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-navy">{title}</h1>
-      <p className="mt-3 max-w-2xl text-muted">{body}</p>
-      <div className="mt-8 grid gap-4">
+    <MarketingShell title={title} subtitle={body} image="/landing/shop-1.png" wide>
+      <div className="grid gap-4">
         {matches.map((mechanic) => (
           <MechanicCard key={mechanic.id} mechanic={mechanic} />
         ))}
       </div>
-    </div>
+    </MarketingShell>
   );
 }
 
@@ -92,11 +91,14 @@ function MechanicProfile({
         <img src={shopPhotoFor(mechanic.slug)} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.88)_0%,rgba(7,20,34,0.55)_55%,rgba(7,20,34,0.25)_100%)]" />
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6">
-          <p className="text-sm text-white/70">
+          <p className="text-xs font-semibold tracking-[0.22em] text-white/75">
             {mechanic.shopCity}, {mechanic.shopState}
           </p>
-          <h1 className="mt-2 max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">{mechanic.businessName}</h1>
+          <h1 className="mt-2 max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">
+            {mechanic.businessName}
+          </h1>
           {mechanic.tagline ? <p className="mt-3 text-lg text-white/75">{mechanic.tagline}</p> : null}
+          <p className="font-script mt-4 text-2xl text-white/90">Get it Fixed. Get back out there.</p>
         </div>
       </section>
       <div className="relative z-10 mx-auto -mt-10 max-w-5xl px-4 pb-16 text-navy sm:px-6">
@@ -105,7 +107,6 @@ function MechanicProfile({
         <Avatar name={mechanic.businessName} src={mechanic.profilePhotoUrl} size="lg" />
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold text-navy">{mechanic.businessName}</h1>
             {mechanic.verificationLevel !== "UNVERIFIED" ? (
               <Badge tone="accent" className="gap-1">
                 <ShieldCheck className="h-3 w-3" />
@@ -205,6 +206,7 @@ function MechanicProfile({
       </section>
       </div>
       </div>
+      <MarketingFooter />
     </div>
   );
 }

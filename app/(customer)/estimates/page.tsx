@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { EmptyState } from "@/components/ui/card";
+import { ThemedBoard, BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
@@ -18,15 +18,20 @@ export default async function EstimatesPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-4xl">
-      <h1 className="text-3xl font-bold text-navy">Estimates</h1>
-      <p className="mt-2 text-sm text-muted">Written estimates from shops on your jobs. Extra work still needs your approval.</p>
-      <div className="mt-6 space-y-3">
+    <ThemedBoard
+      eyebrow="ESTIMATES"
+      title="Written"
+      accent="Estimates."
+      subtitle="See what a shop quoted before extra work starts."
+      script="No surprises. Just the work."
+      image="/landing/shop-diesel.png"
+    >
+      <div className="space-y-3">
         {estimates.length === 0 ? (
           <EmptyState title="No estimates yet" body="Request service and a shop will send a written estimate before extra work starts." />
         ) : (
           estimates.map((estimate) => (
-            <Link key={estimate.id} href={`/jobs/${estimate.jobId}`} className="block rounded-2xl border border-line bg-white p-4">
+            <BoardLink key={estimate.id} href={`/jobs/${estimate.jobId}`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold text-navy">{estimate.job.mechanicProfile.businessName}</p>
@@ -39,10 +44,10 @@ export default async function EstimatesPage() {
                   <p className="text-xs capitalize text-muted">{estimate.status.toLowerCase()}</p>
                 </div>
               </div>
-            </Link>
+            </BoardLink>
           ))
         )}
       </div>
-    </div>
+    </ThemedBoard>
   );
 }

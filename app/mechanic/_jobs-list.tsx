@@ -1,10 +1,30 @@
 import Link from "next/link";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
+import { BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
-export default async function MechanicJobsList({ title, statuses }: { title: string; href: string; statuses?: ("REQUESTED" | "ACCEPTED" | "SCHEDULED" | "EN_ROUTE" | "ARRIVED" | "DIAGNOSING" | "AWAITING_APPROVAL" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DISPUTED")[] }) {
+export default async function MechanicJobsList({
+  title,
+  statuses,
+}: {
+  title: string;
+  href: string;
+  statuses?: (
+    | "REQUESTED"
+    | "ACCEPTED"
+    | "SCHEDULED"
+    | "EN_ROUTE"
+    | "ARRIVED"
+    | "DIAGNOSING"
+    | "AWAITING_APPROVAL"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "DISPUTED"
+  )[];
+}) {
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const jobs = await prisma.job.findMany({
@@ -13,14 +33,14 @@ export default async function MechanicJobsList({ title, statuses }: { title: str
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-3xl font-bold text-navy">{title}</h1>
-      <div className="mt-6 space-y-3">
+    <div>
+      <h2 className="text-lg font-bold text-navy">{title}</h2>
+      <div className="mt-4 space-y-3">
         {jobs.length === 0 ? (
           <EmptyState title="Nothing here yet" body="New customer requests will show up in this list." />
         ) : (
           jobs.map((job) => (
-            <Link key={job.id} href={`/mechanic/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
+            <BoardLink key={job.id} href={`/mechanic/jobs/${job.id}`}>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold text-navy">
@@ -32,7 +52,7 @@ export default async function MechanicJobsList({ title, statuses }: { title: str
                 </div>
                 <JobStatusLabel status={job.status} />
               </div>
-            </Link>
+            </BoardLink>
           ))
         )}
       </div>

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 export function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("rounded-2xl border border-line bg-card shadow-[var(--shadow)]", className)} {...props} />;
+  return <div className={cn("rounded-2xl border border-line bg-[#f7f9fc]", className)} {...props} />;
 }
 
 export function Badge({

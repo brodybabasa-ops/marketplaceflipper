@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { EmptyState } from "@/components/ui/card";
+import { ThemedBoard, BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatAppointment } from "@/lib/utils";
@@ -19,15 +19,20 @@ export default async function AppointmentsPage() {
     orderBy: { scheduledAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-4xl">
-      <h1 className="text-3xl font-bold text-navy">Appointments</h1>
-      <p className="mt-2 text-sm text-muted">Times shops have on the job record. Message the shop from the job if you need to change one.</p>
-      <div className="mt-6 space-y-3">
+    <ThemedBoard
+      eyebrow="APPOINTMENTS"
+      title="On the"
+      accent="Book."
+      subtitle="Times shops have on the job record. Message the shop if you need to change one."
+      script="Less Time Waiting."
+      image="/landing/dashboard-hero.png"
+    >
+      <div className="space-y-3">
         {jobs.length === 0 ? (
           <EmptyState title="No appointments yet" body="Book a shop from Find a Shop or a vehicle card." />
         ) : (
           jobs.map((job) => (
-            <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
+            <BoardLink key={job.id} href={`/jobs/${job.id}`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold text-navy">{job.mechanicProfile.businessName}</p>
@@ -38,10 +43,10 @@ export default async function AppointmentsPage() {
                 </div>
                 <JobStatusLabel status={job.status} />
               </div>
-            </Link>
+            </BoardLink>
           ))
         )}
       </div>
-    </div>
+    </ThemedBoard>
   );
 }

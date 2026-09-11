@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { ThemedBoard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { signOutAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,16 @@ export const metadata = { title: "Profile" };
 export default async function AccountPage() {
   const session = await requireSession();
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-3xl font-bold text-navy">Profile</h1>
-      <Card className="mt-6 p-5">
+    <ThemedBoard
+      eyebrow="ACCOUNT"
+      title="Your"
+      accent="Profile."
+      subtitle="The basics we use to keep jobs, messages, and shops attached to you."
+      script="Keep It Running."
+      image="/landing/dashboard-hero.png"
+      wide={false}
+    >
+      <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
         <p className="font-semibold text-navy">
           {session.firstName} {session.lastName}
         </p>
@@ -22,6 +30,6 @@ export default async function AccountPage() {
           </Button>
         </form>
       </Card>
-    </div>
+    </ThemedBoard>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Calendar, ChevronDown, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KeepRunningBar } from "@/components/layout/keep-running-bar";
 import type {
   RepairHistorySummary,
   RepairRow,
@@ -33,9 +34,9 @@ export function CustomerRepairs({
   const visible = activeTab === "all" ? rows : rows.filter((row) => row.tab === activeTab);
 
   return (
-    <div className="bg-[#e8eef4] text-navy">
+    <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero />
-      <div className="relative z-10 mx-auto -mt-8 w-full max-w-[1180px] px-4 pb-12 sm:px-6">
+      <div className="relative z-10 mx-auto -mt-8 w-full max-w-[1180px] flex-1 px-4 pb-12 sm:px-6">
         <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-6">
           <div className="flex flex-col gap-3 border-b border-line pb-1 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 flex-wrap gap-x-1">
@@ -86,6 +87,7 @@ export function CustomerRepairs({
           </div>
         </div>
       </div>
+      <KeepRunningBar />
     </div>
   );
 }

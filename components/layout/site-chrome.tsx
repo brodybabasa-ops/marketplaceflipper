@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, MapPin, Menu, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
-import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/app/actions/auth";
 import { LANDING_LOCATION } from "@/lib/landing";
 import type { SessionUser } from "@/lib/session-token";
@@ -42,26 +41,26 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
 
 function AppHeader({ user }: { user: SessionUser | null }) {
   return (
-    <header className="app-header sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur">
+    <header className="app-header sticky top-0 z-40 border-b border-white/10 bg-[#071422]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-8">
-          <Logo />
-          <nav className="hidden items-center gap-6 text-sm font-medium text-muted md:flex">
-            <Link href="/mechanics" className="hover:text-navy">
+          <Logo light />
+          <nav className="hidden items-center gap-6 text-sm font-medium text-white/70 md:flex">
+            <Link href="/mechanics" className="hover:text-white">
               Find a Shop
             </Link>
-            <Link href="/how-it-works" className="hover:text-navy">
+            <Link href="/how-it-works" className="hover:text-white">
               How It Works
             </Link>
-            <Link href="/for-mechanics" className="hover:text-navy">
-              For Mechanics
+            <Link href="/for-mechanics" className="hover:text-white">
+              For Shops
             </Link>
-            <Link href="/pocket-protect" className="hover:text-navy">
+            <Link href="/pocket-protect" className="hover:text-white">
               Pocket Protect
             </Link>
           </nav>
         </div>
-        <AuthButtons user={user} />
+        <LandingAuth user={user} />
       </div>
     </header>
   );
@@ -193,48 +192,22 @@ function LandingAuth({ user }: { user: SessionUser | null }) {
   );
 }
 
-function AuthButtons({ user }: { user: SessionUser | null }) {
-  if (user) {
-    return (
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="sm">
-          <Link href={dashboardFor(user.role)}>Dashboard</Link>
-        </Button>
-        <form action={signOutAction}>
-          <Button type="submit" variant="secondary" size="sm">
-            Sign out
-          </Button>
-        </form>
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/sign-in">Sign In</Link>
-      </Button>
-      <Button asChild size="sm">
-        <Link href="/sign-up">Get Started</Link>
-      </Button>
-    </div>
-  );
-}
-
 export function SiteFooter() {
   return (
-    <footer className="app-footer mt-auto border-t border-line bg-white">
+    <footer className="app-footer mt-auto border-t border-white/10 bg-[#071422] text-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-4">
         <div className="md:col-span-2">
-          <Logo />
-          <p className="mt-3 max-w-sm text-sm text-muted">Your vehicle. Your mechanic. Your peace of mind.</p>
-          <p className="mt-4 max-w-lg text-xs leading-5 text-muted">
+          <Logo light stacked />
+          <p className="mt-3 max-w-sm text-sm text-white/70">Anything Mechanical. Anywhere.</p>
+          <p className="font-script mt-3 text-2xl text-white/90">Keep It Running.</p>
+          <p className="mt-4 max-w-lg text-xs leading-5 text-white/45">
             Pocket Mechanic connects customers with independent automotive service providers. Mechanics are independent
             service providers and are responsible for the services they perform.
           </p>
         </div>
         <div>
-          <p className="text-sm font-semibold text-navy">Product</p>
-          <div className="mt-3 flex flex-col gap-2 text-sm text-muted">
+          <p className="text-sm font-semibold text-white">Product</p>
+          <div className="mt-3 flex flex-col gap-2 text-sm text-white/65">
             <Link href="/mechanics">Find a Shop</Link>
             <Link href="/mobile-mechanics">Mobile mechanics</Link>
             <Link href="/for-mechanics">Join as a shop</Link>
@@ -242,8 +215,8 @@ export function SiteFooter() {
           </div>
         </div>
         <div>
-          <p className="text-sm font-semibold text-navy">Legal placeholders</p>
-          <div className="mt-3 flex flex-col gap-2 text-sm text-muted">
+          <p className="text-sm font-semibold text-white">Legal placeholders</p>
+          <div className="mt-3 flex flex-col gap-2 text-sm text-white/65">
             <Link href="/legal/terms">Terms of Service</Link>
             <Link href="/legal/privacy">Privacy Policy</Link>
             <Link href="/legal/dispute-policy">Dispute Policy</Link>

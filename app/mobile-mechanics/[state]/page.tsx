@@ -2,6 +2,7 @@ import { US_STATES } from "@/lib/constants";
 import { notFound } from "next/navigation";
 import { MechanicCard } from "@/components/mechanics/mechanic-card";
 import { searchMechanics } from "@/services/search";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
 
 export default async function MobileMechanicsStatePage({ params }: { params: Promise<{ state: string }> }) {
   const { state } = await params;
@@ -9,14 +10,19 @@ export default async function MobileMechanicsStatePage({ params }: { params: Pro
   if (!match) notFound();
   const { matches } = await searchMechanics({ mode: "MOBILE", zip: match.code === "UT" ? "84041" : undefined });
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-navy">Mobile mechanics in {match.name}</h1>
-      <p className="mt-3 max-w-2xl text-muted">Independent mobile technicians available through Pocket Mechanic in {match.name}.</p>
-      <div className="mt-8 grid gap-4">
+    <MarketingShell
+      title="Mobile mechanics in"
+      accent={`${match.name}.`}
+      subtitle={`Independent mobile technicians available through Pocket Mechanic in ${match.name}.`}
+      image="/landing/hero-truck.png"
+      script="We'll get you there."
+      wide
+    >
+      <div className="grid gap-4">
         {matches.map((mechanic) => (
           <MechanicCard key={mechanic.id} mechanic={mechanic} />
         ))}
       </div>
-    </div>
+    </MarketingShell>
   );
 }
