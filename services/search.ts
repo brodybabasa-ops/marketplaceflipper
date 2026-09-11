@@ -19,12 +19,21 @@ export async function searchMechanics(input: {
   sort?: string;
   day?: string;
 }) {
-  const originZip = input.zip?.replace(/\D/g, "").slice(0, 5);
+  const rawLocation = input.zip?.trim() ?? "";
+  const digits = rawLocation.replace(/\D/g, "");
+  const originZip = digits.length >= 5 ? digits.slice(0, 5) : "";
+  const cityQuery = rawLocation.split(",")[0]?.trim();
   const zip = originZip
     ? await prisma.zipCode.findUnique({ where: { zip: originZip } })
-    : input.zip
+    : cityQuery
       ? await prisma.zipCode.findFirst({
-          where: { OR: [{ city: { contains: input.zip, mode: "insensitive" } }, { state: { contains: input.zip, mode: "insensitive" } }] },
+          where: {
+            OR: [
+              { city: { equals: cityQuery, mode: "insensitive" } },
+              { city: { contains: cityQuery, mode: "insensitive" } },
+              { state: { contains: cityQuery, mode: "insensitive" } },
+            ],
+          },
         })
       : await prisma.zipCode.findUnique({ where: { zip: "84101" } });
 
