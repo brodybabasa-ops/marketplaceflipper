@@ -1,0 +1,40 @@
+import Link from "next/link";
+import { JobStatusLabel } from "@/components/jobs/status-timeline";
+import { EmptyState } from "@/components/ui/card";
+import { requireSession } from "@/lib/guards";
+import { prisma } from "@/lib/db";
+
+export const metadata = { title: "My jobs" };
+
+export default async function JobsPage() {
+  const session = await requireSession("CUSTOMER");
+  const jobs = await prisma.job.findMany({
+    where: { customerId: session.id },
+    include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return (
+    <div className="mx-auto max-w-6xl">
+      <h1 className="text-3xl font-bold text-navy">My jobs</h1>
+      <div className="mt-6 space-y-3">
+        {jobs.length === 0 ? (
+          <EmptyState title="No jobs yet" body="Request service from a mechanic to start tracking the work." />
+        ) : (
+          jobs.map((job) => (
+            <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-navy">{job.mechanicProfile.businessName}</p>
+                  <p className="text-sm text-muted">
+                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
+                  </p>
+                </div>
+                <JobStatusLabel status={job.status} />
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

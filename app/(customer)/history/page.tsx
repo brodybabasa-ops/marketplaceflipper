@@ -1,4 +1,3 @@
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { Card, EmptyState } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/guards";
@@ -17,8 +16,7 @@ export default async function HistoryPage() {
     },
   });
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/history" />
+    <div className="mx-auto max-w-4xl">
       <h1 className="text-3xl font-bold text-navy">Repair history</h1>
       <p className="mt-2 text-sm text-muted">A permanent record on the vehicle, not a paper invoice in the glovebox.</p>
       <div className="mt-8 space-y-8">

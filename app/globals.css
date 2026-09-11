@@ -75,3 +75,9 @@ body:has([data-landing]) .app-header,
 body:has([data-landing]) .app-footer {
   display: none;
 }
+
+body:has([data-dashboard]) .landing-header,
+body:has([data-dashboard]) .app-header,
+body:has([data-dashboard]) .app-footer {
+  display: none;
+}

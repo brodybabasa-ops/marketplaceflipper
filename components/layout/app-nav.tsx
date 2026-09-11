@@ -31,13 +31,15 @@ export function AppNav({
 }
 
 export const CUSTOMER_NAV = [
-  { href: "/home", label: "Home" },
-  { href: "/mechanics", label: "Find a Mechanic" },
+  { href: "/home", label: "Dashboard" },
   { href: "/vehicles", label: "My Vehicles" },
-  { href: "/jobs", label: "My Jobs" },
+  { href: "/jobs", label: "My Repairs" },
+  { href: "/appointments", label: "Appointments" },
+  { href: "/estimates", label: "Estimates" },
   { href: "/messages", label: "Messages" },
-  { href: "/history", label: "Repair History" },
-  { href: "/account", label: "Profile" },
+  { href: "/saved", label: "Saved Shops" },
+  { href: "/reviews", label: "Reviews" },
+  { href: "/account", label: "Account Settings" },
 ];
 
 export const MECHANIC_NAV = [

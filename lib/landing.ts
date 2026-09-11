@@ -121,6 +121,22 @@ export function shopPhotoFor(slug: string) {
   return SHOP_PHOTOS[sum % SHOP_PHOTOS.length];
 }
 
+export function vehiclePhotoFor(make: string, model: string) {
+  const hay = `${make} ${model}`.toLowerCase();
+  if (
+    hay.includes("f-250") ||
+    hay.includes("f-150") ||
+    hay.includes("f-350") ||
+    hay.includes("silverado") ||
+    hay.includes("ram") ||
+    hay.includes("tundra") ||
+    hay.includes("tacoma")
+  ) {
+    return "/landing/hero-truck.png";
+  }
+  return "/landing/cat-automotive.png";
+}
+
 export const DIRECTORY_SERVICES = [
   { value: "SUSPENSION", label: "Suspension & Steering" },
   { value: "BRAKES", label: "Brakes" },

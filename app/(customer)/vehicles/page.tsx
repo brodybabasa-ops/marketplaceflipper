@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { VehicleCard } from "@/components/jobs/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
@@ -16,8 +15,7 @@ export default async function VehiclesPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/vehicles" />
+    <div className="mx-auto max-w-6xl">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-navy">My vehicles</h1>
         <Button asChild>

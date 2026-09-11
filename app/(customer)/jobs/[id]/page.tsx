@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { ReviewCard } from "@/components/jobs/review-card";
@@ -18,10 +17,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const job = await getJobForUser(id, session.id, session.role);
   if (!job) notFound();
-  const latestEstimate = job.estimates[0];
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/jobs" /> : null}
+    <div className="mx-auto max-w-5xl">
       <p className="text-sm text-muted">{job.mechanicProfile.businessName}</p>
       <h1 className="text-3xl font-bold text-navy">{job.serviceRequest.problemText}</h1>
       <p className="mt-1 text-muted">
@@ -112,10 +109,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <form action={createDisputeAction} className="mt-3 space-y-3">
                 <input type="hidden" name="jobId" value={job.id} />
                 <Select name="category" defaultValue="OTHER">
-                  <option value="REPAIR_DIDNT_FIX">Repair didn't fix issue</option>
+                  <option value="REPAIR_DIDNT_FIX">Repair didn&apos;t fix issue</option>
                   <option value="UNEXPECTED_CHARGE">Unexpected charge</option>
                   <option value="WORKMANSHIP">Workmanship concern</option>
-                  <option value="NO_SHOW">Mechanic didn't show</option>
+                  <option value="NO_SHOW">Mechanic didn&apos;t show</option>
                   <option value="VEHICLE_DAMAGE">Vehicle damage</option>
                   <option value="COMMUNICATION">Communication issue</option>
                   <option value="OTHER">Other</option>

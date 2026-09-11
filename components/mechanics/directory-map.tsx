@@ -18,9 +18,13 @@ const BOUNDS = { minLat: 40.95, maxLat: 41.2, minLng: -112.18, maxLng: -111.82 }
 export function DirectoryMap({
   shops,
   origin,
+  compact,
+  hideCities,
 }: {
   shops: DirectoryShop[];
   origin: { latitude: number; longitude: number; city: string } | null;
+  compact?: boolean;
+  hideCities?: boolean;
 }) {
   const [mode, setMode] = useState<"map" | "list">("map");
   const [active, setActive] = useState(shops[0]?.slug ?? "");
@@ -49,13 +53,20 @@ export function DirectoryMap({
             List
           </button>
         </div>
-        <button
-          type="submit"
-          className="inline-flex items-center gap-1 rounded-full border border-[#2f7bff]/30 px-3 py-1.5 text-xs font-semibold text-[#2f7bff]"
-        >
-          <Search className="h-3.5 w-3.5" />
-          Search This Area
-        </button>
+        {compact ? (
+          <Link href="/mechanics" className="inline-flex items-center gap-1 text-xs font-semibold text-[#2f7bff]">
+            <Search className="h-3.5 w-3.5" />
+            Search This Area
+          </Link>
+        ) : (
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1 rounded-full border border-[#2f7bff]/30 px-3 py-1.5 text-xs font-semibold text-[#2f7bff]"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Search This Area
+          </button>
+        )}
       </div>
       {mode === "list" ? (
         <div className="max-h-[420px] space-y-2 overflow-y-auto p-3">
@@ -69,9 +80,11 @@ export function DirectoryMap({
           ))}
         </div>
       ) : (
-        <div className="relative h-[360px] overflow-hidden bg-[#dce8d4]">
+        <div className={compact ? "relative h-[210px] overflow-hidden bg-[#dce8d4]" : "relative h-[360px] overflow-hidden bg-[#dce8d4]"}>
           <MapBackdrop />
-          {CITIES.map((city) => {
+          {hideCities
+            ? null
+            : CITIES.map((city) => {
             const point = project(city.lat, city.lng);
             return (
               <span

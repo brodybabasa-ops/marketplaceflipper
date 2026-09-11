@@ -1,4 +1,3 @@
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { signOutAction } from "@/app/actions/auth";
@@ -9,8 +8,7 @@ export const metadata = { title: "Profile" };
 export default async function AccountPage() {
   const session = await requireSession();
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/account" /> : null}
+    <div className="mx-auto max-w-xl">
       <h1 className="text-3xl font-bold text-navy">Profile</h1>
       <Card className="mt-6 p-5">
         <p className="font-semibold text-navy">

@@ -1,4 +1,3 @@
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createVehicleAction } from "@/app/actions/marketplace";
@@ -13,8 +12,7 @@ export default async function NewVehiclePage() {
   const years = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
   const firstMake = makes[0];
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/vehicles" />
+    <div className="mx-auto max-w-xl">
       <h1 className="text-3xl font-bold text-navy">Add a vehicle</h1>
       <p className="mt-2 text-sm text-muted">Start with year, make, and model. Everything else is optional.</p>
       <form action={createVehicleAction} className="mt-6 space-y-4">
