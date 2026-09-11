@@ -25,7 +25,7 @@ export type LandingReview = {
 };
 
 export async function getLandingShowcase() {
-  const { matches, zip } = await searchMechanics({ zip: "84041", sort: "recommended" });
+  const { matches, zip } = await searchMechanics({ zip: "84041", sort: "closest" });
   const featuredMatches = matches.slice(0, 4);
   const extras = featuredMatches.length
     ? await prisma.mechanicProfile.findMany({
