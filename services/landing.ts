@@ -1,6 +1,15 @@
 import { prisma } from "@/lib/db";
-import { earliestAvailabilityLabel, formatShortMiles, formatReviewer, SHOP_PHOTOS, specialtyLabel } from "@/lib/landing";
+import {
+  earliestAvailabilityLabel,
+  formatShortMiles,
+  formatReviewer,
+  SHOP_PHOTOS,
+  specialtyLabel,
+  isOpenNow,
+  shopPhotoFor,
+} from "@/lib/landing";
 import { searchMechanics } from "@/services/search";
+import type { MechanicMatch } from "@/services/matching";
 
 export type FeaturedShop = {
   slug: string;
@@ -86,4 +95,59 @@ export async function getLandingShowcase() {
   }
 
   return { shops, reviews, locationLabel: zip ? `${zip.city}, ${zip.stateCode}` : "Layton, UT" };
+}
+
+export type DirectoryShop = FeaturedShop & {
+  id: string;
+  distanceMiles: number;
+  openNow: boolean;
+  sponsored: boolean;
+  latitude: number;
+  longitude: number;
+  serviceMode: MechanicMatch["serviceMode"];
+};
+
+export async function getDirectoryShops(query: Parameters<typeof searchMechanics>[0]) {
+  const { matches, zip, category } = await searchMechanics(query);
+  const extras = matches.length
+    ? await prisma.mechanicProfile.findMany({
+        where: { id: { in: matches.map((item) => item.id) } },
+        select: {
+          id: true,
+          shopCity: true,
+          shopState: true,
+          availability: { select: { dayOfWeek: true, startTime: true, endTime: true } },
+        },
+      })
+    : [];
+  const extraById = new Map(extras.map((item) => [item.id, item]));
+  const shops: DirectoryShop[] = matches.map((shop) => {
+    const extra = extraById.get(shop.id);
+    return {
+      id: shop.id,
+      slug: shop.slug,
+      businessName: shop.businessName,
+      averageRating: shop.averageRating,
+      reviewCount: shop.reviewCount,
+      distanceMiles: shop.distanceMiles,
+      distanceLabel: formatShortMiles(shop.distanceMiles),
+      city: extra?.shopCity ?? zip?.city ?? "Layton",
+      state: extra?.shopState ?? zip?.stateCode ?? "UT",
+      specialties: shop.specialties.slice(0, 2).map(specialtyLabel),
+      verified: shop.verificationLevel !== "UNVERIFIED",
+      sponsored: shop.isSponsored,
+      availabilityLabel: earliestAvailabilityLabel(extra?.availability ?? []),
+      openNow: isOpenNow(extra?.availability ?? []),
+      photo: shopPhotoFor(shop.slug),
+      latitude: shop.latitude,
+      longitude: shop.longitude,
+      serviceMode: shop.serviceMode,
+    };
+  });
+  return {
+    shops,
+    zip,
+    category,
+    locationLabel: zip ? `${zip.city}, ${zip.stateCode}` : "Layton, UT",
+  };
 }
