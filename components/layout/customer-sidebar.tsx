@@ -61,7 +61,7 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
               href={link.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold",
+                "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold",
                 active ? "bg-[#2f7bff] text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
               )}
             >
@@ -80,7 +80,7 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
         <div className="overflow-hidden rounded-2xl bg-white/5 p-3">
           <div className="flex items-end gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/landing/app-phone.png" alt="" className="h-[108px] w-auto object-contain" />
+            <img src="/landing/app-phone.png" alt="" className="h-[100px] w-[72px] shrink-0 object-contain object-bottom" />
             <div className="min-w-0 pb-1">
               <p className="text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
               <Link
