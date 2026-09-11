@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { ArrowRight, Calendar, ChevronDown, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -25,14 +24,15 @@ export function CustomerRepairs({
   counts,
   appointment,
   history,
+  activeTab = "all",
 }: {
   rows: RepairRow[];
   counts: Record<RepairTab, number>;
   appointment: UpcomingAppointment | null;
   history: RepairHistorySummary;
+  activeTab?: RepairTab;
 }) {
-  const [tab, setTab] = useState<RepairTab>("all");
-  const visible = useMemo(() => (tab === "all" ? rows : rows.filter((row) => row.tab === tab)), [rows, tab]);
+  const visible = activeTab === "all" ? rows : rows.filter((row) => row.tab === activeTab);
 
   return (
     <div className="bg-[#e8eef4] text-navy">
@@ -42,19 +42,19 @@ export function CustomerRepairs({
           <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line">
             <div className="flex min-w-0 flex-1 flex-wrap gap-0.5">
               {TABS.map((item) => {
-                const active = tab === item.key;
+                const active = activeTab === item.key;
                 return (
-                  <button
+                  <Link
                     key={item.key}
-                    type="button"
-                    onClick={() => setTab(item.key)}
+                    href={item.key === "all" ? "/jobs" : `/jobs?tab=${item.key}`}
+                    scroll={false}
                     className={cn(
                       "-mb-px cursor-pointer border-b-2 px-2.5 py-3 text-[13px] font-semibold sm:px-3 sm:text-sm",
                       active ? "border-[#2f7bff] text-[#2f7bff]" : "border-transparent text-muted hover:text-navy",
                     )}
                   >
                     {item.label} ({counts[item.key]})
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -205,7 +205,7 @@ function Stepper({ steps, current }: { steps: string[]; current: number }) {
               />
               <span className={cn("h-[2px] flex-1", index === steps.length - 1 ? "bg-transparent" : done ? "bg-[#2f7bff]" : "bg-[#d5dee8]")} />
             </div>
-            <span className="mt-1.5 px-0.5 text-center text-[10px] leading-tight text-[#7a8794]">{step}</span>
+            <span className="mt-1.5 px-0.5 text-center text-[11px] leading-tight text-[#7a8794]">{step}</span>
           </li>
         );
       })}
