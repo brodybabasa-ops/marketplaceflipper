@@ -42,12 +42,6 @@ function Hero() {
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.78)_38%,rgba(7,20,34,0.28)_68%,rgba(7,20,34,0.18)_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,20,34,0.35)_0%,transparent_22%,transparent_72%,rgba(7,20,34,0.88)_100%)]" />
 
-      <p className="font-script absolute right-[8%] top-28 hidden max-w-[180px] text-right text-2xl leading-tight text-white/90 lg:block">
-        Get it Fixed.
-        <br />
-        Get back out there.
-      </p>
-
       <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="max-w-xl pt-4">
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-[64px]">
@@ -60,6 +54,7 @@ function Hero() {
           <p className="mt-5 max-w-lg text-base text-white/75 sm:text-lg">
             Find trusted, verified shops for cars, trucks, boats, RVs, motorcycles, and more. All in one place.
           </p>
+          <p className="font-script mt-4 text-2xl text-white/90">Get it Fixed. Get back out there.</p>
           <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-white/80">
             <TrustChip icon={ShieldCheck} label="Verified Shops" />
             <TrustChip icon={Star} label="Real Reviews" />
@@ -109,13 +104,6 @@ function HowItWorks() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/landing/hero-truck.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[50%_30%] opacity-60" />
       <div className="absolute inset-0 bg-[#071422]/80" />
-      <p className="font-script absolute right-8 top-10 hidden max-w-[200px] text-right text-2xl leading-tight text-white/85 lg:block">
-        Same Roads.
-        <br />
-        Different Machines.
-        <br />
-        Same Solution.
-      </p>
       <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
         <div className="max-w-xl">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
@@ -127,6 +115,7 @@ function HowItWorks() {
             No more guessing. Pocket Mechanic connects you with trusted, verified shops that specialize in your exact
             repair — so you can get back to what you love.
           </p>
+          <p className="font-script mt-4 text-2xl text-white/85">Same Roads. Different Machines. Same Solution.</p>
         </div>
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {[

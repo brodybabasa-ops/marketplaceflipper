@@ -96,18 +96,12 @@ function Hero() {
         className="absolute inset-0 h-full w-full object-cover object-[72%_center]"
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.68)_42%,rgba(7,20,34,0.22)_100%)]" />
-      <p className="font-script absolute right-[7%] top-24 hidden max-w-[200px] text-right text-2xl leading-tight text-white/90 lg:block">
-        Same Roads.
-        <br />
-        Different Machines.
-        <br />
-        Same Solution.
-      </p>
       <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
         <h1 className="max-w-xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-[56px]">
           Find the <span className="text-[#2f7bff]">Right Shop</span>
         </h1>
         <p className="mt-3 text-lg text-white/80">Trusted. Local. Verified. Get back to what you love.</p>
+        <p className="font-script mt-3 text-2xl text-white/90">Same Roads. Different Machines. Same Solution.</p>
         <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/80">
           <span className="inline-flex items-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-[#2f7bff]" />

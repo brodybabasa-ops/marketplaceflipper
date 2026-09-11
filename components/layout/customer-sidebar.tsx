@@ -30,10 +30,24 @@ const LINKS = [
   { href: "/account", label: "Account Settings", icon: Settings },
 ];
 
+function StoreBadge({ href, store }: { href: string; store: "apple" | "google" }) {
+  return (
+    <Link href={href} className="inline-flex h-8 flex-1 items-center gap-1.5 rounded-md bg-black px-2 text-white">
+      <span className="text-base leading-none">{store === "apple" ? "" : "▶"}</span>
+      <span className="min-w-0 leading-tight">
+        <span className="block text-[7px] uppercase tracking-wide text-white/70">
+          {store === "apple" ? "Download on the" : "Get it on"}
+        </span>
+        <span className="block truncate text-[10px] font-semibold">{store === "apple" ? "App Store" : "Google Play"}</span>
+      </span>
+    </Link>
+  );
+}
+
 export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages: number; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <aside className="flex w-[240px] shrink-0 flex-col bg-[#071422] text-white">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col overflow-y-auto bg-[#071422] text-white">
       <div className="px-5 py-5">
         <Logo light stacked />
       </div>
@@ -47,7 +61,7 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
               href={link.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold",
+                "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold",
                 active ? "bg-[#2f7bff] text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
               )}
             >
@@ -62,20 +76,21 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
           );
         })}
       </nav>
-      <div className="px-4 pb-4">
-        <div className="overflow-hidden rounded-2xl bg-white/5 p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/app-phone.png" alt="" className="mx-auto h-28 w-auto object-contain" />
-          <p className="mt-3 text-sm font-semibold">Take Pocket Mechanic on the go.</p>
+      <div className="mt-auto px-4 pb-5 pt-4">
+        <div className="rounded-2xl bg-white/5 p-3">
+          <p className="text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
           <Link
             href="/sign-up"
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-[#2f7bff] px-4 text-sm font-semibold text-white"
+            className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2f7bff] text-sm font-semibold text-white"
           >
             Get the App
           </Link>
-          <p className="mt-2 text-[11px] text-white/45">Sign in on any phone. Store listings open sign-up until apps are live.</p>
+          <div className="mt-3 flex gap-1.5">
+            <StoreBadge href="/sign-up" store="apple" />
+            <StoreBadge href="/sign-up" store="google" />
+          </div>
         </div>
-        <div className="mt-5 px-1">
+        <div className="mt-4 px-1">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">
             <HelpCircle className="h-4 w-4 text-[#2f7bff]" />
             Need Help?
@@ -93,10 +108,6 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
             </Link>
           </div>
         </div>
-      </div>
-      <div className="border-t border-white/10 px-5 py-4">
-        <Logo light stacked className="scale-90 origin-left" />
-        <p className="mt-2 text-[11px] text-white/45">Anything Mechanical. Anywhere.</p>
       </div>
     </aside>
   );

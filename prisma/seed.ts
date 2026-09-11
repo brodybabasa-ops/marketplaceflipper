@@ -51,6 +51,9 @@ const MAKES: { name: string; models: string[] }[] = [
   { name: "Nissan", models: ["Altima", "Rogue", "Frontier"] },
   { name: "Centurion", models: ["Ri245", "Ri230", "Fi23"] },
   { name: "KTM", models: ["450 SX-F", "350 SX-F", "300 XC"] },
+  { name: "Yamaha", models: ["FX Cruiser", "VX Cruiser", "YZ450F"] },
+  { name: "Winnebago", models: ["Minnie Winnie", "View", "Solis"] },
+  { name: "Haulmark", models: ["Trailer", "Passport", "Transport"] },
 ];
 
 type MechanicSeed = {
@@ -483,6 +486,62 @@ const DAVIS_SHOPS: MechanicSeed[] = [
     days: ["MONDAY", "TUESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
     certs: [{ name: "Dexter Axle Training", issuer: "Dexter", verified: true }],
   },
+  {
+    firstName: "Lane",
+    lastName: "Porter",
+    email: "lane.porter@demo.pocketmechanic.app",
+    businessName: "Utah Powersports",
+    slug: "utah-powersports",
+    tagline: "PWCs · Outboards · Jet skis",
+    bio: "Wave runners and small marine engines. We winterize, rebuild pumps, and keep lake days on the calendar.",
+    years: 10,
+    mode: "SHOP",
+    city: "Syracuse",
+    zip: "84075",
+    lat: 41.0894,
+    lng: -112.0647,
+    radius: 28,
+    diagnostic: 8900,
+    labor: 10200,
+    mobile: 0,
+    level: "PROFESSIONAL_VERIFIED",
+    specialties: ["ENGINE", "MAINTENANCE", "STARTING"],
+    makes: ["Yamaha"],
+    response: 22,
+    onTime: 95,
+    accuracy: 94,
+    cancel: 1.7,
+    days: ["TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [{ name: "Yamaha PWC Certified", issuer: "Yamaha", verified: true }],
+  },
+  {
+    firstName: "Hank",
+    lastName: "Rowe",
+    email: "hank.rowe@demo.pocketmechanic.app",
+    businessName: "Trailer Pro Services",
+    slug: "trailer-pro-services",
+    tagline: "Bearings · Axles · Brakes",
+    bio: "Enclosed cargo and toy-hauler service in Roy. Bearings, brakes, and lighting done the same week.",
+    years: 15,
+    mode: "SHOP",
+    city: "Roy",
+    zip: "84067",
+    lat: 41.1616,
+    lng: -112.0263,
+    radius: 30,
+    diagnostic: 7500,
+    labor: 9800,
+    mobile: 0,
+    level: "INSURED",
+    specialties: ["BRAKES", "SUSPENSION", "OTHER"],
+    makes: ["Haulmark", "Ford"],
+    response: 28,
+    onTime: 93,
+    accuracy: 92,
+    cancel: 2.1,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+    certs: [{ name: "Dexter Axle Training", issuer: "Dexter", verified: true }],
+  },
 ];
 
 const EXTRA_MECHANICS: Omit<MechanicSeed, "email" | "slug">[] = [
@@ -541,19 +600,27 @@ async function seedBrodyStory({
   truck,
   boat,
   bike,
+  rv,
+  ski,
+  trailer,
   shops,
 }: {
   customerId: string;
   truck: { id: string; mileage: number };
   boat: { id: string; mileage: number };
   bike: { id: string; mileage: number };
+  rv: { id: string; mileage: number };
+  ski: { id: string; mileage: number };
+  trailer: { id: string; mileage: number };
   shops: Record<string, { id: string; userId: string; shopCity: string | null; shopZip: string | null; latitude: number; longitude: number }>;
 }) {
   const fred = shops["freds-marine"];
   const diesel = shops["layton-diesel-auto"];
   const powersports = shops["wasatch-powersports"];
-  const rv = shops["mountain-rv-service"];
-  if (!fred || !diesel || !powersports || !rv) return;
+  const mountainRv = shops["mountain-rv-service"];
+  const utahPower = shops["utah-powersports"];
+  const trailerPro = shops["trailer-pro-services"];
+  if (!fred || !diesel || !powersports || !mountainRv || !utahPower || !trailerPro) return;
 
   async function storyJob({
     vehicleId,
@@ -565,6 +632,7 @@ async function seedBrodyStory({
     estimateStatus,
     scheduledAt,
     createdAt,
+    completedAt,
     messages,
     photos,
   }: {
@@ -577,6 +645,7 @@ async function seedBrodyStory({
     estimateStatus: "SENT" | "APPROVED";
     scheduledAt?: Date;
     createdAt: Date;
+    completedAt?: Date;
     messages: { from: "customer" | "shop"; body: string; at: Date; unread?: boolean }[];
     photos?: { url: string; at: Date }[];
   }) {
@@ -585,7 +654,7 @@ async function seedBrodyStory({
         customerId,
         vehicleId,
         mechanicProfileId: shop.id,
-        status: status === "REQUESTED" ? "OPEN" : "ACCEPTED",
+        status: status === "REQUESTED" || status === "AWAITING_APPROVAL" ? "OPEN" : "ACCEPTED",
         problemText: problem,
         category,
         zip: shop.shopZip ?? "84041",
@@ -596,6 +665,7 @@ async function seedBrodyStory({
         createdAt,
       },
     });
+    const doneAt = completedAt ?? (status === "COMPLETED" ? new Date(createdAt.getTime() + 86400000 * 3) : undefined);
     const job = await prisma.job.create({
       data: {
         serviceRequestId: request.id,
@@ -607,7 +677,7 @@ async function seedBrodyStory({
         totalCents: price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
         scheduledAt,
-        completedAt: status === "COMPLETED" ? new Date(createdAt.getTime() + 86400000 * 3) : undefined,
+        completedAt: doneAt,
         createdAt,
         events: {
           create: [
@@ -628,8 +698,8 @@ async function seedBrodyStory({
         sentAt: createdAt,
         lineItems: {
           create: [
-            { category: "DIAGNOSTIC", description: "Diagnostic labor", quantity: 1, unitCents: 12500, totalCents: 12500 },
-            { category: "LABOR", description: problem, quantity: 1, unitCents: price - 12500, totalCents: price - 12500 },
+            { category: "DIAGNOSTIC", description: "Diagnostic labor", quantity: 1, unitCents: Math.min(12500, price), totalCents: Math.min(12500, price) },
+            { category: "LABOR", description: problem, quantity: 1, unitCents: Math.max(0, price - 12500), totalCents: Math.max(0, price - 12500) },
           ],
         },
       },
@@ -661,28 +731,37 @@ async function seedBrodyStory({
         data: photos.map((photo) => ({ jobId: job.id, url: photo.url, createdAt: photo.at })),
       });
     }
+    if (status === "COMPLETED") {
+      await prisma.repairRecord.create({
+        data: {
+          jobId: job.id,
+          vehicleId,
+          title: problem,
+          diagnosis: problem,
+          workPerformed: problem,
+          laborHours: 2,
+          warrantySummary: "12 months / 12,000 miles",
+          createdAt: doneAt ?? createdAt,
+        },
+      });
+    }
     return job;
   }
 
-  const now = new Date("2026-09-11T16:24:00.000Z");
   const boatJob = await storyJob({
     vehicleId: boat.id,
     shop: fred,
     problem: "Engine not starting",
     category: "STARTING",
     status: "IN_PROGRESS",
-    price: 186000,
+    price: 285000,
     estimateStatus: "APPROVED",
-    createdAt: new Date("2026-09-08T15:00:00.000Z"),
+    createdAt: new Date("2026-08-28T16:00:00.000Z"),
     messages: [
-      { from: "customer", body: "Boat turned over once then nothing. Sitting at the house in Layton.", at: new Date("2026-09-08T15:05:00.000Z") },
-      { from: "shop", body: "Your parts have arrived. We'll start the repair this afternoon.", at: now, unread: true },
+      { from: "customer", body: "Boat turned over once then nothing.", at: new Date("2026-08-28T16:05:00.000Z") },
+      { from: "shop", body: "We're in service on the engine now. I'll update you when it's ready to pick up.", at: new Date("2026-08-31T16:24:00.000Z"), unread: true },
     ],
-    photos: [
-      { url: "/landing/vehicle-boat.png", at: new Date("2026-09-09T18:00:00.000Z") },
-      { url: "/landing/shop-marine.png", at: new Date("2026-09-09T18:01:00.000Z") },
-      { url: "/landing/cat-marine.png", at: new Date("2026-09-09T18:02:00.000Z") },
-    ],
+    photos: [{ url: "/landing/vehicle-boat.png", at: new Date("2026-08-29T18:00:00.000Z") }],
   });
 
   await storyJob({
@@ -690,13 +769,13 @@ async function seedBrodyStory({
     shop: diesel,
     problem: "Front-end work (suspension)",
     category: "SUSPENSION",
-    status: "REQUESTED",
-    price: 285000,
+    status: "AWAITING_APPROVAL",
+    price: 142000,
     estimateStatus: "SENT",
-    createdAt: new Date("2026-09-10T17:30:00.000Z"),
+    createdAt: new Date("2026-08-27T17:30:00.000Z"),
     messages: [
-      { from: "customer", body: "Clunk from the front end on the F-250 when I hit a dip. Need an estimate before you start.", at: new Date("2026-09-10T17:32:00.000Z") },
-      { from: "shop", body: "Estimate is ready — $2,850 for ball joints, tie rods, and an alignment.", at: new Date("2026-09-10T20:10:00.000Z"), unread: true },
+      { from: "customer", body: "Clunk from the front end on the F-250. Need an estimate before you start.", at: new Date("2026-08-27T17:32:00.000Z") },
+      { from: "shop", body: "Estimate is ready — $1,420.00 for ball joints, tie rods, and an alignment.", at: new Date("2026-08-27T20:10:00.000Z"), unread: true },
     ],
   });
 
@@ -705,68 +784,68 @@ async function seedBrodyStory({
     shop: powersports,
     problem: "Routine Service",
     category: "MAINTENANCE",
-    status: "SCHEDULED",
-    price: 28500,
+    status: "DIAGNOSING",
+    price: 62000,
     estimateStatus: "APPROVED",
-    scheduledAt: new Date("2026-09-12T16:00:00.000Z"),
-    createdAt: new Date("2026-09-09T16:00:00.000Z"),
+    scheduledAt: new Date("2026-09-14T16:00:00.000Z"),
+    createdAt: new Date("2026-08-26T16:00:00.000Z"),
     messages: [
-      { from: "customer", body: "Need oil, filter, and a look at the air filter before the next ride.", at: new Date("2026-09-09T16:02:00.000Z") },
-      { from: "shop", body: "You're on the book for Saturday at 10:00 AM. Bring the bike in the morning.", at: new Date("2026-09-09T18:40:00.000Z") },
+      { from: "customer", body: "Need oil, filter, and a look at the air filter before the next ride.", at: new Date("2026-08-26T16:02:00.000Z") },
+      { from: "shop", body: "Parts ETA is Aug 30. You're still on the book for Saturday at 10:00 AM.", at: new Date("2026-08-29T18:40:00.000Z") },
     ],
   });
 
-  const rvJob = await storyJob({
-    vehicleId: truck.id,
-    shop: rv,
-    problem: "Trailer lights and brake controller check",
-    category: "ELECTRICAL",
+  await storyJob({
+    vehicleId: rv.id,
+    shop: mountainRv,
+    problem: "Brake service",
+    category: "BRAKES",
     status: "COMPLETED",
-    price: 24000,
+    price: 48500,
     estimateStatus: "APPROVED",
-    createdAt: new Date("2026-09-02T16:00:00.000Z"),
+    createdAt: new Date("2026-08-16T16:00:00.000Z"),
+    completedAt: new Date("2026-08-20T18:00:00.000Z"),
     messages: [
-      { from: "customer", body: "Trailer lights were intermittent on the way back from Bear Lake.", at: new Date("2026-09-02T16:05:00.000Z") },
-      { from: "shop", body: "Wiring is sorted. You're good for the next trip.", at: new Date("2026-09-04T18:00:00.000Z") },
+      { from: "customer", body: "RV brakes feel soft on the mountain grades.", at: new Date("2026-08-16T16:05:00.000Z") },
+      { from: "shop", body: "Pads and fluid are done. You're good to go.", at: new Date("2026-08-20T18:10:00.000Z") },
     ],
   });
 
-  await prisma.repairRecord.create({
-    data: {
-      jobId: rvJob.id,
-      vehicleId: truck.id,
-      title: "Trailer lighting repair",
-      diagnosis: "Corroded ground on the 7-pin connector",
-      workPerformed: "Replaced connector and verified brake controller",
-      mileage: truck.mileage,
-      laborHours: 1.5,
-      warrantySummary: "12 months / 12,000 miles",
-      createdAt: new Date("2026-09-04T18:00:00.000Z"),
-    },
+  await storyJob({
+    vehicleId: ski.id,
+    shop: utahPower,
+    problem: "Engine service",
+    category: "ENGINE",
+    status: "COMPLETED",
+    price: 32000,
+    estimateStatus: "APPROVED",
+    createdAt: new Date("2026-08-08T16:00:00.000Z"),
+    completedAt: new Date("2026-08-12T18:00:00.000Z"),
+    messages: [
+      { from: "customer", body: "Ski was running rough after the last lake day.", at: new Date("2026-08-08T16:05:00.000Z") },
+      { from: "shop", body: "Impeller and plugs are sorted. Ready for pickup.", at: new Date("2026-08-12T18:10:00.000Z") },
+    ],
   });
-  await prisma.review.create({
-    data: {
-      jobId: rvJob.id,
-      customerId,
-      mechanicProfileId: rv.id,
-      overallRating: 5,
-      communicationRating: 5,
-      professionalismRating: 5,
-      pricingRating: 5,
-      timelinessRating: 5,
-      qualityRating: 5,
-      wouldUseAgain: true,
-      body: "Had the trailer lights sorted the same day and explained the ground issue without talking down to me.",
-      repairSummary: "Trailer lighting repair",
-      priceCents: 24000,
-      createdAt: new Date("2026-09-05T16:00:00.000Z"),
-    },
+
+  await storyJob({
+    vehicleId: trailer.id,
+    shop: trailerPro,
+    problem: "Bearing replacement",
+    category: "OTHER",
+    status: "IN_PROGRESS",
+    price: 78000,
+    estimateStatus: "APPROVED",
+    createdAt: new Date("2026-08-25T16:00:00.000Z"),
+    messages: [
+      { from: "customer", body: "Trailer bearings were noisy on the way to the lake.", at: new Date("2026-08-25T16:05:00.000Z") },
+      { from: "shop", body: "We're in the middle of the bearing job. Should be wrapped this week.", at: new Date("2026-08-26T18:00:00.000Z") },
+    ],
   });
 
   await prisma.notification.createMany({
     data: [
-      { userId: customerId, title: "Estimate received", body: "Layton Diesel & Auto sent a $2,850 estimate.", href: `/jobs` },
-      { userId: customerId, title: "Parts arrived", body: "Fred's Marine is ready to continue the boat repair.", href: `/jobs/${boatJob.id}` },
+      { userId: customerId, title: "Estimate received", body: "Layton Diesel & Auto sent a $1,420.00 estimate.", href: `/jobs` },
+      { userId: customerId, title: "Repair in progress", body: "Fred's Marine is working on the Centurion.", href: `/jobs/${boatJob.id}` },
     ],
   });
 }
@@ -867,6 +946,9 @@ async function main() {
     { owner: 0, year: 2022, make: "Ford", model: "F-250", trim: "Lariat", engine: "6.7 Power Stroke", drivetrain: "4x4", mileage: 41200, nickname: "The truck" },
     { owner: 0, year: 2022, make: "Centurion", model: "Ri245", trim: "Luxury", engine: "6.2 Supercharged", drivetrain: "V-drive", mileage: 186, nickname: "The boat" },
     { owner: 0, year: 2020, make: "KTM", model: "450 SX-F", engine: "450cc", drivetrain: "Chain", mileage: 84, nickname: "The bike" },
+    { owner: 0, year: 2021, make: "Winnebago", model: "Minnie Winnie", trim: "22M", engine: "7.3 V8", drivetrain: "RWD", mileage: 28400, nickname: "The RV" },
+    { owner: 0, year: 2019, make: "Yamaha", model: "FX Cruiser", engine: "1.8 SHO", drivetrain: "Jet", mileage: 92, nickname: "The ski" },
+    { owner: 0, year: 2022, make: "Haulmark", model: "Trailer", trim: "Enclosed", drivetrain: "Tandem", mileage: 4100, nickname: "The trailer" },
     { owner: 1, year: 2022, make: "Toyota", model: "Tacoma", trim: "TRD", engine: "3.5 V6", drivetrain: "4x4", mileage: 31000 },
     { owner: 2, year: 2019, make: "Jeep", model: "Wrangler", trim: "Sahara", engine: "3.6 V6", drivetrain: "4x4", mileage: 54000 },
     { owner: 3, year: 2021, make: "Subaru", model: "Outback", trim: "Limited", engine: "2.5", drivetrain: "AWD", mileage: 28000 },
@@ -1128,6 +1210,9 @@ async function main() {
     truck: brodyVehicles[0],
     boat: brodyVehicles[1],
     bike: brodyVehicles[2],
+    rv: brodyVehicles[3],
+    ski: brodyVehicles[4],
+    trailer: brodyVehicles[5],
     shops: Object.fromEntries(mechanicProfiles.map((profile) => [profile.slug, profile])),
   });
 

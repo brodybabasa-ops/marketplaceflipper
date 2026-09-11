@@ -43,14 +43,14 @@ export function CustomerDashboard({
       <Hero firstName={firstName} />
       <div className="relative z-10 mx-auto -mt-8 max-w-[1180px] px-6 pb-10">
         <QuickActions />
-        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
           <ActiveRepairs repairs={repairs} />
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <MyVehicles vehicles={vehicles} />
             <NearbyShops shops={shops} origin={origin} />
           </div>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_280px]">
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_280px]">
           <RecentActivity items={activity} />
           <MessagesCard items={messages} />
           <AppCta />
@@ -73,15 +73,8 @@ function Hero({ firstName }: { firstName: string }) {
   return (
     <section className="relative overflow-hidden pb-16 pt-24">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/landing/dashboard-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[72%_center]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.55)_48%,rgba(7,20,34,0.18)_100%)]" />
-      <p className="font-script absolute right-[6%] top-24 hidden max-w-[160px] text-right text-2xl leading-tight text-white/90 lg:block">
-        Good Machines
-        <br />
-        Lead to
-        <br />
-        Great Days.
-      </p>
+      <img src="/landing/dashboard-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[78%_center]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.62)_42%,rgba(7,20,34,0.18)_100%)]" />
       <div className="relative mx-auto max-w-[1180px] px-6">
         <h1 className="max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
           Welcome back,
@@ -89,6 +82,7 @@ function Hero({ firstName }: { firstName: string }) {
           <span className="text-[#2f7bff]">{firstName}.</span>
         </h1>
         <p className="mt-3 max-w-lg text-white/75">Keep your machines running so you can get back out there.</p>
+        <p className="font-script mt-4 text-2xl text-white/90">Good Machines Lead to Great Days.</p>
       </div>
     </section>
   );
@@ -128,7 +122,7 @@ function ActiveRepairs({ repairs }: { repairs: DashboardRepair[] }) {
       ) : (
         <div className="mt-4 space-y-4">
           {repairs.map((repair) => (
-            <article key={repair.id} className="grid gap-4 border-b border-line pb-4 last:border-0 last:pb-0 md:grid-cols-[88px_minmax(0,1fr)_auto]">
+            <article key={repair.id} className="grid min-w-0 gap-4 border-b border-line pb-4 last:border-0 last:pb-0 md:grid-cols-[88px_minmax(0,1fr)_auto]">
               <div className="relative h-20 overflow-hidden rounded-xl">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={repair.photo} alt="" className="h-full w-full object-cover" />

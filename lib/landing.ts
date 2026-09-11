@@ -50,7 +50,8 @@ const SHOP_PHOTO_BY_SLUG: Record<string, string> = {
   "great-salt-lake-marine": "/landing/shop-marine.png",
   "hill-field-tire": "/landing/shop-2.png",
   "northridge-transmission": "/landing/shop-diesel.png",
-  "wasatch-trailer-repair": "/landing/shop-rv.png",
+  "utah-powersports": "/landing/shop-powersports.png",
+  "trailer-pro-services": "/landing/shop-rv.png",
 };
 
 const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const;
@@ -149,8 +150,14 @@ export function vehiclePhotoFor(make: string, model: string) {
   if (hay.includes("ktm") || hay.includes("sx-f") || hay.includes("dirt") || hay.includes("motorcycle")) {
     return "/landing/vehicle-dirtbike.png";
   }
-  if (hay.includes("rv") || hay.includes("winnebago") || hay.includes("airstream")) {
-    return "/landing/cat-rv.png";
+  if (hay.includes("winnebago") || hay.includes("minnie") || hay.includes("rv")) {
+    return "/landing/vehicle-rv.png";
+  }
+  if (hay.includes("yamaha") || hay.includes("fx cruiser") || hay.includes("jet") || hay.includes("pwc")) {
+    return "/landing/vehicle-jetski.png";
+  }
+  if (hay.includes("haulmark") || hay.includes("trailer")) {
+    return "/landing/vehicle-trailer.png";
   }
   if (
     hay.includes("f-250") ||
