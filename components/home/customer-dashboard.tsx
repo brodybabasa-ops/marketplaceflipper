@@ -42,7 +42,7 @@ export function CustomerDashboard({
       <Hero firstName={firstName} />
       <div className="relative z-10 mx-auto -mt-8 max-w-[1180px] px-6 pb-10">
         <QuickActions />
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
           <ActiveRepairs repairs={repairs} />
           <div className="space-y-4">
             <MyVehicles vehicles={vehicles} />
@@ -101,9 +101,9 @@ function QuickActions() {
     { href: "/messages", icon: HelpCircle, title: "Ask a Question", body: "Get help from your shops" },
   ];
   return (
-    <div className="grid gap-3 rounded-[24px] bg-white p-3 shadow-[0_18px_40px_rgba(14,28,47,0.08)] sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-2 rounded-[24px] bg-white p-2 shadow-[0_18px_40px_rgba(14,28,47,0.08)] sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
-        <Link key={item.title} href={item.href} className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-[#f4f7fb]">
+        <Link key={item.title} href={item.href} className="flex items-center gap-3 rounded-2xl bg-[#f7f9fc] px-3 py-3 hover:bg-[#eef3f9]">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#2f7bff]">
             <item.icon className="h-5 w-5" />
           </span>
@@ -120,7 +120,7 @@ function QuickActions() {
 
 function ActiveRepairs({ repairs }: { repairs: DashboardRepair[] }) {
   return (
-    <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+    <section className="h-fit rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
       <Header title="Active Repairs" href="/jobs" />
       {repairs.length === 0 ? (
         <p className="mt-6 text-sm text-muted">No active repairs. Request a shop when something needs fixed.</p>
@@ -186,13 +186,13 @@ function MyVehicles({ vehicles }: { vehicles: DashboardVehicle[] }) {
   return (
     <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
       <Header title="My Vehicles" href="/vehicles" action="Manage" />
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-3 gap-3">
         {vehicles.map((vehicle) => (
           <Link key={vehicle.id} href={`/request?vehicle=${vehicle.id}`} className="overflow-hidden rounded-2xl bg-[#f4f7fb]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={vehicle.photo} alt="" className="h-20 w-full object-cover" />
             <span className="block px-2 py-2">
-              <span className="block text-sm font-bold leading-tight">{vehicle.label}</span>
+              <span className="block truncate text-sm font-bold leading-tight">{vehicle.label}</span>
               <span className="text-xs text-muted">{vehicle.year}</span>
             </span>
           </Link>
