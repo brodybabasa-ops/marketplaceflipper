@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, MapPin, Menu, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
@@ -32,14 +31,17 @@ const RESOURCE_LINKS = [
 ];
 
 export function SiteHeader({ user }: { user: SessionUser | null }) {
-  const pathname = usePathname();
-  if (pathname === "/") return <LandingHeader user={user} />;
-  return <AppHeader user={user} />;
+  return (
+    <>
+      <LandingHeader user={user} />
+      <AppHeader user={user} />
+    </>
+  );
 }
 
 function AppHeader({ user }: { user: SessionUser | null }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur">
+    <header className="app-header sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-8">
           <Logo />
@@ -69,7 +71,7 @@ function LandingHeader({ user }: { user: SessionUser | null }) {
   const [resourcesOpen, setResourcesOpen] = useState(false);
 
   return (
-    <header className="absolute inset-x-0 top-0 z-50">
+    <header className="landing-header absolute inset-x-0 top-0 z-50">
       <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-4 sm:px-6">
         <Logo light stacked />
         <nav className="hidden items-center gap-6 text-[13px] font-medium text-white/80 lg:flex">
@@ -208,10 +210,8 @@ function AuthButtons({ user }: { user: SessionUser | null }) {
 }
 
 export function SiteFooter() {
-  const pathname = usePathname();
-  if (pathname === "/") return null;
   return (
-    <footer className="mt-auto border-t border-line bg-white">
+    <footer className="app-footer mt-auto border-t border-line bg-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-4">
         <div className="md:col-span-2">
           <Logo />

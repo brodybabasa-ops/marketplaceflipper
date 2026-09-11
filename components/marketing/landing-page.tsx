@@ -19,7 +19,7 @@ import type { FeaturedShop, LandingReview } from "@/services/landing";
 
 export function LandingPage({ shops, reviews }: { shops: FeaturedShop[]; reviews: LandingReview[] }) {
   return (
-    <div className="bg-[#071422] text-white">
+    <div data-landing className="bg-[#071422] text-white">
       <Hero />
       <HowItWorks />
       <FeaturedShops shops={shops} />

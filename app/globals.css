@@ -62,3 +62,16 @@ body {
 .font-script {
   font-family: var(--font-caveat), "Segoe Script", cursive;
 }
+
+.landing-header {
+  display: none;
+}
+
+body:has([data-landing]) .landing-header {
+  display: block;
+}
+
+body:has([data-landing]) .app-header,
+body:has([data-landing]) .app-footer {
+  display: none;
+}
