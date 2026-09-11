@@ -708,7 +708,7 @@ async function seedBrodyStory({
     status: "SCHEDULED",
     price: 28500,
     estimateStatus: "APPROVED",
-    scheduledAt: new Date("2026-09-14T16:00:00.000Z"),
+    scheduledAt: new Date("2026-09-12T16:00:00.000Z"),
     createdAt: new Date("2026-09-09T16:00:00.000Z"),
     messages: [
       { from: "customer", body: "Need oil, filter, and a look at the air filter before the next ride.", at: new Date("2026-09-09T16:02:00.000Z") },

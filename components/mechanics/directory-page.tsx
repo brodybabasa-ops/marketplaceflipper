@@ -152,7 +152,7 @@ function Results({
           Sort by:{" "}
           <AutoSubmitSelect
             name="sort"
-            defaultValue={query.sort ?? "recommended"}
+            defaultValue={query.sort ?? "closest"}
             className="rounded-lg border border-line bg-white px-2 py-1 font-semibold text-navy"
           >
             <option value="recommended">Best Match</option>

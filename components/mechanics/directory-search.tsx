@@ -137,7 +137,7 @@ function CommittedFilters({ query }: { query: DirectoryQuery }) {
       {query.mode ? <input type="hidden" name="mode" value={query.mode} /> : null}
       {query.rating ? <input type="hidden" name="rating" value={query.rating} /> : null}
       <input type="hidden" name="distance" value={query.distance ?? "50"} />
-      <input type="hidden" name="sort" value={query.sort ?? "recommended"} />
+      <input type="hidden" name="sort" value={query.sort ?? "closest"} />
     </>
   );
 }
