@@ -47,5 +47,17 @@ export function StatusTimeline({ status }: { status: JobStatus }) {
 }
 
 export function JobStatusLabel({ status }: { status: JobStatus }) {
-  return <span className="text-sm font-medium text-navy">{LABELS[status]}</span>;
+  const tone =
+    status === "COMPLETED"
+      ? "bg-emerald-50 text-success"
+      : status === "CANCELLED" || status === "DISPUTED"
+        ? "bg-red-50 text-danger"
+        : status === "AWAITING_APPROVAL" || status === "REQUESTED"
+          ? "bg-[#fff4de] text-warning"
+          : "bg-[#e8f1ff] text-[#2f7bff]";
+  return (
+    <span className={cn("inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold", tone)}>
+      {LABELS[status]}
+    </span>
+  );
 }

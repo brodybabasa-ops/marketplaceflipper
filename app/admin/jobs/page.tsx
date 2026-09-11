@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -12,18 +12,15 @@ export default async function AdminJobsPage() {
     take: 60,
   });
   return (
-    <div className="mx-auto max-w-6xl">
-      <h1 className="text-3xl font-bold text-navy">Jobs</h1>
-      <div className="mt-6 space-y-3">
-        {jobs.map((job) => (
-          <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
-            <p className="font-semibold text-navy">{job.serviceRequest.problemText}</p>
-            <p className="text-sm text-muted">
-              {job.customer.firstName} → {job.mechanicProfile.businessName} · {job.status}
-            </p>
-          </Link>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {jobs.map((job) => (
+        <BoardLink key={job.id} href={`/jobs/${job.id}`}>
+          <p className="font-semibold text-navy">{job.serviceRequest.problemText}</p>
+          <p className="text-sm text-muted">
+            {job.customer.firstName} → {job.mechanicProfile.businessName} · {job.status.replaceAll("_", " ").toLowerCase()}
+          </p>
+        </BoardLink>
+      ))}
     </div>
   );
 }

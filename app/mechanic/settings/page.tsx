@@ -6,11 +6,8 @@ export const metadata = { title: "Settings" };
 export default async function MechanicSettingsPage() {
   await requireSession("MECHANIC");
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-navy">Settings</h1>
-      <Card className="mt-6 p-5 text-sm text-muted">
-        Notification preferences, SMS (Twilio), and Stripe Connect onboarding will plug into this screen. Email and SMS currently use adapter services that log in development until keys are provided.
-      </Card>
-    </div>
+    <Card className="border-0 bg-[#f7f9fc] p-5 text-sm text-muted shadow-none">
+      Notification preferences, SMS (Twilio), and Stripe Connect onboarding will plug into this screen. Email and SMS currently use adapter services that log in development until keys are provided.
+    </Card>
   );
 }

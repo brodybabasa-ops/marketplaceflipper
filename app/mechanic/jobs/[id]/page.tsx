@@ -4,6 +4,7 @@ import { EstimateCard } from "@/components/jobs/estimate-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { PageHeading } from "@/components/layout/themed-board";
 import { createEstimateAction, saveRepairRecordAction, sendMessageAction, updateJobStatusAction } from "@/app/actions/marketplace";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
@@ -18,14 +19,14 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
   if (!job) notFound();
   const nextStatuses = ALLOWED_JOB_TRANSITIONS[job.status];
   return (
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-3xl font-bold text-navy">{job.serviceRequest.problemText}</h1>
-      <p className="mt-1 text-muted">
-        {job.customer.firstName} {job.customer.lastName} · {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.zip}
-      </p>
+    <div>
+      <PageHeading
+        title={job.serviceRequest.problemText}
+        subtitle={`${job.customer.firstName} ${job.customer.lastName} · ${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name} · ${job.serviceRequest.zip}`}
+      />
 
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <Card className="p-5">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
           <h2 className="font-semibold text-navy">Job status</h2>
           <div className="mt-4">
             <StatusTimeline status={job.status} />
@@ -44,7 +45,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
             </form>
           ) : null}
         </Card>
-        <Card className="p-5">
+        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
           <h2 className="font-semibold text-navy">Request details</h2>
           <p className="mt-2 text-sm">{job.serviceRequest.description || job.serviceRequest.problemText}</p>
           <p className="mt-2 text-sm text-muted">Preferred: {job.serviceRequest.preferredTimeWindow || "flexible"}</p>
@@ -55,7 +56,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         {job.estimates.map((estimate) => (
           <EstimateCard key={estimate.id} estimate={estimate} />
         ))}
-        <Card className="p-5">
+        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
           <h2 className="font-semibold text-navy">Create estimate or additional work request</h2>
           <p className="text-sm text-muted">Additional work cannot silently rewrite the original estimate. It creates a new approval record.</p>
           <form action={createEstimateAction} className="mt-4 space-y-3">
@@ -83,7 +84,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
             <Button type="submit">Send to customer</Button>
           </form>
         </Card>
-        <Card className="p-5">
+        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
           <h2 className="font-semibold text-navy">Repair documentation</h2>
           <form action={saveRepairRecordAction} className="mt-4 space-y-3">
             <input type="hidden" name="jobId" value={job.id} />
@@ -112,7 +113,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           </form>
         </Card>
         {job.thread ? (
-          <Card className="p-5">
+          <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
             <h2 className="font-semibold text-navy">Message customer</h2>
             <div className="mt-3 space-y-2">
               {job.thread.messages.map((message) => (

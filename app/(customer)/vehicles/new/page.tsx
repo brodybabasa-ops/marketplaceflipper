@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { ThemedBoard } from "@/components/layout/themed-board";
 import { createVehicleAction } from "@/app/actions/marketplace";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -12,10 +13,16 @@ export default async function NewVehiclePage() {
   const years = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
   const firstMake = makes[0];
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-3xl font-bold text-navy">Add a vehicle</h1>
-      <p className="mt-2 text-sm text-muted">Start with year, make, and model. Everything else is optional.</p>
-      <form action={createVehicleAction} className="mt-6 space-y-4">
+    <ThemedBoard
+      eyebrow="ADD A VEHICLE"
+      title="Add a"
+      accent="Machine."
+      subtitle="Start with year, make, and model. Everything else is optional."
+      script="Good Machines Lead to Great Days."
+      image="/landing/cat-automotive.png"
+      wide={false}
+    >
+      <form action={createVehicleAction} className="space-y-4">
         <Field label="Year">
           <Select name="year" defaultValue={String(years[1])}>
             {years.map((year) => (
@@ -66,6 +73,6 @@ export default async function NewVehiclePage() {
         </Field>
         <Button type="submit">Save vehicle</Button>
       </form>
-    </div>
+    </ThemedBoard>
   );
 }

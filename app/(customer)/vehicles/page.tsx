@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { VehicleCard } from "@/components/jobs/vehicle-card";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
+import { ThemedBoard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -15,19 +15,26 @@ export default async function VehiclesPage() {
     orderBy: { createdAt: "asc" },
   });
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-navy">My vehicles</h1>
-        <Button asChild>
-          <Link href="/vehicles/new">Add vehicle</Link>
-        </Button>
+    <ThemedBoard
+      eyebrow="MY VEHICLES"
+      title="Your"
+      accent="Machines."
+      subtitle="Everything you keep running lives here."
+      script="Good Machines Lead to Great Days."
+      image="/landing/hero-truck.png"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted">{vehicles.length} vehicles on your account</p>
+        <Link href="/vehicles/new" className="inline-flex h-10 items-center rounded-xl bg-[#2f7bff] px-4 text-sm font-semibold text-white">
+          Add vehicle
+        </Link>
       </div>
       {vehicles.length === 0 ? (
         <div className="mt-6">
           <EmptyState title="No vehicles yet" body="Add the vehicle that needs help. Nickname optional." />
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {vehicles.map((vehicle) => (
             <VehicleCard
               key={vehicle.id}
@@ -44,6 +51,6 @@ export default async function VehiclesPage() {
           ))}
         </div>
       )}
-    </div>
+    </ThemedBoard>
   );
 }

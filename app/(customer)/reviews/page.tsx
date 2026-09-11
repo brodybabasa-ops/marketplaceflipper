@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/card";
 import { ReviewCard } from "@/components/jobs/review-card";
+import { ThemedBoard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -18,15 +19,20 @@ export default async function CustomerReviewsPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-bold text-navy">Reviews</h1>
-      <p className="mt-2 text-sm text-muted">Reviews can only come from completed Pocket Mechanic jobs.</p>
-      <div className="mt-6 space-y-3">
+    <ThemedBoard
+      eyebrow="REVIEWS"
+      title="What you"
+      accent="Said."
+      subtitle="Reviews can only come from completed Pocket Mechanic jobs."
+      script="Real People. Real Repairs."
+      image="/landing/lifestyle.png"
+    >
+      <div className="space-y-3">
         {reviews.length === 0 ? (
           <EmptyState title="No reviews yet" body="After a job is completed, you can leave a review from the job page." />
         ) : (
           reviews.map((review) => (
-            <div key={review.id} className="rounded-2xl border border-line bg-white p-4">
+            <div key={review.id} className="rounded-2xl border border-line bg-[#f7f9fc] p-4">
               <p className="text-sm font-semibold text-navy">{review.mechanic.businessName}</p>
               <p className="mb-3 text-xs text-muted">
                 {review.job.vehicle.year} {review.job.vehicle.make.name} {review.job.vehicle.model.name}
@@ -39,6 +45,6 @@ export default async function CustomerReviewsPage() {
           ))
         )}
       </div>
-    </div>
+    </ThemedBoard>
   );
 }

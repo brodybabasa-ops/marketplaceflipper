@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { ThemedBoard } from "@/components/layout/themed-board";
 import { createRequestAction } from "@/app/actions/marketplace";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -19,10 +20,16 @@ export default async function RequestPage({
   });
   const profile = await prisma.customerProfile.findUnique({ where: { userId: session.id } });
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="text-3xl font-bold text-navy">What does your vehicle need?</h1>
-      <p className="mt-2 text-sm text-muted">Use everyday language. “Truck shakes when braking” is enough.</p>
-      <form action={createRequestAction} className="mt-6 space-y-4">
+    <ThemedBoard
+      eyebrow="REQUEST SERVICE"
+      title="What needs"
+      accent="Fixed?"
+      subtitle="Use everyday language. “Truck shakes when braking” is enough."
+      script="We'll get you there."
+      image="/landing/hero-truck.png"
+      wide={false}
+    >
+      <form action={createRequestAction} className="space-y-4">
         {params.mechanic ? <input type="hidden" name="mechanicProfileId" value={params.mechanic} /> : null}
         <Field label="Vehicle">
           <Select name="vehicleId" defaultValue={params.vehicle ?? vehicles[0]?.id} required>
@@ -59,6 +66,6 @@ export default async function RequestPage({
         </label>
         <Button type="submit">{params.mechanic ? "Request this mechanic" : "Find Mechanics"}</Button>
       </form>
-    </div>
+    </ThemedBoard>
   );
 }

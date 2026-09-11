@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { StatCard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -17,25 +17,15 @@ export default async function AdminDashboardPage() {
   ]);
   const cancelled = await prisma.job.count({ where: { status: "CANCELLED" } });
   return (
-    <div className="mx-auto max-w-6xl">
-      <h1 className="text-3xl font-bold text-navy">Platform overview</h1>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ["Total users", users],
-          ["Mechanics", mechanics],
-          ["Verified mechanics", verified],
-          ["Jobs", jobs],
-          ["Completed jobs", completed],
-          ["Cancellation rate", jobs ? `${Math.round((cancelled / jobs) * 100)}%` : "0%"],
-          ["Average rating", (reviews._avg.overallRating ?? 0).toFixed(1)],
-          ["Open disputes", disputes],
-        ].map(([label, value]) => (
-          <Card key={String(label)} className="p-5">
-            <p className="text-sm text-muted">{label}</p>
-            <p className="number mt-1 text-3xl font-bold text-navy">{value}</p>
-          </Card>
-        ))}
-      </div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard label="Total users" value={users} />
+      <StatCard label="Mechanics" value={mechanics} />
+      <StatCard label="Verified mechanics" value={verified} />
+      <StatCard label="Jobs" value={jobs} />
+      <StatCard label="Completed jobs" value={completed} />
+      <StatCard label="Cancellation rate" value={jobs ? `${Math.round((cancelled / jobs) * 100)}%` : "0%"} />
+      <StatCard label="Average rating" value={(reviews._avg.overallRating ?? 0).toFixed(1)} />
+      <StatCard label="Open disputes" value={disputes} />
     </div>
   );
 }

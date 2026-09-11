@@ -17,11 +17,13 @@ export default async function MechanicProfileSettingsPage() {
   });
   const level = VERIFICATION_LEVELS.find((item) => item.value === profile.verificationLevel);
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-navy">{profile.businessName}</h1>
+    <div>
+      <h2 className="text-2xl font-extrabold text-navy">{profile.businessName}</h2>
       <p className="mt-2 text-muted">{level?.label}</p>
-      <Rating value={profile.averageRating} count={profile.reviewCount} />
-      <div className="mt-6 flex gap-3">
+      <div className="mt-2">
+        <Rating value={profile.averageRating} count={profile.reviewCount} />
+      </div>
+      <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild>
           <Link href={`/mechanics/${profile.slug}`}>View public profile</Link>
         </Button>
@@ -29,8 +31,8 @@ export default async function MechanicProfileSettingsPage() {
           <Link href="/mechanic/onboarding">Edit profile</Link>
         </Button>
       </div>
-      <Card className="mt-6 p-5">
-        <h2 className="font-semibold text-navy">Verification</h2>
+      <Card className="mt-6 border-0 bg-[#f7f9fc] p-5 shadow-none">
+        <h3 className="font-semibold text-navy">Verification</h3>
         <p className="mt-2 text-sm text-muted">{level?.description}</p>
         <form action={submitVerificationAction} className="mt-4">
           <Button type="submit" variant="secondary">

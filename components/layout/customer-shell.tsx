@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { CustomerSidebar } from "@/components/layout/customer-sidebar";
 import { CustomerHeader } from "@/components/layout/customer-header";
@@ -20,9 +19,8 @@ export function CustomerShell({
   unreadNotifications: number;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const overlay = pathname === "/home" || pathname === "/jobs";
   const [menuOpen, setMenuOpen] = useState(false);
+  const overlay = true;
   return (
     <div data-dashboard className="flex min-h-screen bg-[#e8eef4] text-navy">
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">

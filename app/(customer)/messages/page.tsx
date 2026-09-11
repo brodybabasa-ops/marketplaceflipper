@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { EmptyState } from "@/components/ui/card";
+import { ThemedBoard, BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -18,10 +18,16 @@ export default async function MessagesPage() {
     orderBy: { lastMessageAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-bold text-navy">Messages</h1>
-      <p className="mt-2 text-sm text-muted">Job-related conversations stay attached to the request, not a random phone number.</p>
-      <div className="mt-6 space-y-3">
+    <ThemedBoard
+      eyebrow="MESSAGES"
+      title="Talk to the"
+      accent="Shop."
+      subtitle="Conversations stay attached to the job, not a random phone number."
+      script="Stay in the Loop."
+      image="/landing/lifestyle.png"
+      wide={false}
+    >
+      <div className="space-y-3">
         {threads.length === 0 ? (
           <EmptyState title="No conversations yet" body="Start from a job or mechanic profile so the context stays with the work." />
         ) : (
@@ -31,14 +37,14 @@ export default async function MessagesPage() {
                 ? thread.mechanic.mechanicProfile?.businessName ?? `${thread.mechanic.firstName} ${thread.mechanic.lastName}`
                 : `${thread.customer.firstName} ${thread.customer.lastName}`;
             return (
-              <Link key={thread.id} href={thread.jobId ? `/jobs/${thread.jobId}` : `/messages/${thread.id}`} className="block rounded-2xl border border-line bg-white p-4">
+              <BoardLink key={thread.id} href={thread.jobId ? `/jobs/${thread.jobId}` : `/messages/${thread.id}`}>
                 <p className="font-semibold text-navy">{title}</p>
                 <p className="text-sm text-muted">{thread.messages[0]?.body}</p>
-              </Link>
+              </BoardLink>
             );
           })
         )}
       </div>
-    </div>
+    </ThemedBoard>
   );
 }

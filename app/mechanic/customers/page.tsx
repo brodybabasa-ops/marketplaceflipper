@@ -1,3 +1,4 @@
+import { BoardRow } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -13,15 +14,16 @@ export default async function MechanicCustomersPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-navy">Customers</h1>
-      <ul className="mt-6 space-y-3">
-        {jobs.map((job) => (
-          <li key={job.customerId} className="rounded-2xl border border-line bg-white p-4">
-            {job.customer.firstName} {job.customer.lastName}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-3">
+      {jobs.map((job) => (
+        <li key={job.customerId}>
+          <BoardRow>
+            <p className="font-semibold text-navy">
+              {job.customer.firstName} {job.customer.lastName}
+            </p>
+          </BoardRow>
+        </li>
+      ))}
+    </ul>
   );
 }

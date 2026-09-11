@@ -237,28 +237,28 @@ function Results({
 
 function TrustBar() {
   return (
-    <section className="relative overflow-hidden border-t border-white/10 bg-[#071422]">
-      <div className="mx-auto grid max-w-[1280px] gap-6 px-4 py-8 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
-        {(
-          [
-            [ShieldCheck, "Verified Shops", "Shops you can trust"],
-            [Star, "Real Reviews", "From real customers"],
-            [ClipboardList, "Transparent information", "Know before you book"],
-            [CalendarCheck, "Easy Booking", "Get it done"],
-          ] as const
-        ).map(([Icon, title, body]) => (
-          <div key={title} className="flex items-start gap-3">
-            <Icon className="mt-0.5 h-5 w-5 text-[#2f7bff]" />
-            <div>
-              <p className="font-semibold">{title}</p>
-              <p className="text-sm text-white/60">{body}</p>
+    <section className="border-t border-white/10 bg-[#071422]">
+      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {(
+            [
+              [ShieldCheck, "Verified Shops", "Shops you can trust"],
+              [Star, "Real Reviews", "From real customers"],
+              [ClipboardList, "Transparent information", "Know before you book"],
+              [CalendarCheck, "Easy Booking", "Get it done"],
+            ] as const
+          ).map(([Icon, title, body]) => (
+            <div key={title} className="flex items-start gap-3">
+              <Icon className="mt-0.5 h-5 w-5 text-[#2f7bff]" />
+              <div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-white/60">{body}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <p className="font-script mt-6 text-2xl text-white/90">Get It Fixed. Get Back Out There.</p>
       </div>
-      <p className="font-script pointer-events-none absolute bottom-4 right-8 hidden text-2xl text-white/80 lg:block">
-        Get It Fixed. Get Back Out There.
-      </p>
     </section>
   );
 }

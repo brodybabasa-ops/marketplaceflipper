@@ -4,6 +4,7 @@ import { US_STATES } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { searchMechanics } from "@/services/search";
 import { slugify } from "@/lib/utils";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
 
 export default async function NestedSeoPage({ params }: { params: Promise<{ slug: string; child: string }> }) {
   const { slug, child } = await params;
@@ -14,39 +15,41 @@ export default async function NestedSeoPage({ params }: { params: Promise<{ slug
     if (!city) notFound();
     const { matches } = await searchMechanics({ zip: city.zip });
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-3xl font-bold text-navy">
-          Mechanics in {city.city}, {state.code}
-        </h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          Local Pocket Mechanic partners serving {city.city}. Compare verified jobs, specialties, and transparent pricing.
-        </p>
-        <div className="mt-8 grid gap-4">
+      <MarketingShell
+        title={`Mechanics in ${city.city},`}
+        accent={state.code}
+        subtitle={`Local Pocket Mechanic partners serving ${city.city}. Compare verified jobs, specialties, and transparent pricing.`}
+        image="/landing/shop-1.png"
+        script="Find the Right Shop."
+        wide
+      >
+        <div className="grid gap-4">
           {matches.map((mechanic) => (
             <MechanicCard key={mechanic.id} mechanic={mechanic} />
           ))}
         </div>
-      </div>
+      </MarketingShell>
     );
   }
 
   const make = await prisma.vehicleMake.findUnique({ where: { slug }, include: { models: true } });
   const model = make?.models.find((item) => item.slug === child);
   if (!make || !model) notFound();
-    const { matches } = await searchMechanics({ make: make.name, zip: "84041" });
+  const { matches } = await searchMechanics({ make: make.name, zip: "84041" });
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-navy">
-        {make.name} {model.name} mechanics
-      </h1>
-      <p className="mt-3 max-w-2xl text-muted">
-        Mechanics who regularly work on {make.name} {model.name} vehicles. This is not a dealership directory — these are independent service providers.
-      </p>
-      <div className="mt-8 grid gap-4">
+    <MarketingShell
+      title={`${make.name} ${model.name}`}
+      accent="mechanics."
+      subtitle={`Mechanics who regularly work on ${make.name} ${model.name} vehicles. This is not a dealership directory — these are independent service providers.`}
+      image="/landing/cat-automotive.png"
+      script="Find the Right Shop."
+      wide
+    >
+      <div className="grid gap-4">
         {matches.map((mechanic) => (
           <MechanicCard key={mechanic.id} mechanic={mechanic} />
         ))}
       </div>
-    </div>
+    </MarketingShell>
   );
 }

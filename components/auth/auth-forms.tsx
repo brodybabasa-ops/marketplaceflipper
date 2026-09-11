@@ -8,7 +8,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 export function SignInForm() {
   const [state, action, pending] = useActionState(signInAction, {} as AuthState);
   return (
-    <form action={action} className="mt-8 space-y-4">
+    <form action={action} className="space-y-4">
       {state.error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-danger">{state.error}</p> : null}
       <Field label="Email">
         <Input name="email" type="email" required placeholder="you@email.com" />
@@ -26,7 +26,7 @@ export function SignInForm() {
 export function SignUpForm() {
   const [state, action, pending] = useActionState(signUpAction, {} as AuthState);
   return (
-    <form action={action} className="mt-8 space-y-4">
+    <form action={action} className="space-y-4">
       {state.error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-danger">{state.error}</p> : null}
       <div className="grid grid-cols-2 gap-3">
         <Field label="First name">
