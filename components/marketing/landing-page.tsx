@@ -172,17 +172,18 @@ function HowItWorks() {
 function FeaturedShops({ shops }: { shops: FeaturedShop[] }) {
   return (
     <section className="bg-white py-16 text-navy sm:py-20">
-      <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6 lg:min-h-[760px]">
-        <div className="lg:pr-[300px]">
-          <div className="flex items-end justify-between gap-4">
+      <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
+        <div className="flex items-end justify-between gap-4 lg:pr-[300px]">
             <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Featured Shops Near You</h2>
             <Link href="/mechanics?zip=84041" className="hidden items-center gap-1 text-sm font-semibold text-[#2f7bff] sm:inline-flex">
               View All Shops
               <ArrowRight className="h-4 w-4" />
             </Link>
-          </div>
+        </div>
+        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div>
           {shops.length ? (
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {shops.map((shop) => (
                 <article key={shop.slug} className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
                   <div className="relative h-36 overflow-hidden">
@@ -236,8 +237,8 @@ function FeaturedShops({ shops }: { shops: FeaturedShop[] }) {
             View All Shops
             <ArrowRight className="h-4 w-4" />
           </Link>
-        </div>
-        <div className="mt-12 text-center lg:absolute lg:-top-28 lg:right-6 lg:mt-0 lg:w-[280px] lg:text-left">
+          </div>
+        <div className="text-center lg:-mt-28 lg:text-left">
           <LandingPhone shops={shops} />
           <h3 className="mt-6 text-3xl font-extrabold leading-tight text-navy">
             Find.
@@ -271,6 +272,7 @@ function FeaturedShops({ shops }: { shops: FeaturedShop[] }) {
               </span>
             </Link>
           </div>
+        </div>
         </div>
       </div>
     </section>

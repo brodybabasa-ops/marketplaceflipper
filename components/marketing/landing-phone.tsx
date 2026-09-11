@@ -5,7 +5,7 @@ import type { FeaturedShop } from "@/services/landing";
 export function LandingPhone({ shops }: { shops: FeaturedShop[] }) {
   return (
     <div className="relative mx-auto w-[270px] shrink-0">
-      <div className="rounded-[42px] border-[10px] border-[#1b1f24] bg-[#0b1220] p-2 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+      <div className="rounded-[42px] border-[10px] border-[#d8dce2] bg-[#111827] p-1.5 shadow-[0_30px_80px_rgba(0,0,0,0.28)]">
         <div className="overflow-hidden rounded-[32px] bg-[#0b1a2c]">
           <div className="flex items-center justify-between px-5 pt-3 text-[10px] text-white/70">
             <span>9:41</span>
