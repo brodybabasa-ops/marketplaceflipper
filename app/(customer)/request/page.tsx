@@ -40,7 +40,7 @@ export default async function RequestPage({
           <Textarea name="description" placeholder="When it happens, warning lights, recent work..." />
         </Field>
         <Field label="ZIP code">
-          <Input name="zip" required defaultValue={profile?.zip ?? "84101"} />
+          <Input name="zip" required defaultValue={profile?.zip ?? "84041"} />
         </Field>
         <Field label="Preferred date">
           <Input name="preferredDate" type="date" />

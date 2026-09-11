@@ -64,14 +64,16 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
       </nav>
       <div className="px-4 pb-4">
         <div className="overflow-hidden rounded-2xl bg-white/5 p-4">
-          <p className="text-sm font-semibold">Take Pocket Mechanic on the go.</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/landing/app-phone.png" alt="" className="mx-auto h-28 w-auto object-contain" />
+          <p className="mt-3 text-sm font-semibold">Take Pocket Mechanic on the go.</p>
           <Link
             href="/sign-up"
             className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-[#2f7bff] px-4 text-sm font-semibold text-white"
           >
             Get the App
           </Link>
-          <p className="mt-2 text-[11px] text-white/45">Sign in on any phone. App Store listings are not live yet.</p>
+          <p className="mt-2 text-[11px] text-white/45">Sign in on any phone. Store listings open sign-up until apps are live.</p>
         </div>
         <div className="mt-5 px-1">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">

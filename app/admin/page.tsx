@@ -1,4 +1,3 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -18,8 +17,7 @@ export default async function AdminDashboardPage() {
   ]);
   const cancelled = await prisma.job.count({ where: { status: "CANCELLED" } });
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin" />
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-3xl font-bold text-navy">Platform overview</h1>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[

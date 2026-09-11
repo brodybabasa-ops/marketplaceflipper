@@ -6,13 +6,17 @@ import { formatCents } from "@/lib/money";
 import { formatDistance } from "@/lib/geo";
 import { responseTimeLabel } from "@/services/matching";
 import type { MechanicMatch } from "@/services/matching";
+import { shopPhotoFor } from "@/lib/landing";
 import { ShieldCheck } from "lucide-react";
 
 export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href?: string }) {
   const profileHref = href ?? `/mechanics/${mechanic.slug}`;
   const verified = mechanic.verificationLevel !== "UNVERIFIED";
   return (
-    <article className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow)]">
+    <article className="overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow)]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={shopPhotoFor(mechanic.slug)} alt="" className="h-36 w-full object-cover" />
+      <div className="p-5">
       <div className="flex gap-4">
         <Avatar name={mechanic.businessName} src={mechanic.profilePhotoUrl} size="lg" />
         <div className="min-w-0 flex-1">
@@ -58,6 +62,7 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
         <Button asChild>
           <Link href={profileHref}>View Profile</Link>
         </Button>
+      </div>
       </div>
     </article>
   );

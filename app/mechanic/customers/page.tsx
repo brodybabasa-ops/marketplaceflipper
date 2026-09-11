@@ -1,4 +1,3 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -15,7 +14,6 @@ export default async function MechanicCustomersPage() {
   });
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/customers" />
       <h1 className="text-3xl font-bold text-navy">Customers</h1>
       <ul className="mt-6 space-y-3">
         {jobs.map((job) => (

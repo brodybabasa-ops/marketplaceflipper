@@ -1,4 +1,4 @@
-import { PrismaClient, type DayOfWeek, type JobStatus, type ServiceCategory, type ServiceMode, type VerificationLevel } from "@prisma/client";
+import { PrismaClient, type DayOfWeek, type JobStatus, type MechanicProfile, type ServiceCategory, type ServiceMode, type VerificationLevel } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_RANKING_WEIGHTS } from "../lib/constants";
 import { computeMechanicScore } from "../services/ranking";
@@ -27,7 +27,12 @@ const ZIPS = [
   { zip: "84401", city: "Ogden", state: "Utah", stateCode: "UT", latitude: 41.223, longitude: -111.9738 },
   { zip: "84403", city: "Ogden", state: "Utah", stateCode: "UT", latitude: 41.192, longitude: -111.944 },
   { zip: "84041", city: "Layton", state: "Utah", stateCode: "UT", latitude: 41.0602, longitude: -111.9711 },
+  { zip: "84040", city: "Layton", state: "Utah", stateCode: "UT", latitude: 41.078, longitude: -111.92 },
   { zip: "84037", city: "Kaysville", state: "Utah", stateCode: "UT", latitude: 41.0352, longitude: -111.9386 },
+  { zip: "84015", city: "Clearfield", state: "Utah", stateCode: "UT", latitude: 41.1108, longitude: -112.0261 },
+  { zip: "84025", city: "Farmington", state: "Utah", stateCode: "UT", latitude: 40.9805, longitude: -111.8874 },
+  { zip: "84075", city: "Syracuse", state: "Utah", stateCode: "UT", latitude: 41.0894, longitude: -112.0647 },
+  { zip: "84067", city: "Roy", state: "Utah", stateCode: "UT", latitude: 41.1616, longitude: -112.0263 },
   { zip: "84098", city: "Park City", state: "Utah", stateCode: "UT", latitude: 40.6461, longitude: -111.498 },
   { zip: "84060", city: "Park City", state: "Utah", stateCode: "UT", latitude: 40.6617, longitude: -111.499 },
   { zip: "84092", city: "Sandy", state: "Utah", stateCode: "UT", latitude: 40.56, longitude: -111.79 },
@@ -44,6 +49,8 @@ const MAKES: { name: string; models: string[] }[] = [
   { name: "Subaru", models: ["Outback", "Forester", "Crosstrek"] },
   { name: "BMW", models: ["3 Series", "X3", "X5"] },
   { name: "Nissan", models: ["Altima", "Rogue", "Frontier"] },
+  { name: "Centurion", models: ["Ri245", "Ri230", "Fi23"] },
+  { name: "KTM", models: ["450 SX-F", "350 SX-F", "300 XC"] },
 ];
 
 type MechanicSeed = {
@@ -72,6 +79,7 @@ type MechanicSeed = {
   cancel: number;
   days: DayOfWeek[];
   certs: { name: string; issuer: string; verified: boolean }[];
+  tagline?: string;
 };
 
 const MECHANICS: MechanicSeed[] = [
@@ -114,17 +122,18 @@ const MECHANICS: MechanicSeed[] = [
     bio: "Shop-based diagnostics and European plus Japanese vehicles. Clear estimates, no surprises, and a loaner when you need one.",
     years: 14,
     mode: "SHOP",
-    city: "Sandy",
-    zip: "84070",
-    lat: 40.5649,
-    lng: -111.838,
-    radius: 20,
+    city: "Farmington",
+    zip: "84025",
+    lat: 41.0,
+    lng: -111.89,
+    radius: 25,
     diagnostic: 12000,
     labor: 12500,
     mobile: 0,
     level: "PROFESSIONAL_VERIFIED",
-    specialties: ["ENGINE", "ELECTRICAL", "DIAGNOSTICS", "BRAKES"],
-    makes: ["Toyota", "Honda", "BMW", "Subaru"],
+    tagline: "European · Japanese · Diagnostics",
+    specialties: ["ENGINE", "ELECTRICAL", "DIAGNOSTICS", "BRAKES", "SUSPENSION"],
+    makes: ["Toyota", "Honda", "BMW", "Subaru", "Ford"],
     response: 28,
     onTime: 95,
     accuracy: 94,
@@ -218,6 +227,264 @@ const MECHANICS: MechanicSeed[] = [
   },
 ];
 
+const DAVIS_SHOPS: MechanicSeed[] = [
+  {
+    firstName: "Fred",
+    lastName: "Jensen",
+    email: "fred.jensen@demo.pocketmechanic.app",
+    businessName: "Fred's Marine",
+    slug: "freds-marine",
+    tagline: "Boats · PWCs · Marine Engines",
+    bio: "Inboard, outboard, and PWC service for Davis County boaters. We diagnose no-starts, winterize, and get you back on the water.",
+    years: 18,
+    mode: "SHOP",
+    city: "Layton",
+    zip: "84041",
+    lat: 41.078,
+    lng: -111.938,
+    radius: 30,
+    diagnostic: 12500,
+    labor: 13000,
+    mobile: 0,
+    level: "POCKET_VERIFIED",
+    specialties: ["ENGINE", "STARTING", "ELECTRICAL", "DIAGNOSTICS"],
+    makes: ["Centurion"],
+    response: 18,
+    onTime: 98,
+    accuracy: 97,
+    cancel: 1.1,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [{ name: "Mercury Certified", issuer: "Mercury Marine", verified: true }],
+  },
+  {
+    firstName: "Dale",
+    lastName: "Hatch",
+    email: "dale.hatch@demo.pocketmechanic.app",
+    businessName: "Layton Diesel & Auto",
+    slug: "layton-diesel-auto",
+    tagline: "Diesel · Brakes · Suspension",
+    bio: "Heavy-duty trucks, Power Stroke diesels, and front-end work. Written estimates before we pull a wrench.",
+    years: 16,
+    mode: "SHOP",
+    city: "Layton",
+    zip: "84041",
+    lat: 41.042,
+    lng: -111.93,
+    radius: 30,
+    diagnostic: 11000,
+    labor: 12800,
+    mobile: 0,
+    level: "POCKET_VERIFIED",
+    specialties: ["SUSPENSION", "BRAKES", "ENGINE", "DIAGNOSTICS"],
+    makes: ["Ford", "Chevrolet", "Ram", "GMC"],
+    response: 20,
+    onTime: 97,
+    accuracy: 96,
+    cancel: 1.4,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [
+      { name: "ASE Master Automobile Technician", issuer: "ASE", verified: true },
+      { name: "Ford Diesel Specialist", issuer: "Ford", verified: true },
+    ],
+  },
+  {
+    firstName: "Tess",
+    lastName: "Ward",
+    email: "tess.ward@demo.pocketmechanic.app",
+    businessName: "Wasatch Powersports",
+    slug: "wasatch-powersports",
+    tagline: "Motorcycles · ATVs · Snow",
+    bio: "Dirt bikes, ATVs, and snowmobiles. Factory tools for KTM, Honda, and Yamaha with same-week service appointments.",
+    years: 12,
+    mode: "SHOP",
+    city: "Kaysville",
+    zip: "84037",
+    lat: 41.012,
+    lng: -111.91,
+    radius: 28,
+    diagnostic: 8900,
+    labor: 10500,
+    mobile: 0,
+    level: "PROFESSIONAL_VERIFIED",
+    specialties: ["MAINTENANCE", "ENGINE", "BRAKES", "OTHER"],
+    makes: ["KTM", "Honda"],
+    response: 22,
+    onTime: 96,
+    accuracy: 95,
+    cancel: 1.6,
+    days: ["TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [{ name: "KTM Service Certified", issuer: "KTM", verified: true }],
+  },
+  {
+    firstName: "Reed",
+    lastName: "Dalton",
+    email: "reed.dalton@demo.pocketmechanic.app",
+    businessName: "Mountain RV Service",
+    slug: "mountain-rv-service",
+    tagline: "RVs · Trailers · Generators",
+    bio: "Motorhomes, travel trailers, and generators. We keep weekend trips from turning into driveway projects.",
+    years: 20,
+    mode: "SHOP",
+    city: "Clearfield",
+    zip: "84015",
+    lat: 41.118,
+    lng: -112.04,
+    radius: 35,
+    diagnostic: 13500,
+    labor: 12500,
+    mobile: 0,
+    level: "INSURED",
+    specialties: ["MAINTENANCE", "ELECTRICAL", "ENGINE", "OTHER"],
+    makes: ["Ford", "Chevrolet"],
+    response: 30,
+    onTime: 94,
+    accuracy: 93,
+    cancel: 2.2,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+    certs: [{ name: "RVIA Technician", issuer: "RVIA", verified: true }],
+  },
+  {
+    firstName: "Cam",
+    lastName: "Boyd",
+    email: "cam.boyd@demo.pocketmechanic.app",
+    businessName: "Hill Field Tire & Brake",
+    slug: "hill-field-tire",
+    tagline: "Tires · Brakes · Alignments",
+    bio: "Quick tire and brake work near Hill Field. Honest inspections and no upsells on parts you do not need.",
+    years: 9,
+    mode: "SHOP",
+    city: "Clearfield",
+    zip: "84015",
+    lat: 41.105,
+    lng: -112.01,
+    radius: 22,
+    diagnostic: 6900,
+    labor: 9200,
+    mobile: 0,
+    level: "PROFILE_VERIFIED",
+    specialties: ["TIRES", "BRAKES", "SUSPENSION", "STEERING"],
+    makes: ["Ford", "Chevrolet", "Honda", "Toyota"],
+    response: 16,
+    onTime: 95,
+    accuracy: 94,
+    cancel: 1.8,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [{ name: "ASE Brakes", issuer: "ASE", verified: true }],
+  },
+  {
+    firstName: "Nina",
+    lastName: "Shore",
+    email: "nina.shore@demo.pocketmechanic.app",
+    businessName: "Great Salt Lake Marine",
+    slug: "great-salt-lake-marine",
+    tagline: "Boats · Outboards · Winterization",
+    bio: "Outboards and sterndrives for Great Salt Lake and Pineview. Seasonal service with pickup for trailered boats.",
+    years: 11,
+    mode: "BOTH",
+    city: "Syracuse",
+    zip: "84075",
+    lat: 41.0894,
+    lng: -112.0647,
+    radius: 28,
+    diagnostic: 9900,
+    labor: 11200,
+    mobile: 2800,
+    level: "PROFESSIONAL_VERIFIED",
+    specialties: ["ENGINE", "STARTING", "ELECTRICAL", "MAINTENANCE"],
+    makes: ["Centurion"],
+    response: 24,
+    onTime: 93,
+    accuracy: 92,
+    cancel: 2.5,
+    days: ["MONDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [{ name: "Yamaha Outboard", issuer: "Yamaha", verified: true }],
+  },
+  {
+    firstName: "Todd",
+    lastName: "North",
+    email: "todd.north@demo.pocketmechanic.app",
+    businessName: "Northridge Transmission",
+    slug: "northridge-transmission",
+    tagline: "Transmissions · 4x4 · Diesels",
+    bio: "Transmission diagnostics and rebuilds for trucks that actually work. No mystery fluid flushes.",
+    years: 17,
+    mode: "SHOP",
+    city: "Layton",
+    zip: "84040",
+    lat: 41.078,
+    lng: -111.92,
+    radius: 25,
+    diagnostic: 12000,
+    labor: 13000,
+    mobile: 0,
+    level: "PROFESSIONAL_VERIFIED",
+    specialties: ["TRANSMISSION", "ENGINE", "DIAGNOSTICS"],
+    makes: ["Ford", "Chevrolet", "Ram", "GMC"],
+    response: 40,
+    onTime: 92,
+    accuracy: 91,
+    cancel: 2.8,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+    certs: [{ name: "ASE Transmission", issuer: "ASE", verified: true }],
+  },
+  {
+    firstName: "Paige",
+    lastName: "Glass",
+    email: "paige.glass@demo.pocketmechanic.app",
+    businessName: "Davis Auto Glass",
+    slug: "davis-auto-glass",
+    tagline: "Windshields · ADAS · Chip repair",
+    bio: "Windshield replacement and calibration for trucks and daily drivers in Farmington and Layton.",
+    years: 8,
+    mode: "MOBILE",
+    city: "Farmington",
+    zip: "84025",
+    lat: 40.9805,
+    lng: -111.8874,
+    radius: 30,
+    diagnostic: 0,
+    labor: 8500,
+    mobile: 0,
+    level: "INSURED",
+    specialties: ["OTHER", "DIAGNOSTICS"],
+    makes: ["Ford", "Toyota", "Honda", "Chevrolet"],
+    response: 14,
+    onTime: 97,
+    accuracy: 96,
+    cancel: 1.2,
+    days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+    certs: [{ name: "AGRSS Certified", issuer: "AGRSS", verified: true }],
+  },
+  {
+    firstName: "Colt",
+    lastName: "Trails",
+    email: "colt.trails@demo.pocketmechanic.app",
+    businessName: "Wasatch Trailer Repair",
+    slug: "wasatch-trailer-repair",
+    tagline: "Trailers · Axles · Brakes",
+    bio: "Boat trailers, dump trailers, and toy haulers. Bearings, brakes, lights, and welds that last a season.",
+    years: 14,
+    mode: "SHOP",
+    city: "Syracuse",
+    zip: "84075",
+    lat: 41.07,
+    lng: -112.05,
+    radius: 30,
+    diagnostic: 7500,
+    labor: 9800,
+    mobile: 0,
+    level: "PROFILE_VERIFIED",
+    specialties: ["BRAKES", "ELECTRICAL", "SUSPENSION", "OTHER"],
+    makes: ["Ford", "Chevrolet"],
+    response: 26,
+    onTime: 94,
+    accuracy: 93,
+    cancel: 2,
+    days: ["MONDAY", "TUESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+    certs: [{ name: "Dexter Axle Training", issuer: "Dexter", verified: true }],
+  },
+];
+
 const EXTRA_MECHANICS: Omit<MechanicSeed, "email" | "slug">[] = [
   { firstName: "Nina", lastName: "Alvarez", businessName: "Alvarez Auto Electric", bio: "Starting, charging, and electrical diagnostics for cars and light trucks.", years: 11, mode: "MOBILE", city: "Midvale", zip: "84047", lat: 40.6111, lng: -111.8999, radius: 22, diagnostic: 9900, labor: 11500, mobile: 2500, level: "PROFESSIONAL_VERIFIED", specialties: ["ELECTRICAL", "STARTING", "CHARGING", "DIAGNOSTICS"], makes: ["Ford", "Chevrolet", "Ram"], response: 22, onTime: 96, accuracy: 93, cancel: 2, days: ["MONDAY", "WEDNESDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "ASE Electrical", issuer: "ASE", verified: true }] },
   { firstName: "Owen", lastName: "Brooks", businessName: "Brooks Brake Co.", bio: "Brake specialist. Quiet stops, no unnecessary parts, and a written warranty on every job.", years: 9, mode: "BOTH", city: "Lehi", zip: "84043", lat: 40.3916, lng: -111.8508, radius: 28, diagnostic: 7900, labor: 9800, mobile: 3000, level: "PROFILE_VERIFIED", specialties: ["BRAKES", "SUSPENSION", "TIRES"], makes: ["Ford", "Honda", "Toyota"], response: 16, onTime: 94, accuracy: 97, cancel: 1.8, days: ["MONDAY", "TUESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "ASE Brakes", issuer: "ASE", verified: true }] },
@@ -225,12 +492,12 @@ const EXTRA_MECHANICS: Omit<MechanicSeed, "email" | "slug">[] = [
   { firstName: "Derek", lastName: "Nguyen", businessName: "Nguyen Mobile Mechanic", bio: "Evenings and weekends. Great for people who cannot leave a car at a shop.", years: 6, mode: "MOBILE", city: "Orem", zip: "84057", lat: 40.2969, lng: -111.6946, radius: 30, diagnostic: 7500, labor: 8900, mobile: 1500, level: "PROFILE_VERIFIED", specialties: ["MAINTENANCE", "BRAKES", "STARTING", "DIAGNOSTICS"], makes: ["Honda", "Toyota", "Nissan"], response: 14, onTime: 90, accuracy: 88, cancel: 5, days: ["WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"], certs: [] },
   { firstName: "Hannah", lastName: "Peters", businessName: "Peak Suspension", bio: "Steering, suspension, and alignment for mountain driving and towing setups.", years: 12, mode: "SHOP", city: "Park City", zip: "84098", lat: 40.6461, lng: -111.498, radius: 25, diagnostic: 11000, labor: 13000, mobile: 0, level: "INSURED", specialties: ["SUSPENSION", "STEERING", "TIRES", "BRAKES"], makes: ["Jeep", "Ford", "Subaru", "Toyota"], response: 50, onTime: 94, accuracy: 91, cancel: 2.8, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Suspension", issuer: "ASE", verified: true }] },
   { firstName: "Luis", lastName: "Morales", businessName: "Morales Transmission", bio: "Transmission diagnostics and rebuilds for trucks and SUVs.", years: 18, mode: "SHOP", city: "Ogden", zip: "84401", lat: 41.223, lng: -111.9738, radius: 35, diagnostic: 12500, labor: 12800, mobile: 0, level: "PROFESSIONAL_VERIFIED", specialties: ["TRANSMISSION", "ENGINE", "DIAGNOSTICS"], makes: ["Ford", "Chevrolet", "Ram", "GMC"], response: 60, onTime: 89, accuracy: 90, cancel: 3.5, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Transmission", issuer: "ASE", verified: true }] },
-  { firstName: "Ava", lastName: "Kim", businessName: "Kim Cool Air", bio: "A/C, heating, and cooling system specialist. Same-week recharge and leak repair.", years: 8, mode: "MOBILE", city: "Layton", zip: "84041", lat: 41.0602, lng: -111.9711, radius: 32, diagnostic: 8000, labor: 9500, mobile: 2200, level: "PROFILE_VERIFIED", specialties: ["AC_HEATING", "COOLING", "MAINTENANCE"], makes: ["Honda", "Toyota", "Ford", "Chevrolet"], response: 20, onTime: 96, accuracy: 93, cancel: 1.9, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "EPA 609", issuer: "EPA", verified: true }] },
+  { firstName: "Ava", lastName: "Kim", businessName: "Kim Cool Air", bio: "A/C, heating, and cooling system specialist. Same-week recharge and leak repair.", years: 8, mode: "MOBILE", city: "Roy", zip: "84067", lat: 41.1616, lng: -112.0263, radius: 32, diagnostic: 8000, labor: 9500, mobile: 2200, level: "PROFILE_VERIFIED", specialties: ["AC_HEATING", "COOLING", "MAINTENANCE"], makes: ["Honda", "Toyota", "Ford", "Chevrolet"], response: 20, onTime: 96, accuracy: 93, cancel: 1.9, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "EPA 609", issuer: "EPA", verified: true }] },
   { firstName: "Noah", lastName: "Whitaker", businessName: "Whitaker Jeep Garage", bio: "Jeep and off-road focused shop. Steering, lockers, and trail damage repair.", years: 15, mode: "SHOP", city: "American Fork", zip: "84003", lat: 40.3769, lng: -111.7958, radius: 24, diagnostic: 10000, labor: 11800, mobile: 0, level: "INSURED", specialties: ["SUSPENSION", "STEERING", "ELECTRICAL", "BRAKES"], makes: ["Jeep", "Ford", "Ram"], response: 33, onTime: 92, accuracy: 91, cancel: 2.2, days: ["TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "ASE Certified", issuer: "ASE", verified: true }] },
   { firstName: "Elena", lastName: "Voss", businessName: "Voss Diagnostics", bio: "Check-engine lights, drivability, and hard-to-find electrical issues.", years: 19, mode: "BOTH", city: "Salt Lake City", zip: "84101", lat: 40.758, lng: -111.888, radius: 20, diagnostic: 15000, labor: 14500, mobile: 3500, level: "POCKET_VERIFIED", specialties: ["DIAGNOSTICS", "ELECTRICAL", "ENGINE", "STARTING"], makes: ["BMW", "Ford", "Toyota", "Subaru"], response: 25, onTime: 97, accuracy: 98, cancel: 0.8, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"], certs: [{ name: "ASE Master", issuer: "ASE", verified: true }] },
   { firstName: "Marcus", lastName: "Hale", businessName: "Hale Tire & Service", bio: "Tires, alignments, and quick maintenance without the dealership wait.", years: 5, mode: "SHOP", city: "West Jordan", zip: "84081", lat: 40.604, lng: -112.0, radius: 15, diagnostic: 6900, labor: 8500, mobile: 0, level: "UNVERIFIED", specialties: ["TIRES", "MAINTENANCE", "BRAKES"], makes: ["Ford", "Honda", "Nissan", "Toyota"], response: 55, onTime: 88, accuracy: 86, cancel: 6, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [] },
   { firstName: "Sofia", lastName: "Reyes", businessName: "Reyes Mobile Fleet", bio: "Work trucks and small fleets. I keep your vehicles moving with scheduled mobile service.", years: 11, mode: "MOBILE", city: "Provo", zip: "84604", lat: 40.2698, lng: -111.6946, radius: 35, diagnostic: 10500, labor: 11200, mobile: 2800, level: "INSURED", specialties: ["MAINTENANCE", "BRAKES", "ELECTRICAL", "DIAGNOSTICS"], makes: ["Ford", "Chevrolet", "Ram", "GMC"], response: 19, onTime: 95, accuracy: 94, cancel: 1.4, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Certified", issuer: "ASE", verified: true }] },
-  { firstName: "Ben", lastName: "Iverson", businessName: "Iverson Auto", bio: "General repair with a calm explanation of what actually needs to be done.", years: 20, mode: "SHOP", city: "Kaysville", zip: "84037", lat: 41.0352, lng: -111.9386, radius: 22, diagnostic: 9000, labor: 10800, mobile: 0, level: "PROFILE_VERIFIED", specialties: ["ENGINE", "BRAKES", "COOLING", "MAINTENANCE"], makes: ["Chevrolet", "GMC", "Ford", "Toyota"], response: 42, onTime: 90, accuracy: 89, cancel: 3.1, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Certified", issuer: "ASE", verified: true }] },
+  { firstName: "Ben", lastName: "Iverson", businessName: "Iverson Auto", bio: "General repair with a calm explanation of what actually needs to be done.", years: 20, mode: "SHOP", city: "Kaysville", zip: "84037", lat: 40.995, lng: -111.9, radius: 22, diagnostic: 9000, labor: 10800, mobile: 0, level: "PROFILE_VERIFIED", specialties: ["ENGINE", "BRAKES", "COOLING", "MAINTENANCE"], makes: ["Chevrolet", "GMC", "Ford", "Toyota"], response: 42, onTime: 90, accuracy: 89, cancel: 3.1, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Certified", issuer: "ASE", verified: true }] },
   { firstName: "Grace", lastName: "Patel", businessName: "Patel Hybrid Care", bio: "Hybrids and late-model electronics. I explain warning lights in plain language.", years: 8, mode: "MOBILE", city: "Sandy", zip: "84094", lat: 40.572, lng: -111.86, radius: 20, diagnostic: 11500, labor: 12000, mobile: 2500, level: "PROFESSIONAL_VERIFIED", specialties: ["ELECTRICAL", "DIAGNOSTICS", "CHARGING", "ENGINE"], makes: ["Toyota", "Honda", "Ford"], response: 21, onTime: 96, accuracy: 95, cancel: 1.1, days: ["MONDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "Toyota Hybrid Training", issuer: "Toyota", verified: true }] },
   { firstName: "Calvin", lastName: "Ortiz", businessName: "Ortiz Starting & Charging", bio: "Batteries, starters, and alternators done the same day when parts are in stock.", years: 9, mode: "MOBILE", city: "Ogden", zip: "84403", lat: 41.192, lng: -111.944, radius: 28, diagnostic: 7000, labor: 9200, mobile: 1800, level: "PROFILE_VERIFIED", specialties: ["STARTING", "CHARGING", "ELECTRICAL"], makes: ["Ford", "Chevrolet", "Nissan", "Honda"], response: 11, onTime: 97, accuracy: 94, cancel: 1.6, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"], certs: [{ name: "ASE Electrical", issuer: "ASE", verified: true }] },
   { firstName: "Riley", lastName: "McCabe", businessName: "McCabe Truck Repair", bio: "F-250s, Silverados, and towing setups. I work on the trucks people actually use.", years: 13, mode: "BOTH", city: "South Jordan", zip: "84009", lat: 40.55, lng: -112.0, radius: 30, diagnostic: 11000, labor: 12200, mobile: 3200, level: "POCKET_VERIFIED", specialties: ["BRAKES", "SUSPENSION", "ENGINE", "DIAGNOSTICS"], makes: ["Ford", "Chevrolet", "GMC", "Ram"], response: 17, onTime: 96, accuracy: 95, cancel: 1.3, days: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], certs: [{ name: "ASE Master", issuer: "ASE", verified: true }, { name: "Garage Keepers Insurance", issuer: "Travelers", verified: true }] },
@@ -267,6 +534,241 @@ const REVIEW_BODIES = [
 
 function dieselSafeSpecialties(list: ServiceCategory[]): ServiceCategory[] {
   return list.map((item) => (String(item) === "DIESEL" ? "ENGINE" : item));
+}
+
+async function seedBrodyStory({
+  customerId,
+  truck,
+  boat,
+  bike,
+  shops,
+}: {
+  customerId: string;
+  truck: { id: string; mileage: number };
+  boat: { id: string; mileage: number };
+  bike: { id: string; mileage: number };
+  shops: Record<string, { id: string; userId: string; shopCity: string | null; shopZip: string | null; latitude: number; longitude: number }>;
+}) {
+  const fred = shops["freds-marine"];
+  const diesel = shops["layton-diesel-auto"];
+  const powersports = shops["wasatch-powersports"];
+  const rv = shops["mountain-rv-service"];
+  if (!fred || !diesel || !powersports || !rv) return;
+
+  async function storyJob({
+    vehicleId,
+    shop,
+    problem,
+    category,
+    status,
+    price,
+    estimateStatus,
+    scheduledAt,
+    createdAt,
+    messages,
+    photos,
+  }: {
+    vehicleId: string;
+    shop: { id: string; userId: string; shopCity: string | null; shopZip: string | null; latitude: number; longitude: number };
+    problem: string;
+    category: ServiceCategory;
+    status: JobStatus;
+    price: number;
+    estimateStatus: "SENT" | "APPROVED";
+    scheduledAt?: Date;
+    createdAt: Date;
+    messages: { from: "customer" | "shop"; body: string; at: Date; unread?: boolean }[];
+    photos?: { url: string; at: Date }[];
+  }) {
+    const request = await prisma.serviceRequest.create({
+      data: {
+        customerId,
+        vehicleId,
+        mechanicProfileId: shop.id,
+        status: status === "REQUESTED" ? "OPEN" : "ACCEPTED",
+        problemText: problem,
+        category,
+        zip: shop.shopZip ?? "84041",
+        city: shop.shopCity ?? "Layton",
+        state: "UT",
+        latitude: shop.latitude,
+        longitude: shop.longitude,
+        createdAt,
+      },
+    });
+    const job = await prisma.job.create({
+      data: {
+        serviceRequestId: request.id,
+        customerId,
+        mechanicUserId: shop.userId,
+        mechanicProfileId: shop.id,
+        vehicleId,
+        status,
+        totalCents: price,
+        paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
+        scheduledAt,
+        completedAt: status === "COMPLETED" ? new Date(createdAt.getTime() + 86400000 * 3) : undefined,
+        createdAt,
+        events: {
+          create: [
+            { status: "REQUESTED", createdAt },
+            { status, createdAt: new Date(createdAt.getTime() + 3600000) },
+          ],
+        },
+      },
+    });
+    const estimate = await prisma.estimate.create({
+      data: {
+        jobId: job.id,
+        mechanicId: shop.userId,
+        type: "PRIMARY",
+        status: estimateStatus,
+        totalCents: price,
+        subtotalCents: price,
+        sentAt: createdAt,
+        lineItems: {
+          create: [
+            { category: "DIAGNOSTIC", description: "Diagnostic labor", quantity: 1, unitCents: 12500, totalCents: 12500 },
+            { category: "LABOR", description: problem, quantity: 1, unitCents: price - 12500, totalCents: price - 12500 },
+          ],
+        },
+      },
+    });
+    if (estimateStatus === "APPROVED") {
+      await prisma.estimateApproval.create({
+        data: { estimateId: estimate.id, userId: customerId, action: "APPROVED", createdAt: new Date(createdAt.getTime() + 7200000) },
+      });
+    }
+    await prisma.messageThread.create({
+      data: {
+        customerId,
+        mechanicId: shop.userId,
+        jobId: job.id,
+        requestId: request.id,
+        lastMessageAt: messages.at(-1)?.at ?? createdAt,
+        messages: {
+          create: messages.map((message) => ({
+            senderId: message.from === "customer" ? customerId : shop.userId,
+            body: message.body,
+            createdAt: message.at,
+            readAt: message.unread ? undefined : message.at,
+          })),
+        },
+      },
+    });
+    if (photos?.length) {
+      await prisma.jobPhoto.createMany({
+        data: photos.map((photo) => ({ jobId: job.id, url: photo.url, createdAt: photo.at })),
+      });
+    }
+    return job;
+  }
+
+  const now = new Date("2026-09-11T16:24:00.000Z");
+  const boatJob = await storyJob({
+    vehicleId: boat.id,
+    shop: fred,
+    problem: "Engine not starting",
+    category: "STARTING",
+    status: "IN_PROGRESS",
+    price: 186000,
+    estimateStatus: "APPROVED",
+    createdAt: new Date("2026-09-08T15:00:00.000Z"),
+    messages: [
+      { from: "customer", body: "Boat turned over once then nothing. Sitting at the house in Layton.", at: new Date("2026-09-08T15:05:00.000Z") },
+      { from: "shop", body: "Your parts have arrived. We'll start the repair this afternoon.", at: now, unread: true },
+    ],
+    photos: [
+      { url: "/landing/vehicle-boat.png", at: new Date("2026-09-09T18:00:00.000Z") },
+      { url: "/landing/shop-marine.png", at: new Date("2026-09-09T18:01:00.000Z") },
+      { url: "/landing/cat-marine.png", at: new Date("2026-09-09T18:02:00.000Z") },
+    ],
+  });
+
+  await storyJob({
+    vehicleId: truck.id,
+    shop: diesel,
+    problem: "Front-end work (suspension)",
+    category: "SUSPENSION",
+    status: "REQUESTED",
+    price: 285000,
+    estimateStatus: "SENT",
+    createdAt: new Date("2026-09-10T17:30:00.000Z"),
+    messages: [
+      { from: "customer", body: "Clunk from the front end on the F-250 when I hit a dip. Need an estimate before you start.", at: new Date("2026-09-10T17:32:00.000Z") },
+      { from: "shop", body: "Estimate is ready — $2,850 for ball joints, tie rods, and an alignment.", at: new Date("2026-09-10T20:10:00.000Z"), unread: true },
+    ],
+  });
+
+  await storyJob({
+    vehicleId: bike.id,
+    shop: powersports,
+    problem: "Routine Service",
+    category: "MAINTENANCE",
+    status: "SCHEDULED",
+    price: 28500,
+    estimateStatus: "APPROVED",
+    scheduledAt: new Date("2026-09-14T16:00:00.000Z"),
+    createdAt: new Date("2026-09-09T16:00:00.000Z"),
+    messages: [
+      { from: "customer", body: "Need oil, filter, and a look at the air filter before the next ride.", at: new Date("2026-09-09T16:02:00.000Z") },
+      { from: "shop", body: "You're on the book for Saturday at 10:00 AM. Bring the bike in the morning.", at: new Date("2026-09-09T18:40:00.000Z") },
+    ],
+  });
+
+  const rvJob = await storyJob({
+    vehicleId: truck.id,
+    shop: rv,
+    problem: "Trailer lights and brake controller check",
+    category: "ELECTRICAL",
+    status: "COMPLETED",
+    price: 24000,
+    estimateStatus: "APPROVED",
+    createdAt: new Date("2026-09-02T16:00:00.000Z"),
+    messages: [
+      { from: "customer", body: "Trailer lights were intermittent on the way back from Bear Lake.", at: new Date("2026-09-02T16:05:00.000Z") },
+      { from: "shop", body: "Wiring is sorted. You're good for the next trip.", at: new Date("2026-09-04T18:00:00.000Z") },
+    ],
+  });
+
+  await prisma.repairRecord.create({
+    data: {
+      jobId: rvJob.id,
+      vehicleId: truck.id,
+      title: "Trailer lighting repair",
+      diagnosis: "Corroded ground on the 7-pin connector",
+      workPerformed: "Replaced connector and verified brake controller",
+      mileage: truck.mileage,
+      laborHours: 1.5,
+      warrantySummary: "12 months / 12,000 miles",
+      createdAt: new Date("2026-09-04T18:00:00.000Z"),
+    },
+  });
+  await prisma.review.create({
+    data: {
+      jobId: rvJob.id,
+      customerId,
+      mechanicProfileId: rv.id,
+      overallRating: 5,
+      communicationRating: 5,
+      professionalismRating: 5,
+      pricingRating: 5,
+      timelinessRating: 5,
+      qualityRating: 5,
+      wouldUseAgain: true,
+      body: "Had the trailer lights sorted the same day and explained the ground issue without talking down to me.",
+      repairSummary: "Trailer lighting repair",
+      priceCents: 24000,
+      createdAt: new Date("2026-09-05T16:00:00.000Z"),
+    },
+  });
+
+  await prisma.notification.createMany({
+    data: [
+      { userId: customerId, title: "Estimate received", body: "Layton Diesel & Auto sent a $2,850 estimate.", href: `/jobs` },
+      { userId: customerId, title: "Parts arrived", body: "Fred's Marine is ready to continue the boat repair.", href: `/jobs/${boatJob.id}` },
+    ],
+  });
 }
 
 async function main() {
@@ -336,7 +838,7 @@ async function main() {
     },
   });
 
-  const customers = [];
+  const customers: { id: string }[] = [];
   for (let i = 0; i < 50; i++) {
     const firstName = FIRST_NAMES[i % FIRST_NAMES.length];
     const lastName = LAST_NAMES[i % LAST_NAMES.length];
@@ -347,10 +849,13 @@ async function main() {
         email,
         passwordHash,
         role: "CUSTOMER",
-        firstName: i === 0 ? "Alex" : firstName,
-        lastName: i === 0 ? "Harper" : lastName,
+        firstName: i === 0 ? "Brody" : firstName,
+        lastName: i === 0 ? "Babasa" : lastName,
         customerProfile: {
-          create: { city: zip.city, state: zip.stateCode, zip: zip.zip, latitude: zip.latitude, longitude: zip.longitude },
+          create:
+            i === 0
+              ? { city: "Layton", state: "UT", zip: "84041", latitude: 41.0602, longitude: -111.9711 }
+              : { city: zip.city, state: zip.stateCode, zip: zip.zip, latitude: zip.latitude, longitude: zip.longitude },
         },
       },
     });
@@ -359,8 +864,9 @@ async function main() {
 
   const vehicles = [];
   const vehiclePlan = [
-    { owner: 0, year: 2020, make: "Ford", model: "F-250", trim: "Lariat", engine: "6.7 Power Stroke", drivetrain: "4x4", mileage: 87000, nickname: "The truck" },
-    { owner: 0, year: 2018, make: "Honda", model: "CR-V", trim: "EX", engine: "1.5T", drivetrain: "AWD", mileage: 64000, nickname: "Daily" },
+    { owner: 0, year: 2022, make: "Ford", model: "F-250", trim: "Lariat", engine: "6.7 Power Stroke", drivetrain: "4x4", mileage: 41200, nickname: "The truck" },
+    { owner: 0, year: 2022, make: "Centurion", model: "Ri245", trim: "Luxury", engine: "6.2 Supercharged", drivetrain: "V-drive", mileage: 186, nickname: "The boat" },
+    { owner: 0, year: 2020, make: "KTM", model: "450 SX-F", engine: "450cc", drivetrain: "Chain", mileage: 84, nickname: "The bike" },
     { owner: 1, year: 2022, make: "Toyota", model: "Tacoma", trim: "TRD", engine: "3.5 V6", drivetrain: "4x4", mileage: 31000 },
     { owner: 2, year: 2019, make: "Jeep", model: "Wrangler", trim: "Sahara", engine: "3.6 V6", drivetrain: "4x4", mileage: 54000 },
     { owner: 3, year: 2021, make: "Subaru", model: "Outback", trim: "Limited", engine: "2.5", drivetrain: "AWD", mileage: 28000 },
@@ -399,6 +905,7 @@ async function main() {
 
   const mechanicSeeds: MechanicSeed[] = [
     ...MECHANICS,
+    ...DAVIS_SHOPS,
     ...EXTRA_MECHANICS.map((item) => ({
       ...item,
       email: `${item.firstName}.${item.lastName}@demo.pocketmechanic.app`.toLowerCase(),
@@ -406,9 +913,8 @@ async function main() {
     })),
   ];
 
-  const mechanicProfiles = [];
+  const mechanicProfiles: MechanicProfile[] = [];
   for (const seed of mechanicSeeds) {
-    const zip = ZIPS.find((item) => item.zip === seed.zip) ?? ZIPS[0];
     const user = await prisma.user.create({
       data: {
         email: seed.email,
@@ -421,6 +927,7 @@ async function main() {
             slug: seed.slug,
             businessName: seed.businessName,
             bio: seed.bio,
+            tagline: seed.tagline,
             yearsExperience: seed.years,
             serviceMode: seed.mode,
             shopCity: seed.city,
@@ -488,6 +995,7 @@ async function main() {
         ? mechanicProfiles[0]
         : mechanicProfiles[(i % (mechanicProfiles.length - 1)) + 1];
     const vehicle = vehicles[i % vehicles.length];
+    if (vehicle.customerId === customers[0].id) continue;
     const problem = PROBLEMS[i % PROBLEMS.length];
     const customerId = vehicle.customerId;
     const isActiveDemo = i < 8 && mechanic.id === mike.id;
@@ -614,6 +1122,15 @@ async function main() {
     }
   }
 
+  const brodyVehicles = vehicles.filter((item) => item.customerId === customers[0].id);
+  await seedBrodyStory({
+    customerId: customers[0].id,
+    truck: brodyVehicles[0],
+    boat: brodyVehicles[1],
+    bike: brodyVehicles[2],
+    shops: Object.fromEntries(mechanicProfiles.map((profile) => [profile.slug, profile])),
+  });
+
   for (const profile of mechanicProfiles) {
     const stats = await prisma.review.aggregate({
       where: { mechanicProfileId: profile.id },
@@ -670,6 +1187,21 @@ async function main() {
     },
   });
 
+  for (const [slug, rating, reviews] of [
+    ["freds-marine", 4.9, 86],
+    ["layton-diesel-auto", 4.8, 64],
+    ["wasatch-powersports", 4.7, 41],
+    ["mountain-rv-service", 4.9, 38],
+    ["precision-auto-care", 4.8, 52],
+  ] as const) {
+    const shop = mechanicProfiles.find((profile) => profile.slug === slug);
+    if (!shop) continue;
+    await prisma.mechanicProfile.update({
+      where: { id: shop.id },
+      data: { averageRating: rating, reviewCount: Math.max(reviews, shop.reviewCount) },
+    });
+  }
+
   await prisma.platformConfig.create({
     data: {
       rankingWeights: DEFAULT_RANKING_WEIGHTS,
@@ -693,13 +1225,17 @@ async function main() {
     },
   });
 
-  await prisma.savedMechanic.create({
-    data: { customerId: customers[0].id, mechanicProfileId: mike.id },
+  const savedShops = ["freds-marine", "layton-diesel-auto", "precision-auto-care"]
+    .map((slug) => mechanicProfiles.find((profile) => profile.slug === slug))
+    .filter((profile): profile is (typeof mechanicProfiles)[number] => Boolean(profile));
+  await prisma.savedMechanic.createMany({
+    data: savedShops.map((profile) => ({ customerId: customers[0].id, mechanicProfileId: profile.id })),
   });
 
   console.log("Seed complete.");
-  console.log("Customer: customer@demo.pocketmechanic.app / Demo1234!");
+  console.log("Customer: customer@demo.pocketmechanic.app / Demo1234!  (Brody Babasa, Layton)");
   console.log("Mechanic: mechanic@demo.pocketmechanic.app / Demo1234!");
+  console.log("Shop:     sarah.chen@demo.pocketmechanic.app / Demo1234!");
   console.log("Admin:    admin@demo.pocketmechanic.app / Demo1234!");
 }
 

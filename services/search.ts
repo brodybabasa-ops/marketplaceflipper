@@ -23,19 +23,24 @@ export async function searchMechanics(input: {
   const digits = rawLocation.replace(/\D/g, "");
   const originZip = digits.length >= 5 ? digits.slice(0, 5) : "";
   const cityQuery = rawLocation.split(",")[0]?.trim();
-  const zip = originZip
-    ? await prisma.zipCode.findUnique({ where: { zip: originZip } })
-    : cityQuery
-      ? await prisma.zipCode.findFirst({
-          where: {
-            OR: [
-              { city: { equals: cityQuery, mode: "insensitive" } },
-              { city: { contains: cityQuery, mode: "insensitive" } },
-              { state: { contains: cityQuery, mode: "insensitive" } },
-            ],
-          },
-        })
-      : await prisma.zipCode.findUnique({ where: { zip: "84101" } });
+  let zip = originZip ? await prisma.zipCode.findUnique({ where: { zip: originZip } }) : null;
+  if (!zip && cityQuery?.toLowerCase() === "layton") {
+    zip = await prisma.zipCode.findUnique({ where: { zip: "84041" } });
+  }
+  if (!zip && cityQuery) {
+    zip = await prisma.zipCode.findFirst({
+      where: {
+        OR: [
+          { city: { equals: cityQuery, mode: "insensitive" } },
+          { city: { contains: cityQuery, mode: "insensitive" } },
+          { state: { contains: cityQuery, mode: "insensitive" } },
+        ],
+      },
+    });
+  }
+  if (!zip) {
+    zip = await prisma.zipCode.findUnique({ where: { zip: "84041" } });
+  }
 
   const category = input.category
     ? (input.category.toUpperCase() as ServiceCategory)

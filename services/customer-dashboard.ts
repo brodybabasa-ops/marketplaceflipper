@@ -1,7 +1,7 @@
 import type { EstimateStatus, JobStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDirectoryShops, type DirectoryShop } from "@/services/landing";
-import { vehiclePhotoFor } from "@/lib/landing";
+import { FEATURED_SHOP_SLUGS, vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatAppointment, formatRelative } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ export type DashboardRepair = {
   updatedLabel: string;
   showStepper: boolean;
   stepIndex: number;
+  actions: { href: string; label: string; variant: "primary" | "secondary" }[];
 };
 
 export type DashboardActivity = {
@@ -110,13 +111,25 @@ export async function getCustomerDashboard(userId: string) {
 
   const activeJobs = jobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED");
   const { shops, zip } = await getDirectoryShops({
-    zip: chrome.zip ?? "84101",
+    zip: chrome.zip ?? "84041",
     distance: "50",
     sort: "closest",
   });
 
-  const repairs: DashboardRepair[] = activeJobs.slice(0, 4).map((job) => {
+  const statusOrder: JobStatus[] = ["IN_PROGRESS", "DIAGNOSING", "EN_ROUTE", "ARRIVED", "AWAITING_APPROVAL", "REQUESTED", "SCHEDULED", "ACCEPTED"];
+  const sortedActive = [...activeJobs].sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
+  const repairs: DashboardRepair[] = sortedActive.slice(0, 4).map((job) => {
     const estimate = job.estimates[0];
+    const estimateReady = Boolean(estimate && (estimate.status === "SENT" || job.status === "AWAITING_APPROVAL"));
+    const appointmentReady = Boolean(job.scheduledAt && job.status !== "REQUESTED");
+    const actions: DashboardRepair["actions"] = [];
+    if (estimateReady) actions.push({ href: `/jobs/${job.id}`, label: "View Estimate", variant: "primary" });
+    if (appointmentReady) {
+      actions.push({ href: `/jobs/${job.id}`, label: "Reschedule", variant: "secondary" });
+      actions.push({ href: `/jobs/${job.id}`, label: "View Details", variant: "primary" });
+    } else {
+      actions.push({ href: `/jobs/${job.id}`, label: "Message Shop", variant: estimateReady ? "secondary" : "primary" });
+    }
     return {
       id: job.id,
       vehicleLabel: `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`,
@@ -126,11 +139,12 @@ export async function getCustomerDashboard(userId: string) {
       photo: vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name),
       status: job.status,
       badge: repairBadge(job.status, estimate?.status),
-      estimateLabel: estimate && (estimate.status === "SENT" || job.status === "AWAITING_APPROVAL") ? formatCents(estimate.totalCents) : null,
-      appointmentLabel: job.scheduledAt && job.status !== "REQUESTED" ? formatAppointment(job.scheduledAt) : null,
+      estimateLabel: estimateReady && estimate ? formatCents(estimate.totalCents) : null,
+      appointmentLabel: appointmentReady && job.scheduledAt ? formatAppointment(job.scheduledAt) : null,
       updatedLabel: formatRelative(job.updatedAt),
       showStepper: job.status === "IN_PROGRESS" || job.status === "DIAGNOSING" || job.status === "EN_ROUTE" || job.status === "ARRIVED",
       stepIndex: stepperIndex(job.status),
+      actions,
     };
   });
 
@@ -152,7 +166,7 @@ export async function getCustomerDashboard(userId: string) {
       photo: vehiclePhotoFor(vehicle.make.name, vehicle.model.name),
     })),
     repairs,
-    shops: shops.slice(0, 3),
+    shops: preferFeatured(shops).slice(0, 3),
     origin: zip ? { latitude: zip.latitude, longitude: zip.longitude, city: zip.city } : null,
     activity,
     messages,
@@ -175,10 +189,20 @@ function repairBadge(status: JobStatus, estimateStatus?: EstimateStatus) {
 }
 
 function stepperIndex(status: JobStatus) {
-  if (status === "COMPLETED") return 3;
-  if (status === "IN_PROGRESS" || status === "AWAITING_APPROVAL") return 2;
+  if (status === "COMPLETED") return 4;
+  if (status === "IN_PROGRESS") return 3;
+  if (status === "AWAITING_APPROVAL") return 2;
   if (status === "DIAGNOSING" || status === "EN_ROUTE" || status === "ARRIVED") return 1;
   return 0;
+}
+
+function preferFeatured(shops: DirectoryShop[]) {
+  const preferred = FEATURED_SHOP_SLUGS.filter((slug) => slug !== "mountain-rv-service");
+  const preferredSet = new Set<string>(preferred);
+  return [
+    ...preferred.map((slug) => shops.find((shop) => shop.slug === slug)).filter((shop): shop is DirectoryShop => Boolean(shop)),
+    ...shops.filter((shop) => !preferredSet.has(shop.slug)),
+  ];
 }
 
 function buildActivity({
@@ -253,13 +277,20 @@ function buildActivity({
     });
   }
 
+  const photosByJob = new Map<string, typeof photos>();
   for (const photo of photos) {
+    const list = photosByJob.get(photo.jobId) ?? [];
+    list.push(photo);
+    photosByJob.set(photo.jobId, list);
+  }
+  for (const [jobId, group] of photosByJob) {
+    const photo = group[0];
     items.push({
-      id: `photo-${photo.id}`,
-      title: "You uploaded a photo",
+      id: `photo-${jobId}`,
+      title: group.length > 1 ? `You uploaded ${group.length} photos` : "You uploaded a photo",
       detail: `${photo.job.vehicle.year} ${photo.job.vehicle.make.name} ${photo.job.vehicle.model.name}`,
       when: formatRelative(photo.createdAt),
-      href: `/jobs/${photo.jobId}`,
+      href: `/jobs/${jobId}`,
       at: photo.createdAt.getTime(),
     });
   }

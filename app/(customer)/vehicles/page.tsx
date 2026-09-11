@@ -12,7 +12,7 @@ export default async function VehiclesPage() {
   const vehicles = await prisma.vehicle.findMany({
     where: { customerId: session.id },
     include: { make: true, model: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   });
   return (
     <div className="mx-auto max-w-6xl">

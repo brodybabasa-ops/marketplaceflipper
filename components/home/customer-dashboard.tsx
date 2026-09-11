@@ -16,9 +16,10 @@ import type {
   DashboardVehicle,
 } from "@/services/customer-dashboard";
 import type { DirectoryShop } from "@/services/landing";
+import { StoreBadges } from "@/components/marketing/marketing-shell";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Received", "Diagnosing", "In Service", "Complete"];
+const STEPS = ["Received", "Diagnosing", "Parts Ordered", "In Service", "Complete"];
 
 export function CustomerDashboard({
   firstName,
@@ -72,7 +73,7 @@ function Hero({ firstName }: { firstName: string }) {
   return (
     <section className="relative overflow-hidden pb-16 pt-24">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/landing/hero-truck.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[72%_center]" />
+      <img src="/landing/dashboard-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[72%_center]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.55)_48%,rgba(7,20,34,0.18)_100%)]" />
       <p className="font-script absolute right-[6%] top-24 hidden max-w-[160px] text-right text-2xl leading-tight text-white/90 lg:block">
         Good Machines
@@ -165,14 +166,18 @@ function ActiveRepairs({ repairs }: { repairs: DashboardRepair[] }) {
                 ) : null}
               </div>
               <div className="flex flex-col justify-center gap-2">
-                {repair.estimateLabel ? (
-                  <Link href={`/jobs/${repair.id}`} className="inline-flex h-9 items-center justify-center rounded-xl bg-[#2f7bff] px-3 text-sm font-semibold text-white">
-                    View Estimate
+                {repair.actions.map((action) => (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className={cn(
+                      "inline-flex h-9 items-center justify-center rounded-xl px-3 text-sm font-semibold",
+                      action.variant === "primary" ? "bg-[#2f7bff] text-white" : "border border-line",
+                    )}
+                  >
+                    {action.label}
                   </Link>
-                ) : null}
-                <Link href={`/jobs/${repair.id}`} className="inline-flex h-9 items-center justify-center rounded-xl border border-line px-3 text-sm font-semibold">
-                  {repair.appointmentLabel ? "View Details" : "Message Shop"}
-                </Link>
+                ))}
               </div>
             </article>
           ))}
@@ -186,7 +191,7 @@ function MyVehicles({ vehicles }: { vehicles: DashboardVehicle[] }) {
   return (
     <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
       <Header title="My Vehicles" href="/vehicles" action="Manage" />
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         {vehicles.map((vehicle) => (
           <Link key={vehicle.id} href={`/request?vehicle=${vehicle.id}`} className="overflow-hidden rounded-2xl bg-[#f4f7fb]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -297,11 +302,13 @@ function MessagesCard({ items }: { items: DashboardMessage[] }) {
 
 function AppCta() {
   return (
-    <section className="relative overflow-hidden rounded-[24px] min-h-[220px]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/landing/lifestyle.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-[#071422]/70" />
-      <div className="relative flex h-full flex-col justify-end p-5 text-white">
+    <section className="overflow-hidden rounded-[24px] bg-[#071422] text-white">
+      <div className="relative h-40 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/landing/app-phone.png" alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#071422] via-[#071422]/20 to-transparent" />
+      </div>
+      <div className="p-5">
         <p className="font-script text-2xl leading-tight">
           Less Time
           <br />
@@ -309,9 +316,8 @@ function AppCta() {
           <br />
           More Time Out Here.
         </p>
-        <Link href="/sign-up" className="mt-4 inline-flex h-10 w-fit items-center rounded-xl bg-[#2f7bff] px-4 text-sm font-semibold">
-          Get the App
-        </Link>
+        <p className="mt-2 text-xs text-white/55">Create an account to use Pocket Mechanic on any phone.</p>
+        <StoreBadges className="mt-4" />
       </div>
     </section>
   );

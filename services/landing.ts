@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
 import {
   earliestAvailabilityLabel,
+  FEATURED_SHOP_SLUGS,
   formatShortMiles,
   formatReviewer,
-  SHOP_PHOTOS,
   specialtyLabel,
   isOpenNow,
   shopPhotoFor,
@@ -35,12 +35,17 @@ export type LandingReview = {
 
 export async function getLandingShowcase() {
   const { matches, zip } = await searchMechanics({ zip: "84041", sort: "closest" });
-  const featuredMatches = matches.slice(0, 4);
+  const preferred = FEATURED_SHOP_SLUGS.map((slug) => matches.find((item) => item.slug === slug)).filter(
+    (item): item is (typeof matches)[number] => Boolean(item),
+  );
+  const featuredSet = new Set<string>(FEATURED_SHOP_SLUGS);
+  const featuredMatches = [...preferred, ...matches.filter((item) => !featuredSet.has(item.slug))].slice(0, 4);
   const extras = featuredMatches.length
     ? await prisma.mechanicProfile.findMany({
         where: { id: { in: featuredMatches.map((item) => item.id) } },
         select: {
           id: true,
+          tagline: true,
           shopCity: true,
           shopState: true,
           availability: { select: { dayOfWeek: true, startTime: true, endTime: true } },
@@ -49,7 +54,7 @@ export async function getLandingShowcase() {
     : [];
   const extraById = new Map(extras.map((item) => [item.id, item]));
 
-  const shops: FeaturedShop[] = featuredMatches.map((shop, index) => {
+  const shops: FeaturedShop[] = featuredMatches.map((shop) => {
     const extra = extraById.get(shop.id);
     return {
       slug: shop.slug,
@@ -59,10 +64,10 @@ export async function getLandingShowcase() {
       distanceLabel: formatShortMiles(shop.distanceMiles),
       city: extra?.shopCity ?? zip?.city ?? "Layton",
       state: extra?.shopState ?? zip?.stateCode ?? "UT",
-      specialties: shop.specialties.slice(0, 2).map(specialtyLabel),
+      specialties: specialtyChips(extra?.tagline, shop.specialties),
       verified: shop.verificationLevel !== "UNVERIFIED",
       availabilityLabel: earliestAvailabilityLabel(extra?.availability ?? []),
-      photo: SHOP_PHOTOS[index % SHOP_PHOTOS.length],
+      photo: shopPhotoFor(shop.slug),
     };
   });
 
@@ -114,6 +119,7 @@ export async function getDirectoryShops(query: Parameters<typeof searchMechanics
         where: { id: { in: matches.map((item) => item.id) } },
         select: {
           id: true,
+          tagline: true,
           shopCity: true,
           shopState: true,
           availability: { select: { dayOfWeek: true, startTime: true, endTime: true } },
@@ -133,7 +139,7 @@ export async function getDirectoryShops(query: Parameters<typeof searchMechanics
       distanceLabel: formatShortMiles(shop.distanceMiles),
       city: extra?.shopCity ?? zip?.city ?? "Layton",
       state: extra?.shopState ?? zip?.stateCode ?? "UT",
-      specialties: shop.specialties.slice(0, 2).map(specialtyLabel),
+      specialties: specialtyChips(extra?.tagline, shop.specialties),
       verified: shop.verificationLevel !== "UNVERIFIED",
       sponsored: shop.isSponsored,
       availabilityLabel: earliestAvailabilityLabel(extra?.availability ?? []),
@@ -150,4 +156,15 @@ export async function getDirectoryShops(query: Parameters<typeof searchMechanics
     category,
     locationLabel: zip ? `${zip.city}, ${zip.stateCode}` : "Layton, UT",
   };
+}
+
+function specialtyChips(tagline: string | null | undefined, categories: string[]) {
+  if (tagline) {
+    return tagline
+      .split("·")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+  }
+  return categories.slice(0, 2).map(specialtyLabel);
 }
