@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/home", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vehicles", label: "My Vehicles", icon: Car },
+  { href: "/vehicles", label: "My Garage", icon: Car },
   { href: "/jobs", label: "My Repairs", icon: Wrench },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/estimates", label: "Estimates", icon: ClipboardList },
