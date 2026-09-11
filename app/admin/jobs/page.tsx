@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -13,8 +12,7 @@ export default async function AdminJobsPage() {
     take: 60,
   });
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/jobs" />
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-3xl font-bold text-navy">Jobs</h1>
       <div className="mt-6 space-y-3">
         {jobs.map((job) => (

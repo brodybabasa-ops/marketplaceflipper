@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
   if (!job) notFound();
   const nextStatuses = ALLOWED_JOB_TRANSITIONS[job.status];
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/jobs" />
+    <div className="mx-auto max-w-5xl">
       <h1 className="text-3xl font-bold text-navy">{job.serviceRequest.problemText}</h1>
       <p className="mt-1 text-muted">
         {job.customer.firstName} {job.customer.lastName} · {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.zip}

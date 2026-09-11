@@ -33,7 +33,7 @@ export default async function NestedSeoPage({ params }: { params: Promise<{ slug
   const make = await prisma.vehicleMake.findUnique({ where: { slug }, include: { models: true } });
   const model = make?.models.find((item) => item.slug === child);
   if (!make || !model) notFound();
-  const { matches } = await searchMechanics({ make: make.name, zip: "84101" });
+    const { matches } = await searchMechanics({ make: make.name, zip: "84041" });
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-3xl font-bold text-navy">

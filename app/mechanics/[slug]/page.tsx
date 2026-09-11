@@ -12,6 +12,7 @@ import { US_STATES } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { MechanicCard } from "@/components/mechanics/mechanic-card";
 import { searchMechanics } from "@/services/search";
+import { shopPhotoFor } from "@/lib/landing";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -31,7 +32,7 @@ export default async function MechanicSlugPage({ params }: { params: Promise<{ s
 
   const state = US_STATES.find((item) => item.slug === slug);
   if (state) {
-    const { matches } = await searchMechanics({ zip: state.code === "UT" ? "84101" : undefined });
+    const { matches } = await searchMechanics({ zip: state.code === "UT" ? "84041" : undefined });
     return (
       <SeoList
         title={`Mechanics in ${state.name}`}
@@ -43,7 +44,7 @@ export default async function MechanicSlugPage({ params }: { params: Promise<{ s
 
   const make = await prisma.vehicleMake.findUnique({ where: { slug } });
   if (make) {
-    const { matches } = await searchMechanics({ make: make.name, zip: "84101" });
+    const { matches } = await searchMechanics({ make: make.name, zip: "84041" });
     return (
       <SeoList
         title={`${make.name} mechanics`}
@@ -85,8 +86,22 @@ function MechanicProfile({
 }) {
   const level = VERIFICATION_LEVELS.find((item) => item.value === mechanic.verificationLevel);
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-col gap-6 rounded-3xl bg-white p-6 shadow-[var(--shadow)] md:flex-row md:items-start">
+    <div data-landing className="bg-[#071422] text-white">
+      <section className="relative overflow-hidden pb-20 pt-24">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={shopPhotoFor(mechanic.slug)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.88)_0%,rgba(7,20,34,0.55)_55%,rgba(7,20,34,0.25)_100%)]" />
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6">
+          <p className="text-sm text-white/70">
+            {mechanic.shopCity}, {mechanic.shopState}
+          </p>
+          <h1 className="mt-2 max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">{mechanic.businessName}</h1>
+          {mechanic.tagline ? <p className="mt-3 text-lg text-white/75">{mechanic.tagline}</p> : null}
+        </div>
+      </section>
+      <div className="relative z-10 mx-auto -mt-10 max-w-5xl px-4 pb-16 text-navy sm:px-6">
+      <div className="rounded-[28px] bg-[#eef2f6] p-6 sm:p-8">
+      <div className="flex flex-col gap-6 rounded-2xl bg-white p-6 shadow-[0_10px_30px_rgba(14,28,47,0.06)] md:flex-row md:items-start">
         <Avatar name={mechanic.businessName} src={mechanic.profilePhotoUrl} size="lg" />
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -188,6 +203,8 @@ function MechanicProfile({
           ))}
         </div>
       </section>
+      </div>
+      </div>
     </div>
   );
 }

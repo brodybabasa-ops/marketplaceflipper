@@ -1,26 +1,30 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
-import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { formatAppointment } from "@/lib/utils";
+import { JobStatusLabel } from "@/components/jobs/status-timeline";
 
-export const metadata = { title: "My jobs" };
+export const metadata = { title: "Appointments" };
 
-export default async function JobsPage() {
+export default async function AppointmentsPage() {
   const session = await requireSession("CUSTOMER");
   const jobs = await prisma.job.findMany({
-    where: { customerId: session.id },
+    where: {
+      customerId: session.id,
+      scheduledAt: { not: null },
+      status: { notIn: ["CANCELLED"] },
+    },
     include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { scheduledAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/jobs" />
-      <h1 className="text-3xl font-bold text-navy">My jobs</h1>
+    <div className="mx-auto max-w-4xl">
+      <h1 className="text-3xl font-bold text-navy">Appointments</h1>
+      <p className="mt-2 text-sm text-muted">Times shops have on the job record. Message the shop from the job if you need to change one.</p>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (
-          <EmptyState title="No jobs yet" body="Request service from a mechanic to start tracking the work." />
+          <EmptyState title="No appointments yet" body="Book a shop from Find a Shop or a vehicle card." />
         ) : (
           jobs.map((job) => (
             <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-2xl border border-line bg-white p-4">
@@ -30,6 +34,7 @@ export default async function JobsPage() {
                   <p className="text-sm text-muted">
                     {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
                   </p>
+                  {job.scheduledAt ? <p className="mt-1 text-sm font-semibold">{formatAppointment(job.scheduledAt)}</p> : null}
                 </div>
                 <JobStatusLabel status={job.status} />
               </div>

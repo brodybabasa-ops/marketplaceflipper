@@ -32,8 +32,9 @@ Password for all demo users: `Demo1234!`
 
 | Role | Email |
 | --- | --- |
-| Customer | `customer@demo.pocketmechanic.app` |
+| Customer | `customer@demo.pocketmechanic.app` (Brody Babasa, Layton UT) |
 | Mechanic | `mechanic@demo.pocketmechanic.app` |
+| Shop | `sarah.chen@demo.pocketmechanic.app` |
 | Admin | `admin@demo.pocketmechanic.app` |
 
 ## Architecture

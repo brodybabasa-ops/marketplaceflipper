@@ -1,31 +1,33 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
 
-export const metadata = { title: "For mechanics" };
+export const metadata = { title: "For shops" };
 
 export default function ForMechanicsPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16">
-      <h1 className="text-4xl font-bold text-navy">Get work from customers who are ready to approve it in writing.</h1>
-      <p className="mt-3 max-w-2xl text-muted">
-        Pocket Mechanic is not a lead mill. Customers request service, you send an estimate, they approve, you do the job, and the review is tied to that job.
-      </p>
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+    <MarketingShell
+      title="Get work from customers who are ready to"
+      accent="approve it in writing."
+      subtitle="Pocket Mechanic is not a lead mill. Customers request service, you send an estimate, they approve, you do the job, and the review is tied to that job."
+      image="/landing/shop-1.png"
+      objectPosition="object-center"
+      script={"Same Roads.\nDifferent Machines.\nSame Solution."}
+    >
+      <div className="grid gap-4 md:grid-cols-3">
         {[
-          ["Requests that include the vehicle", "Year, make, model, problem, and photos — not a mystery phone call."],
+          ["Requests that include the machine", "Year, make, model, problem, and photos — not a mystery phone call."],
           ["Estimates with an audit trail", "Additional work is a change order, not a quiet line-item edit."],
           ["A score you earn", "Pocket Score is performance, not advertising spend."],
         ].map(([title, body]) => (
-          <Card key={title} className="p-5">
-            <h2 className="font-semibold text-navy">{title}</h2>
+          <article key={title} className="rounded-2xl bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+            <h2 className="font-semibold">{title}</h2>
             <p className="mt-2 text-sm text-muted">{body}</p>
-          </Card>
+          </article>
         ))}
       </div>
-      <Button asChild className="mt-8">
-        <Link href="/sign-up">Join as a mechanic</Link>
-      </Button>
-    </div>
+      <Link href="/sign-up" className="mt-8 inline-flex h-11 items-center rounded-xl bg-[#2f7bff] px-5 text-sm font-semibold text-white">
+        Join as a shop
+      </Link>
+    </MarketingShell>
   );
 }

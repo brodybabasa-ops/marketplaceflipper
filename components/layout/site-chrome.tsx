@@ -48,7 +48,7 @@ function AppHeader({ user }: { user: SessionUser | null }) {
           <Logo />
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted md:flex">
             <Link href="/mechanics" className="hover:text-navy">
-              Find a Mechanic
+              Find a Shop
             </Link>
             <Link href="/how-it-works" className="hover:text-navy">
               How It Works
@@ -235,9 +235,9 @@ export function SiteFooter() {
         <div>
           <p className="text-sm font-semibold text-navy">Product</p>
           <div className="mt-3 flex flex-col gap-2 text-sm text-muted">
-            <Link href="/mechanics">Find a mechanic</Link>
+            <Link href="/mechanics">Find a Shop</Link>
             <Link href="/mobile-mechanics">Mobile mechanics</Link>
-            <Link href="/for-mechanics">Join as a mechanic</Link>
+            <Link href="/for-mechanics">Join as a shop</Link>
             <Link href="/pocket-protect">Pocket Protect</Link>
           </div>
         </div>

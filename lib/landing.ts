@@ -34,6 +34,25 @@ export const SHOP_PHOTOS = [
   "/landing/shop-4.png",
 ] as const;
 
+export const FEATURED_SHOP_SLUGS = [
+  "freds-marine",
+  "layton-diesel-auto",
+  "wasatch-powersports",
+  "mountain-rv-service",
+] as const;
+
+const SHOP_PHOTO_BY_SLUG: Record<string, string> = {
+  "freds-marine": "/landing/shop-marine.png",
+  "layton-diesel-auto": "/landing/shop-diesel.png",
+  "wasatch-powersports": "/landing/shop-powersports.png",
+  "mountain-rv-service": "/landing/shop-rv.png",
+  "precision-auto-care": "/landing/shop-1.png",
+  "great-salt-lake-marine": "/landing/shop-marine.png",
+  "hill-field-tire": "/landing/shop-2.png",
+  "northridge-transmission": "/landing/shop-diesel.png",
+  "wasatch-trailer-repair": "/landing/shop-rv.png",
+};
+
 const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const;
 
 export function specialtyLabel(category: ServiceCategory | string) {
@@ -117,8 +136,34 @@ export function isOpenNow(
 }
 
 export function shopPhotoFor(slug: string) {
+  if (SHOP_PHOTO_BY_SLUG[slug]) return SHOP_PHOTO_BY_SLUG[slug];
   const sum = slug.split("").reduce((total, char) => total + char.charCodeAt(0), 0);
   return SHOP_PHOTOS[sum % SHOP_PHOTOS.length];
+}
+
+export function vehiclePhotoFor(make: string, model: string) {
+  const hay = `${make} ${model}`.toLowerCase();
+  if (hay.includes("centurion") || hay.includes("ri245") || hay.includes("wake") || hay.includes("boat")) {
+    return "/landing/vehicle-boat.png";
+  }
+  if (hay.includes("ktm") || hay.includes("sx-f") || hay.includes("dirt") || hay.includes("motorcycle")) {
+    return "/landing/vehicle-dirtbike.png";
+  }
+  if (hay.includes("rv") || hay.includes("winnebago") || hay.includes("airstream")) {
+    return "/landing/cat-rv.png";
+  }
+  if (
+    hay.includes("f-250") ||
+    hay.includes("f-150") ||
+    hay.includes("f-350") ||
+    hay.includes("silverado") ||
+    hay.includes("ram") ||
+    hay.includes("tundra") ||
+    hay.includes("tacoma")
+  ) {
+    return "/landing/hero-truck.png";
+  }
+  return "/landing/cat-automotive.png";
 }
 
 export const DIRECTORY_SERVICES = [

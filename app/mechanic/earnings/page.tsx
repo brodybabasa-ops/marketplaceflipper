@@ -1,4 +1,3 @@
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/guards";
@@ -18,7 +17,6 @@ export default async function EarningsPage() {
   const commission = Math.round(gross * ((config?.commissionPercent ?? 10) / 100));
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic/earnings" />
       <h1 className="text-3xl font-bold text-navy">Earnings</h1>
       <p className="mt-2 text-sm text-muted">
         Payments are not processed in this MVP. When Stripe Connect is enabled, payouts will use the same job totals and configurable commission.

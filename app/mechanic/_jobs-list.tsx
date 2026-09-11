@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
-export default async function MechanicJobsList({ title, href, statuses }: { title: string; href: string; statuses?: ("REQUESTED" | "ACCEPTED" | "SCHEDULED" | "EN_ROUTE" | "ARRIVED" | "DIAGNOSING" | "AWAITING_APPROVAL" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DISPUTED")[] }) {
+export default async function MechanicJobsList({ title, statuses }: { title: string; href: string; statuses?: ("REQUESTED" | "ACCEPTED" | "SCHEDULED" | "EN_ROUTE" | "ARRIVED" | "DIAGNOSING" | "AWAITING_APPROVAL" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DISPUTED")[] }) {
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const jobs = await prisma.job.findMany({
@@ -14,8 +13,7 @@ export default async function MechanicJobsList({ title, href, statuses }: { titl
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current={href} />
+    <div className="mx-auto max-w-5xl">
       <h1 className="text-3xl font-bold text-navy">{title}</h1>
       <div className="mt-6 space-y-3">
         {jobs.length === 0 ? (

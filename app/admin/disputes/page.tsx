@@ -1,4 +1,3 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { resolveDisputeAction } from "@/app/actions/admin";
@@ -14,8 +13,7 @@ export default async function AdminDisputesPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/disputes" />
+    <div className="mx-auto max-w-5xl">
       <h1 className="text-3xl font-bold text-navy">Disputes</h1>
       <div className="mt-6 space-y-4">
         {disputes.map((dispute) => (

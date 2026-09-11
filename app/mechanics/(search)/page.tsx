@@ -21,7 +21,7 @@ export default async function MechanicsSearchPage({
     mode: one(params.mode),
     rating: one(params.rating),
     distance: one(params.distance) ?? "50",
-    sort: one(params.sort) ?? "recommended",
+    sort: one(params.sort) ?? "closest",
   };
   const { shops, zip, locationLabel } = await getDirectoryShops(query);
   return (

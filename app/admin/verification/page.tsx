@@ -1,4 +1,3 @@
-import { AppNav, ADMIN_NAV } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { reviewVerificationAction } from "@/app/actions/admin";
 import { requireSession } from "@/lib/guards";
@@ -13,8 +12,7 @@ export default async function AdminVerificationPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <AppNav items={ADMIN_NAV} current="/admin/verification" />
+    <div className="mx-auto max-w-5xl">
       <h1 className="text-3xl font-bold text-navy">Verification queue</h1>
       <div className="mt-6 space-y-3">
         {items.map((item) => (

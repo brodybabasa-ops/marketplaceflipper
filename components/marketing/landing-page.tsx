@@ -15,6 +15,7 @@ import { LandingPhone } from "@/components/marketing/landing-phone";
 import { Logo } from "@/components/layout/logo";
 import { LANDING_CATEGORIES } from "@/lib/landing";
 import { PLATFORM_DISCLAIMER } from "@/lib/constants";
+import { StoreBadges } from "@/components/marketing/marketing-shell";
 import type { FeaturedShop, LandingReview } from "@/services/landing";
 
 export function LandingPage({ shops, reviews }: { shops: FeaturedShop[]; reviews: LandingReview[] }) {
@@ -251,26 +252,7 @@ function FeaturedShops({ shops }: { shops: FeaturedShop[] }) {
             Pocket Mechanic makes it easy to find trusted shops, compare options, book appointments, and stay in the loop.
           </p>
           <div className="mt-5 flex flex-col items-center gap-2 lg:items-start">
-            <Link
-              href="/sign-up"
-              className="inline-flex w-full max-w-[220px] items-center gap-3 rounded-xl bg-black px-4 py-2.5 text-left text-white"
-            >
-              <span className="text-2xl leading-none"></span>
-              <span>
-                <span className="block text-[10px] uppercase tracking-wide text-white/70">Get the app</span>
-                <span className="block text-sm font-semibold">Create an account</span>
-              </span>
-            </Link>
-            <Link
-              href="/sign-up"
-              className="inline-flex w-full max-w-[220px] items-center gap-3 rounded-xl bg-black px-4 py-2.5 text-left text-white"
-            >
-              <span className="text-lg leading-none">▶</span>
-              <span>
-                <span className="block text-[10px] uppercase tracking-wide text-white/70">Get the app</span>
-                <span className="block text-sm font-semibold">Create an account</span>
-              </span>
-            </Link>
+            <StoreBadges />
           </div>
         </div>
         </div>

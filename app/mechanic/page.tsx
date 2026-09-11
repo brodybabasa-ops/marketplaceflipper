@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppNav, MECHANIC_NAV } from "@/components/layout/app-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/guards";
@@ -28,8 +27,7 @@ export default async function MechanicDashboardPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <AppNav items={MECHANIC_NAV} current="/mechanic" />
+    <div className="mx-auto max-w-6xl">
       <h1 className="text-3xl font-bold text-navy">Good morning, {session.firstName}.</h1>
       <p className="mt-1 text-muted">{profile.businessName}</p>
       {profile.profileCompletePct < 100 ? (
@@ -42,7 +40,7 @@ export default async function MechanicDashboardPage() {
       ) : null}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5">
-          <p className="text-sm text-muted">Today's jobs</p>
+          <p className="text-sm text-muted">Today&apos;s jobs</p>
           <p className="number mt-1 text-3xl font-bold text-navy">{todayJobs}</p>
         </Card>
         <Card className="p-5">
@@ -50,7 +48,7 @@ export default async function MechanicDashboardPage() {
           <p className="number mt-1 text-3xl font-bold text-navy">{pending.length}</p>
         </Card>
         <Card className="p-5">
-          <p className="text-sm text-muted">This month's jobs</p>
+          <p className="text-sm text-muted">This month&apos;s jobs</p>
           <p className="number mt-1 text-3xl font-bold text-navy">{monthJobs}</p>
         </Card>
         <Card className="p-5">

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -12,15 +11,14 @@ export default async function MessagesPage() {
     where: session.role === "MECHANIC" ? { mechanicId: session.id } : { customerId: session.id },
     include: {
       customer: true,
-      mechanic: true,
+      mechanic: { include: { mechanicProfile: true } },
       messages: { orderBy: { createdAt: "desc" }, take: 1 },
       job: true,
     },
     orderBy: { lastMessageAt: "desc" },
   });
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      {session.role === "CUSTOMER" ? <AppNav items={CUSTOMER_NAV} current="/messages" /> : null}
+    <div className="mx-auto max-w-3xl">
       <h1 className="text-3xl font-bold text-navy">Messages</h1>
       <p className="mt-2 text-sm text-muted">Job-related conversations stay attached to the request, not a random phone number.</p>
       <div className="mt-6 space-y-3">
@@ -28,12 +26,13 @@ export default async function MessagesPage() {
           <EmptyState title="No conversations yet" body="Start from a job or mechanic profile so the context stays with the work." />
         ) : (
           threads.map((thread) => {
-            const other = session.id === thread.customerId ? thread.mechanic : thread.customer;
+            const title =
+              session.id === thread.customerId
+                ? thread.mechanic.mechanicProfile?.businessName ?? `${thread.mechanic.firstName} ${thread.mechanic.lastName}`
+                : `${thread.customer.firstName} ${thread.customer.lastName}`;
             return (
               <Link key={thread.id} href={thread.jobId ? `/jobs/${thread.jobId}` : `/messages/${thread.id}`} className="block rounded-2xl border border-line bg-white p-4">
-                <p className="font-semibold text-navy">
-                  {other.firstName} {other.lastName}
-                </p>
+                <p className="font-semibold text-navy">{title}</p>
                 <p className="text-sm text-muted">{thread.messages[0]?.body}</p>
               </Link>
             );

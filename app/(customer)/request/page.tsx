@@ -1,4 +1,3 @@
-import { AppNav, CUSTOMER_NAV } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createRequestAction } from "@/app/actions/marketplace";
@@ -20,8 +19,7 @@ export default async function RequestPage({
   });
   const profile = await prisma.customerProfile.findUnique({ where: { userId: session.id } });
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <AppNav items={CUSTOMER_NAV} current="/request" />
+    <div className="mx-auto max-w-xl">
       <h1 className="text-3xl font-bold text-navy">What does your vehicle need?</h1>
       <p className="mt-2 text-sm text-muted">Use everyday language. “Truck shakes when braking” is enough.</p>
       <form action={createRequestAction} className="mt-6 space-y-4">
@@ -42,7 +40,7 @@ export default async function RequestPage({
           <Textarea name="description" placeholder="When it happens, warning lights, recent work..." />
         </Field>
         <Field label="ZIP code">
-          <Input name="zip" required defaultValue={profile?.zip ?? "84101"} />
+          <Input name="zip" required defaultValue={profile?.zip ?? "84041"} />
         </Field>
         <Field label="Preferred date">
           <Input name="preferredDate" type="date" />
