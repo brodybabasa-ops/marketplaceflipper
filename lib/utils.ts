@@ -33,6 +33,16 @@ export function formatCount(value: number) {
 
 export function formatRelative(date: Date, now = new Date()) {
   const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  if (seconds < -45) {
+    const minutes = Math.round(-seconds / 60);
+    if (minutes < 60) return `in ${minutes} min`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `in ${hours} hour${hours === 1 ? "" : "s"}`;
+    const days = Math.round(hours / 24);
+    if (days === 1) return "Tomorrow";
+    if (days < 7) return `in ${days} days`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Denver" });
+  }
   if (seconds < 45) return "Just now";
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `${minutes} min ago`;

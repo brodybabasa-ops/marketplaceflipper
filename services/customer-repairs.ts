@@ -185,8 +185,8 @@ function livePresentation(job: JobRow, amount: number) {
   const details = `/jobs/${job.id}`;
   const messageHref = job.thread?.id ? details : "/messages";
   const hasReview = Boolean(job.review);
-  const stamp = job.completedAt ?? job.scheduledAt ?? job.updatedAt ?? job.createdAt;
-  const relative = formatRelative(stamp);
+  const stamp = job.completedAt ?? job.updatedAt ?? job.createdAt;
+  const relative = formatRelative(job.updatedAt);
   const dateValue = job.scheduledAt ? formatBoardDate(job.scheduledAt) : formatBoardDate(stamp);
   const scheduleAction: RepairAction = job.scheduledAt
     ? { href: `${details}#appointment`, label: "Reschedule", variant: "secondary" }

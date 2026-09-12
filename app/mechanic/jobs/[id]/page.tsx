@@ -78,6 +78,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           preferredDate={job.serviceRequest.preferredDate}
           preferredTimeWindow={job.serviceRequest.preferredTimeWindow}
           canEdit={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
+          surface="shop"
         />
       </div>
 

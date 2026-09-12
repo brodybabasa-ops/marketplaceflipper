@@ -17,6 +17,7 @@ export function AppointmentCard({
   preferredTimeWindow,
   canEdit,
   calendarHref,
+  surface = "customer",
 }: {
   jobId: string;
   scheduledAt: Date | null;
@@ -24,6 +25,7 @@ export function AppointmentCard({
   preferredTimeWindow: string | null;
   canEdit: boolean;
   calendarHref?: string;
+  surface?: "customer" | "shop";
 }) {
   const defaultDate = scheduledAt
     ? formatDenverDateInput(scheduledAt)
@@ -38,7 +40,10 @@ export function AppointmentCard({
     : preferredTimeWindow;
 
   return (
-    <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none" id="appointment">
+    <Card
+      className={surface === "shop" ? "border-0 p-5" : "border-0 bg-[#f7f9fc] p-5 shadow-none"}
+      id="appointment"
+    >
       <h2 className="font-semibold text-navy">Appointment</h2>
       {scheduledAt ? (
         <p className="mt-2 text-lg font-semibold text-navy">{formatAppointment(scheduledAt)}</p>
