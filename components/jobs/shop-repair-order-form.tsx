@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { createShopRepairOrderAction } from "@/app/actions/marketplace";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -14,33 +13,25 @@ export function ShopRepairOrderForm({
     vehicles: { id: string; label: string }[];
   }[];
 }) {
-  const [customerId, setCustomerId] = useState(customers[0]?.id ?? "");
-  const vehicles = useMemo(
-    () => customers.find((customer) => customer.id === customerId)?.vehicles ?? [],
-    [customerId, customers],
-  );
-
   if (customers.length === 0) {
     return <p className="text-sm text-muted">No customer vehicles on file yet. Incoming requests will add them.</p>;
   }
 
   return (
     <form action={createShopRepairOrderAction} className="space-y-4">
-      <Field label="Customer">
-        <Select name="customerId" value={customerId} onChange={(event) => setCustomerId(event.target.value)} required>
+      <Field label="Customer vehicle">
+        <Select name="vehicleId" required defaultValue="">
+          <option value="" disabled>
+            Choose a machine
+          </option>
           {customers.map((customer) => (
-            <option key={customer.id} value={customer.id}>
-              {customer.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="Vehicle">
-        <Select name="vehicleId" key={customerId} defaultValue={vehicles[0]?.id} required>
-          {vehicles.map((vehicle) => (
-            <option key={vehicle.id} value={vehicle.id}>
-              {vehicle.label}
-            </option>
+            <optgroup key={customer.id} label={customer.name}>
+              {customer.vehicles.map((vehicle) => (
+                <option key={vehicle.id} value={vehicle.id}>
+                  {customer.name} · {vehicle.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </Select>
       </Field>

@@ -54,10 +54,13 @@ function revalidateJobSurfaces(jobId?: string) {
 
 export async function createVehicleAction(formData: FormData) {
   const session = await requireUser();
+  const modelId = String(formData.get("modelId") ?? "");
+  const model = await prisma.vehicleModel.findUnique({ where: { id: modelId } });
+  if (!model) throw new Error("Pick a make and model.");
   const parsed = vehicleSchema.safeParse({
     year: formData.get("year"),
-    makeId: formData.get("makeId"),
-    modelId: formData.get("modelId"),
+    makeId: model.makeId,
+    modelId: model.id,
     trim: formData.get("trim") || undefined,
     engine: formData.get("engine") || undefined,
     drivetrain: formData.get("drivetrain") || undefined,
@@ -67,10 +70,6 @@ export async function createVehicleAction(formData: FormData) {
     notes: formData.get("notes") || undefined,
   });
   if (!parsed.success) throw new Error("Check your vehicle details.");
-  const model = await prisma.vehicleModel.findFirst({
-    where: { id: parsed.data.modelId, makeId: parsed.data.makeId },
-  });
-  if (!model) throw new Error("That make and model don’t match.");
   await prisma.vehicle.create({ data: { ...parsed.data, customerId: session.id } });
   revalidatePath("/vehicles");
   revalidatePath("/home");
@@ -145,16 +144,16 @@ export async function markThreadReadAction(threadId: string) {
 export async function createShopRepairOrderAction(formData: FormData) {
   const session = await requireUser();
   if (session.role !== "MECHANIC") throw new Error("Not authorized.");
-  const customerId = String(formData.get("customerId") ?? "");
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const problemText = String(formData.get("problemText") ?? "").trim();
-  if (!customerId || !vehicleId || problemText.length < 8) {
-    throw new Error("Pick a customer, vehicle, and describe the work.");
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+  if (!vehicle || problemText.length < 8) {
+    throw new Error("Pick a customer vehicle and describe the work.");
   }
   const result = await createShopRepairOrder({
     mechanicUserId: session.id,
-    customerId,
-    vehicleId,
+    customerId: vehicle.customerId,
+    vehicleId: vehicle.id,
     problemText,
     description: String(formData.get("description") ?? "") || undefined,
     date: String(formData.get("date") ?? "") || undefined,
