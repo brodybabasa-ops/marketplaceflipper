@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Field, Select } from "@/components/ui/input";
 
 export function VehicleMakeModelFields({
@@ -11,7 +11,18 @@ export function VehicleMakeModelFields({
   defaultMakeId?: string;
 }) {
   const [makeId, setMakeId] = useState(defaultMakeId ?? makes[0]?.id ?? "");
-  const make = makes.find((item) => item.id === makeId) ?? makes[0];
+  const models = useMemo(
+    () => makes.find((item) => item.id === makeId)?.models ?? makes[0]?.models ?? [],
+    [makeId, makes],
+  );
+  const [modelId, setModelId] = useState(models[0]?.id ?? "");
+
+  useEffect(() => {
+    if (!models.some((model) => model.id === modelId)) {
+      setModelId(models[0]?.id ?? "");
+    }
+  }, [models, modelId]);
+
   return (
     <>
       <Field label="Make">
@@ -24,8 +35,8 @@ export function VehicleMakeModelFields({
         </Select>
       </Field>
       <Field label="Model">
-        <Select name="modelId" key={make?.id} defaultValue={make?.models[0]?.id} required>
-          {(make?.models ?? []).map((model) => (
+        <Select name="modelId" value={modelId} onChange={(event) => setModelId(event.target.value)} required>
+          {models.map((model) => (
             <option key={model.id} value={model.id}>
               {model.name}
             </option>
