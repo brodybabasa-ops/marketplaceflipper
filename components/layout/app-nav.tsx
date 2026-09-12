@@ -32,7 +32,7 @@ export function AppNav({
 
 export const CUSTOMER_NAV = [
   { href: "/home", label: "Dashboard" },
-  { href: "/vehicles", label: "My Garage" },
+  { href: "/vehicles", label: "My Vehicles" },
   { href: "/jobs", label: "My Repairs" },
   { href: "/appointments", label: "Appointments" },
   { href: "/estimates", label: "Estimates" },
