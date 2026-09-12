@@ -109,7 +109,7 @@ export async function getCustomerDashboard(userId: string) {
     }),
   ]);
 
-  const dashboardVehicles = vehicles.slice(0, 10);
+  const dashboardVehicles = [...vehicles].reverse().slice(0, 10);
   const activeJobs = jobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED");
   const { shops, zip } = await getDirectoryShops({
     zip: chrome.zip ?? "84041",
