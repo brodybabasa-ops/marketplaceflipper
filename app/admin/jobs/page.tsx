@@ -1,6 +1,7 @@
 import { BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { formatAppointment } from "@/lib/utils";
 
 export const metadata = { title: "Jobs" };
 
@@ -18,6 +19,7 @@ export default async function AdminJobsPage() {
           <p className="font-semibold text-navy">{job.serviceRequest.problemText}</p>
           <p className="text-sm text-muted">
             {job.customer.firstName} → {job.mechanicProfile.businessName} · {job.status.replaceAll("_", " ").toLowerCase()}
+            {job.scheduledAt ? ` · ${formatAppointment(job.scheduledAt)}` : ""}
           </p>
         </BoardLink>
       ))}

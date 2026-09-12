@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { AcceptJobButton } from "@/components/jobs/accept-job-button";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
+import { startOfDenverDay, startOfDenverMonth, startOfNextDenverDay } from "@/lib/datetime";
 import { formatAppointment } from "@/lib/utils";
 
 export const metadata = { title: "Shop command" };
@@ -19,13 +21,11 @@ export default async function MechanicDashboardPage() {
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUnique({ where: { userId: session.id } });
   if (!profile) return null;
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(startOfDay);
-  endOfDay.setDate(endOfDay.getDate() + 1);
-  const startOfMonth = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
+  const startOfDay = startOfDenverDay();
+  const endOfDay = startOfNextDenverDay();
+  const startOfMonth = startOfDenverMonth();
 
-  const [incoming, inBay, waiting, today, monthJobs] = await Promise.all([
+  const [incoming, inBay, waiting, today, monthJobs, unscheduled] = await Promise.all([
     prisma.job.findMany({
       where: { mechanicProfileId: profile.id, status: "REQUESTED" },
       include: jobInclude,
@@ -55,7 +55,22 @@ export default async function MechanicDashboardPage() {
       include: jobInclude,
       orderBy: { scheduledAt: "asc" },
     }),
-    prisma.job.count({ where: { mechanicProfileId: profile.id, createdAt: { gte: startOfMonth } } }),
+    prisma.job.count({
+      where: {
+        mechanicProfileId: profile.id,
+        OR: [{ createdAt: { gte: startOfMonth } }, { scheduledAt: { gte: startOfMonth } }],
+      },
+    }),
+    prisma.job.findMany({
+      where: {
+        mechanicProfileId: profile.id,
+        scheduledAt: null,
+        status: { in: ["ACCEPTED", "SCHEDULED", "DIAGNOSING", "IN_PROGRESS", "AWAITING_APPROVAL"] },
+      },
+      include: jobInclude,
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
   ]);
 
   return (
@@ -93,6 +108,11 @@ export default async function MechanicDashboardPage() {
           <Queue title="Waiting on customer" href="/mechanic/jobs" empty="" jobs={waiting} />
         </div>
       ) : null}
+      {unscheduled.length ? (
+        <div className="mt-4">
+          <Queue title="Needs a time" href="/mechanic/jobs" empty="" jobs={unscheduled} />
+        </div>
+      ) : null}
       <section className="mt-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold text-navy">Today&apos;s book</h2>
@@ -128,7 +148,7 @@ export default async function MechanicDashboardPage() {
                     </td>
                     <td className="max-w-xs truncate">{job.serviceRequest.problemText}</td>
                     <td className="pr-4">
-                      <Link href={`/mechanic/jobs/${job.id}`} className="inline-flex">
+                      <Link href={`/mechanic/jobs/${job.id}#appointment`} className="inline-flex">
                         <JobStatusLabel status={job.status} />
                       </Link>
                     </td>
@@ -155,6 +175,7 @@ function Queue({
   jobs: {
     id: string;
     status: Parameters<typeof JobStatusLabel>[0]["status"];
+    scheduledAt?: Date | null;
     customer: { firstName: string; lastName: string };
     vehicle: { year: number; make: { name: string }; model: { name: string } };
     serviceRequest: { problemText: string };
@@ -173,21 +194,26 @@ function Queue({
           <p className="py-6 text-sm text-muted">{empty}</p>
         ) : (
           jobs.map((job) => (
-            <Link
+            <div
               key={job.id}
-              href={`/mechanic/jobs/${job.id}`}
               className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
             >
-              <div className="min-w-0">
+              <Link href={`/mechanic/jobs/${job.id}#appointment`} className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-navy">
                   {job.customer.firstName} {job.customer.lastName}
                 </p>
                 <p className="truncate text-sm text-muted">
                   {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
                 </p>
+                {job.scheduledAt ? (
+                  <p className="text-xs font-semibold text-[#7eb0ff]">{formatAppointment(job.scheduledAt)}</p>
+                ) : null}
+              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                <JobStatusLabel status={job.status} />
+                {job.status === "REQUESTED" ? <AcceptJobButton jobId={job.id} /> : null}
               </div>
-              <JobStatusLabel status={job.status} />
-            </Link>
+            </div>
           ))
         )}
       </div>

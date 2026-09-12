@@ -13,7 +13,7 @@ import {
   serviceRequestSchema,
   vehicleSchema,
 } from "@/lib/validations";
-import { createServiceRequest, getJobForUser, transitionJob } from "@/services/jobs";
+import { createServiceRequest, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
 import { createReview } from "@/services/reviews";
 import type { JobStatus } from "@prisma/client";
@@ -22,6 +22,27 @@ async function requireUser() {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   return session;
+}
+
+function revalidateJobSurfaces(jobId?: string) {
+  revalidatePath("/jobs");
+  revalidatePath("/home");
+  revalidatePath("/messages");
+  revalidatePath("/appointments");
+  revalidatePath("/estimates");
+  revalidatePath("/vehicles");
+  revalidatePath("/history");
+  revalidatePath("/mechanic");
+  revalidatePath("/mechanic/requests");
+  revalidatePath("/mechanic/jobs");
+  revalidatePath("/mechanic/messages");
+  revalidatePath("/mechanic/customers");
+  revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
+  if (jobId) {
+    revalidatePath(`/jobs/${jobId}`);
+    revalidatePath(`/mechanic/jobs/${jobId}`);
+  }
 }
 
 export async function createVehicleAction(formData: FormData) {
@@ -63,6 +84,7 @@ export async function createRequestAction(formData: FormData) {
     customerId: session.id,
     ...parsed.data,
   });
+  revalidateJobSurfaces(result.job?.id);
   if (result.job) {
     redirect(`/jobs/${result.job.id}`);
   }
@@ -87,22 +109,20 @@ export async function sendMessageAction(formData: FormData) {
     where: { id: thread.id },
     data: { lastMessageAt: new Date() },
   });
-  revalidatePath("/messages");
-  if (thread.jobId) {
-    revalidatePath(`/jobs/${thread.jobId}`);
-    revalidatePath(`/mechanic/jobs/${thread.jobId}`);
-  }
+  revalidateJobSurfaces(thread.jobId ?? undefined);
 }
 
 export async function createEstimateAction(formData: FormData) {
   const session = await requireUser();
   const rawItems = formData.getAll("itemDescription");
-  const lineItems = rawItems.map((_, index) => ({
-    category: formData.getAll("itemCategory")[index],
-    description: formData.getAll("itemDescription")[index],
-    quantity: formData.getAll("itemQuantity")[index],
-    unitCents: Math.round(Number(formData.getAll("itemUnit")[index]) * 100),
-  }));
+  const lineItems = rawItems
+    .map((_, index) => ({
+      category: formData.getAll("itemCategory")[index],
+      description: formData.getAll("itemDescription")[index],
+      quantity: formData.getAll("itemQuantity")[index],
+      unitCents: Math.round(Number(formData.getAll("itemUnit")[index]) * 100),
+    }))
+    .filter((item) => String(item.description ?? "").trim().length > 0);
   const parsed = estimateSchema.safeParse({
     jobId: formData.get("jobId"),
     type: formData.get("type") ?? "PRIMARY",
@@ -112,7 +132,7 @@ export async function createEstimateAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error("Add complete line items before sending.");
   const estimate = await createEstimate({ ...parsed.data, mechanicId: session.id });
-  revalidatePath(`/mechanic/jobs/${parsed.data.jobId}`);
+  revalidateJobSurfaces(parsed.data.jobId);
   redirect(`/mechanic/jobs/${parsed.data.jobId}?estimate=${estimate.id}`);
 }
 
@@ -127,7 +147,7 @@ export async function estimateDecisionAction(formData: FormData) {
     userAgent: headerStore.get("user-agent") ?? undefined,
   });
   const estimate = await prisma.estimate.findUniqueOrThrow({ where: { id: String(formData.get("estimateId")) } });
-  revalidatePath(`/jobs/${estimate.jobId}`);
+  revalidateJobSurfaces(estimate.jobId);
 }
 
 export async function updateJobStatusAction(formData: FormData) {
@@ -137,8 +157,21 @@ export async function updateJobStatusAction(formData: FormData) {
   const job = await getJobForUser(jobId, session.id, session.role);
   if (!job) throw new Error("Job not found.");
   await transitionJob(jobId, status, session.id, String(formData.get("note") ?? "") || undefined);
-  revalidatePath(`/jobs/${jobId}`);
-  revalidatePath(`/mechanic/jobs/${jobId}`);
+  revalidateJobSurfaces(jobId);
+}
+
+export async function scheduleAppointmentAction(formData: FormData) {
+  const session = await requireUser();
+  const jobId = String(formData.get("jobId"));
+  const job = await getJobForUser(jobId, session.id, session.role);
+  if (!job) throw new Error("Job not found.");
+  await scheduleJobAppointment({
+    jobId,
+    actorId: session.id,
+    date: String(formData.get("date") ?? ""),
+    time: String(formData.get("time") ?? ""),
+  });
+  revalidateJobSurfaces(jobId);
 }
 
 export async function createReviewAction(formData: FormData) {
@@ -156,7 +189,7 @@ export async function createReviewAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error("Complete the review before submitting.");
   await createReview({ ...parsed.data, customerId: session.id });
-  revalidatePath(`/jobs/${parsed.data.jobId}`);
+  revalidateJobSurfaces(parsed.data.jobId);
   redirect(`/jobs/${parsed.data.jobId}`);
 }
 
@@ -180,7 +213,7 @@ export async function createDisputeAction(formData: FormData) {
     },
   });
   await prisma.job.update({ where: { id: job.id }, data: { status: "DISPUTED" } });
-  revalidatePath(`/jobs/${job.id}`);
+  revalidateJobSurfaces(job.id);
   redirect(`/jobs/${job.id}`);
 }
 
@@ -216,5 +249,5 @@ export async function saveRepairRecordAction(formData: FormData) {
       notes: String(formData.get("notes") ?? ""),
     },
   });
-  revalidatePath(`/mechanic/jobs/${jobId}`);
+  revalidateJobSurfaces(jobId);
 }

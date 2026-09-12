@@ -41,11 +41,14 @@ export default async function HistoryPage() {
                   vehicle.repairRecords.map((record) => (
                     <article key={record.id} className="rounded-2xl border border-line bg-[#f7f9fc] p-4">
                       <p className="text-sm text-muted">
-                        {record.createdAt.toLocaleString("en-US", { month: "short", year: "numeric" })}
+                        {record.createdAt.toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "America/Denver" })}
                       </p>
                       <p className="font-semibold text-navy">{record.title}</p>
                       <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
                       <p className="number mt-1 font-semibold">{formatCents(record.job.totalCents)}</p>
+                      <a href={`/jobs/${record.jobId}`} className="mt-2 inline-block text-sm font-semibold text-[#2f7bff]">
+                        View job
+                      </a>
                     </article>
                   ))
                 )}

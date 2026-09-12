@@ -92,7 +92,7 @@ function QuickActions() {
   const items = [
     { href: "/mechanics", icon: Search, title: "Find a Shop", body: "Get your next repair done" },
     { href: "/request", icon: ClipboardList, title: "Get an Estimate", body: "Compare shop quotes" },
-    { href: "/request", icon: Calendar, title: "Book an Appointment", body: "Schedule your service" },
+    { href: "/appointments", icon: Calendar, title: "Book an Appointment", body: "Schedule your service" },
     { href: "/messages", icon: HelpCircle, title: "Ask a Question", body: "Get help from your shops" },
   ];
   return (

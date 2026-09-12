@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bell, ChevronDown, MapPin, Search } from "lucide-react";
 import { initials } from "@/lib/utils";
+import { signOutAction } from "@/app/actions/auth";
 import type { SessionUser } from "@/lib/session-token";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,14 @@ export function CustomerHeader({
           </span>
           <ChevronDown className="hidden h-3.5 w-3.5 text-white/55 sm:block" />
         </Link>
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="rounded-full border border-white/15 px-3 py-2 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            Sign out
+          </button>
+        </form>
       </div>
     </header>
   );
