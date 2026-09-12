@@ -1,7 +1,6 @@
 import type { EstimateStatus, JobStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDirectoryShops, type DirectoryShop } from "@/services/landing";
-import { FREDS_MARINE_SLUG } from "@/lib/constants";
 import { FEATURED_SHOP_SLUGS, vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatAppointment, formatRelative } from "@/lib/utils";
@@ -110,40 +109,36 @@ export async function getCustomerDashboard(userId: string) {
     }),
   ]);
 
-  const dashboardVehicles = vehicles.slice(0, 3);
-  const dashboardVehicleIds = new Set(dashboardVehicles.map((vehicle) => vehicle.id));
-  const activeJobs = jobs.filter(
-    (job) =>
-      job.status !== "COMPLETED" &&
-      job.status !== "CANCELLED" &&
-      (job.mechanicProfile.slug === FREDS_MARINE_SLUG || dashboardVehicleIds.has(job.vehicleId)),
-  );
+  const dashboardVehicles = vehicles.slice(0, 4);
+  const activeJobs = jobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED");
   const { shops, zip } = await getDirectoryShops({
     zip: chrome.zip ?? "84041",
     distance: "50",
     sort: "closest",
   });
 
-  const statusOrder: JobStatus[] = ["REQUESTED", "AWAITING_APPROVAL", "IN_PROGRESS", "DIAGNOSING", "EN_ROUTE", "ARRIVED", "SCHEDULED", "ACCEPTED"];
   const sortedActive = [...activeJobs].sort((a, b) => {
-    const aFred = a.mechanicProfile.slug === FREDS_MARINE_SLUG ? 0 : 1;
-    const bFred = b.mechanicProfile.slug === FREDS_MARINE_SLUG ? 0 : 1;
-    if (aFred !== bFred) return aFred - bFred;
-    const byStatus = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
-    if (byStatus !== 0) return byStatus;
+    const now = Date.now();
+    const aSoon = a.scheduledAt && a.scheduledAt.getTime() >= now ? a.scheduledAt.getTime() : Number.MAX_SAFE_INTEGER;
+    const bSoon = b.scheduledAt && b.scheduledAt.getTime() >= now ? b.scheduledAt.getTime() : Number.MAX_SAFE_INTEGER;
+    if (aSoon !== bSoon) return aSoon - bSoon;
+    if (a.status === "AWAITING_APPROVAL" && b.status !== "AWAITING_APPROVAL") return -1;
+    if (b.status === "AWAITING_APPROVAL" && a.status !== "AWAITING_APPROVAL") return 1;
     return b.updatedAt.getTime() - a.updatedAt.getTime();
   });
-  const repairs: DashboardRepair[] = sortedActive.slice(0, 3).map((job) => {
+  const repairs: DashboardRepair[] = sortedActive.slice(0, 6).map((job) => {
     const estimate = job.estimates[0];
     const estimateReady = Boolean(estimate && (estimate.status === "SENT" || job.status === "AWAITING_APPROVAL"));
-    const appointmentReady = Boolean(job.scheduledAt && job.status !== "REQUESTED");
+    const hasAppointment = Boolean(job.scheduledAt);
     const actions: DashboardRepair["actions"] = [];
     if (estimateReady) actions.push({ href: `/jobs/${job.id}`, label: "View Estimate", variant: "primary" });
-    if (appointmentReady) {
-      actions.push({ href: `/jobs/${job.id}`, label: "Reschedule", variant: "secondary" });
-      actions.push({ href: `/jobs/${job.id}`, label: "View Details", variant: "primary" });
-    } else {
-      actions.push({ href: `/jobs/${job.id}`, label: "Message Shop", variant: estimateReady ? "secondary" : "primary" });
+    actions.push({
+      href: `/jobs/${job.id}#appointment`,
+      label: hasAppointment ? "Reschedule" : "Set time",
+      variant: estimateReady ? "secondary" : "primary",
+    });
+    if (!estimateReady) {
+      actions.push({ href: `/jobs/${job.id}`, label: "View Details", variant: "secondary" });
     }
     return {
       id: job.id,
@@ -153,9 +148,9 @@ export async function getCustomerDashboard(userId: string) {
       shopCity: job.mechanicProfile.shopCity ?? "",
       photo: vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name),
       status: job.status,
-      badge: repairBadge(job.status, estimate?.status),
+      badge: repairBadge(job.status, estimate?.status, hasAppointment),
       estimateLabel: estimateReady && estimate ? formatCents(estimate.totalCents) : null,
-      appointmentLabel: appointmentReady && job.scheduledAt ? formatAppointment(job.scheduledAt) : null,
+      appointmentLabel: hasAppointment && job.scheduledAt ? formatAppointment(job.scheduledAt) : "Needs a time",
       updatedLabel: formatRelative(job.updatedAt),
       showStepper: job.status === "IN_PROGRESS" || job.status === "DIAGNOSING" || job.status === "EN_ROUTE" || job.status === "ARRIVED",
       stepIndex: stepperIndex(job.status),
@@ -189,13 +184,14 @@ export async function getCustomerDashboard(userId: string) {
   };
 }
 
-function repairBadge(status: JobStatus, estimateStatus?: EstimateStatus) {
+function repairBadge(status: JobStatus, estimateStatus?: EstimateStatus, scheduled?: boolean) {
   if (status === "AWAITING_APPROVAL" || (status === "REQUESTED" && estimateStatus === "SENT")) {
     return { label: "Estimate Received", tone: "warning" as const };
   }
-  if (status === "SCHEDULED" || status === "ACCEPTED") {
+  if (status === "SCHEDULED" || ((status === "ACCEPTED" || status === "REQUESTED") && scheduled)) {
     return { label: "Appointment Scheduled", tone: "success" as const };
   }
+  if (status === "ACCEPTED") return { label: "Accepted", tone: "success" as const };
   if (status === "IN_PROGRESS") return { label: "In Progress", tone: "info" as const };
   if (status === "DIAGNOSING") return { label: "Diagnosing", tone: "info" as const };
   if (status === "EN_ROUTE" || status === "ARRIVED") return { label: "In Service", tone: "info" as const };

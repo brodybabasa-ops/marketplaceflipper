@@ -1,6 +1,8 @@
 import type { JobStatus } from "@prisma/client";
 import { FREDS_MARINE_SLUG } from "@/lib/constants";
+import { denverDateTimeToUtc, proposedAppointmentFromPreferred } from "@/lib/datetime";
 import { prisma } from "@/lib/db";
+import { formatAppointment } from "@/lib/utils";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
 import { notify } from "@/services/notifications";
 import { classifyProblem } from "@/services/problem-classifier";
@@ -54,7 +56,9 @@ export async function createServiceRequest(input: {
       state: zip?.stateCode,
       latitude: zip?.latitude,
       longitude: zip?.longitude,
-      preferredDate: input.preferredDate ? new Date(input.preferredDate) : undefined,
+      preferredDate: input.preferredDate
+        ? denverDateTimeToUtc(input.preferredDate, "12:00")
+        : undefined,
       preferredTimeWindow: input.preferredTimeWindow,
       budgetCents: input.budgetCents,
       mobilePreferred: input.mobilePreferred ?? true,
@@ -69,6 +73,7 @@ export async function createServiceRequest(input: {
       mechanicProfileId: mechanic.id,
       vehicleId: input.vehicleId,
       status: "REQUESTED",
+      scheduledAt: proposedAppointmentFromPreferred(input.preferredDate, input.preferredTimeWindow),
       events: { create: { status: "REQUESTED", note: "Customer requested service." } },
     },
   });
@@ -116,15 +121,17 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
     data.cancelledAt = new Date();
     data.cancelReason = note;
   }
-  if (next === "SCHEDULED" && !job.scheduledAt) data.scheduledAt = new Date();
 
   const updated = await prisma.job.update({ where: { id: jobId }, data });
 
-  if (next === "ACCEPTED") {
+  if (next === "ACCEPTED" || next === "SCHEDULED") {
     await prisma.serviceRequest.update({
       where: { id: job.serviceRequestId },
       data: { status: "ACCEPTED", mechanicProfileId: job.mechanicProfileId },
     });
+  }
+
+  if (next === "ACCEPTED") {
     await notify({
       userId: job.customerId,
       title: "Your mechanic accepted the request",
@@ -147,6 +154,15 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
     });
   }
 
+  if (next === "SCHEDULED") {
+    await notify({
+      userId: actorId === job.customerId ? job.mechanicUserId : job.customerId,
+      title: "Appointment scheduled",
+      body: updated.scheduledAt ? formatAppointment(updated.scheduledAt) : "A time is on the job record.",
+      href: actorId === job.customerId ? `/mechanic/jobs/${job.id}` : `/jobs/${job.id}`,
+    });
+  }
+
   if (next === "CANCELLED") {
     await notify({
       userId: actorId === job.customerId ? job.mechanicUserId : job.customerId,
@@ -155,6 +171,77 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
       href: `/jobs/${job.id}`,
     });
   }
+
+  return updated;
+}
+
+const BOOKABLE_STATUSES: JobStatus[] = ["REQUESTED", "ACCEPTED"];
+
+export async function scheduleJobAppointment(input: {
+  jobId: string;
+  actorId: string;
+  date: string;
+  time: string;
+}) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !/^\d{2}:\d{2}$/.test(input.time)) {
+    throw new Error("Pick a date and time.");
+  }
+  const when = denverDateTimeToUtc(input.date, input.time);
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: input.jobId },
+    include: { thread: true },
+  });
+  if (job.customerId !== input.actorId && job.mechanicUserId !== input.actorId) {
+    throw new Error("Not authorized.");
+  }
+  if (job.status === "COMPLETED" || job.status === "CANCELLED") {
+    throw new Error("This job cannot be scheduled.");
+  }
+
+  const nextStatus: JobStatus = BOOKABLE_STATUSES.includes(job.status) ? "SCHEDULED" : job.status;
+  const label = formatAppointment(when);
+  const wasSet = Boolean(job.scheduledAt);
+  const note = wasSet ? `Appointment moved to ${label}.` : `Appointment set for ${label}.`;
+
+  const updated = await prisma.job.update({
+    where: { id: job.id },
+    data: {
+      scheduledAt: when,
+      status: nextStatus,
+      events: { create: { status: nextStatus, note } },
+    },
+  });
+
+  if (job.status === "REQUESTED") {
+    await prisma.serviceRequest.update({
+      where: { id: job.serviceRequestId },
+      data: { status: "ACCEPTED", mechanicProfileId: job.mechanicProfileId },
+    });
+  }
+
+  if (job.thread) {
+    await prisma.message.create({
+      data: {
+        threadId: job.thread.id,
+        senderId: input.actorId,
+        body: note,
+        kind: "TEXT",
+      },
+    });
+    await prisma.messageThread.update({
+      where: { id: job.thread.id },
+      data: { lastMessageAt: new Date() },
+    });
+  }
+
+  const otherParty = input.actorId === job.customerId ? job.mechanicUserId : job.customerId;
+  const otherHref = input.actorId === job.customerId ? `/mechanic/jobs/${job.id}` : `/jobs/${job.id}`;
+  await notify({
+    userId: otherParty,
+    title: wasSet ? "Appointment updated" : "Appointment scheduled",
+    body: label,
+    href: otherHref,
+  });
 
   return updated;
 }

@@ -13,7 +13,7 @@ import {
   serviceRequestSchema,
   vehicleSchema,
 } from "@/lib/validations";
-import { createServiceRequest, getJobForUser, transitionJob } from "@/services/jobs";
+import { createServiceRequest, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
 import { createReview } from "@/services/reviews";
 import type { JobStatus } from "@prisma/client";
@@ -28,10 +28,17 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/jobs");
   revalidatePath("/home");
   revalidatePath("/messages");
+  revalidatePath("/appointments");
+  revalidatePath("/estimates");
+  revalidatePath("/vehicles");
+  revalidatePath("/history");
   revalidatePath("/mechanic");
   revalidatePath("/mechanic/requests");
   revalidatePath("/mechanic/jobs");
   revalidatePath("/mechanic/messages");
+  revalidatePath("/mechanic/customers");
+  revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
   if (jobId) {
     revalidatePath(`/jobs/${jobId}`);
     revalidatePath(`/mechanic/jobs/${jobId}`);
@@ -150,6 +157,20 @@ export async function updateJobStatusAction(formData: FormData) {
   const job = await getJobForUser(jobId, session.id, session.role);
   if (!job) throw new Error("Job not found.");
   await transitionJob(jobId, status, session.id, String(formData.get("note") ?? "") || undefined);
+  revalidateJobSurfaces(jobId);
+}
+
+export async function scheduleAppointmentAction(formData: FormData) {
+  const session = await requireUser();
+  const jobId = String(formData.get("jobId"));
+  const job = await getJobForUser(jobId, session.id, session.role);
+  if (!job) throw new Error("Job not found.");
+  await scheduleJobAppointment({
+    jobId,
+    actorId: session.id,
+    date: String(formData.get("date") ?? ""),
+    time: String(formData.get("time") ?? ""),
+  });
   revalidateJobSurfaces(jobId);
 }
 

@@ -83,7 +83,7 @@ export function CustomerGarage({
 
         <div className="mt-6 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
           {vehicles.map((vehicle) => (
-            <VehicleTile key={`${vehicle.make}-${vehicle.model}`} vehicle={vehicle} />
+            <VehicleTile key={vehicle.id ?? `${vehicle.make}-${vehicle.model}`} vehicle={vehicle} />
           ))}
         </div>
 
@@ -124,7 +124,7 @@ export function CustomerGarage({
             </div>
             <div className="space-y-2.5">
               {maintenance.map((item) => (
-                <article key={item.vehicleLabel} className="flex items-center gap-3 rounded-xl bg-[#0a1829] px-3 py-2">
+                <article key={`${item.vehicleLabel}-${item.service}`} className="flex items-center gap-3 rounded-xl bg-[#0a1829] px-3 py-2">
                   <Link href={item.href} className="flex min-w-0 flex-1 items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={item.photo} alt="" className="h-12 w-[72px] rounded-lg object-cover" />

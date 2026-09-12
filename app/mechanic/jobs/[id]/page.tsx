@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { PageHeading } from "@/components/layout/themed-board";
 import { createEstimateAction, saveRepairRecordAction, sendMessageAction, updateJobStatusAction } from "@/app/actions/marketplace";
+import { AppointmentCard } from "@/components/jobs/appointment-card";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
@@ -55,8 +56,29 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Request details</h2>
           <p className="mt-2 text-sm">{job.serviceRequest.description || job.serviceRequest.problemText}</p>
-          <p className="mt-2 text-sm text-muted">Preferred: {job.serviceRequest.preferredTimeWindow || "flexible"}</p>
+          <p className="mt-2 text-sm text-muted">
+            Preferred:{" "}
+            {job.serviceRequest.preferredDate
+              ? job.serviceRequest.preferredDate.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  timeZone: "America/Denver",
+                })
+              : "flexible date"}
+            {job.serviceRequest.preferredTimeWindow ? ` · ${job.serviceRequest.preferredTimeWindow}` : ""}
+          </p>
         </Card>
+      </div>
+
+      <div className="mt-4">
+        <AppointmentCard
+          jobId={job.id}
+          scheduledAt={job.scheduledAt}
+          preferredDate={job.serviceRequest.preferredDate}
+          preferredTimeWindow={job.serviceRequest.preferredTimeWindow}
+          canEdit={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
+        />
       </div>
 
       <section className="mt-8 space-y-4">

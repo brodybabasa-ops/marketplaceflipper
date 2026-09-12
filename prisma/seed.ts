@@ -1,6 +1,7 @@
 import { PrismaClient, type DayOfWeek, type JobStatus, type MechanicProfile, type ServiceCategory, type ServiceMode, type VerificationLevel } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_RANKING_WEIGHTS } from "../lib/constants";
+import { nextBookableDenver, nextDenverWeekday } from "../lib/datetime";
 import { computeMechanicScore } from "../services/ranking";
 import { classifyProblem } from "../services/problem-classifier";
 
@@ -631,6 +632,8 @@ async function seedBrodyStory({
     price,
     estimateStatus,
     scheduledAt,
+    preferredDate,
+    preferredTimeWindow,
     createdAt,
     completedAt,
     messages,
@@ -644,6 +647,8 @@ async function seedBrodyStory({
     price: number;
     estimateStatus: "SENT" | "APPROVED";
     scheduledAt?: Date;
+    preferredDate?: Date;
+    preferredTimeWindow?: string;
     createdAt: Date;
     completedAt?: Date;
     messages: { from: "customer" | "shop"; body: string; at: Date; unread?: boolean }[];
@@ -662,6 +667,8 @@ async function seedBrodyStory({
         state: "UT",
         latitude: shop.latitude,
         longitude: shop.longitude,
+        preferredDate,
+        preferredTimeWindow,
         createdAt,
       },
     });
@@ -756,6 +763,7 @@ async function seedBrodyStory({
     status: "IN_PROGRESS",
     price: 285000,
     estimateStatus: "APPROVED",
+    scheduledAt: nextBookableDenver(),
     createdAt: new Date("2026-08-28T16:00:00.000Z"),
     messages: [
       { from: "customer", body: "Boat turned over once then nothing.", at: new Date("2026-08-28T16:05:00.000Z") },
@@ -779,6 +787,7 @@ async function seedBrodyStory({
     ],
   });
 
+  const saturdaySlot = nextDenverWeekday(6, "10:00");
   await storyJob({
     vehicleId: bike.id,
     shop: powersports,
@@ -787,7 +796,9 @@ async function seedBrodyStory({
     status: "DIAGNOSING",
     price: 62000,
     estimateStatus: "APPROVED",
-    scheduledAt: new Date("2026-09-14T16:00:00.000Z"),
+    scheduledAt: saturdaySlot,
+    preferredDate: saturdaySlot,
+    preferredTimeWindow: "saturday",
     createdAt: new Date("2026-08-26T16:00:00.000Z"),
     messages: [
       { from: "customer", body: "Need oil, filter, and a look at the air filter before the next ride.", at: new Date("2026-08-26T16:02:00.000Z") },
@@ -943,12 +954,12 @@ async function main() {
 
   const vehicles = [];
   const vehiclePlan = [
-    { owner: 0, year: 2022, make: "Ford", model: "F-250", trim: "Lariat", engine: "6.7 Power Stroke", drivetrain: "4x4", mileage: 41200, nickname: "The truck" },
-    { owner: 0, year: 2022, make: "Centurion", model: "Ri245", trim: "Luxury", engine: "6.2 Supercharged", drivetrain: "V-drive", mileage: 186, nickname: "The boat" },
-    { owner: 0, year: 2020, make: "KTM", model: "450 SX-F", engine: "450cc", drivetrain: "Chain", mileage: 84, nickname: "The bike" },
-    { owner: 0, year: 2021, make: "Winnebago", model: "Minnie Winnie", trim: "22M", engine: "7.3 V8", drivetrain: "RWD", mileage: 28400, nickname: "The RV" },
-    { owner: 0, year: 2019, make: "Yamaha", model: "FX Cruiser", engine: "1.8 SHO", drivetrain: "Jet", mileage: 92, nickname: "The ski" },
-    { owner: 0, year: 2022, make: "Haulmark", model: "Trailer", trim: "Enclosed", drivetrain: "Tandem", mileage: 4100, nickname: "The trailer" },
+    { owner: 0, year: 2022, make: "Ford", model: "F-250", trim: "Lariat", engine: "6.7 Power Stroke", drivetrain: "4x4", mileage: 41200, nickname: "The truck", vin: "1FT8W2BT5NEC12345" },
+    { owner: 0, year: 2022, make: "Centurion", model: "Ri245", trim: "Luxury", engine: "6.2 Supercharged", drivetrain: "V-drive", mileage: 186, nickname: "The boat", vin: "CENR2451G021" },
+    { owner: 0, year: 2020, make: "KTM", model: "450 SX-F", engine: "450cc", drivetrain: "Chain", mileage: 84, nickname: "The bike", vin: "VBKEXC405LM123456" },
+    { owner: 0, year: 2021, make: "Winnebago", model: "Minnie Winnie", trim: "22M", engine: "7.3 V8", drivetrain: "RWD", mileage: 28400, nickname: "The RV", vin: "1F66F5DY5M0A12345" },
+    { owner: 0, year: 2019, make: "Yamaha", model: "FX Cruiser", engine: "1.8 SHO", drivetrain: "Jet", mileage: 92, nickname: "The ski", vin: "YAMA12345K192" },
+    { owner: 0, year: 2022, make: "Haulmark", model: "Trailer", trim: "Enclosed", drivetrain: "Tandem", mileage: 4100, nickname: "The trailer", vin: "5JW1E1420N1123456" },
     { owner: 1, year: 2022, make: "Toyota", model: "Tacoma", trim: "TRD", engine: "3.5 V6", drivetrain: "4x4", mileage: 31000 },
     { owner: 2, year: 2019, make: "Jeep", model: "Wrangler", trim: "Sahara", engine: "3.6 V6", drivetrain: "4x4", mileage: 54000 },
     { owner: 3, year: 2021, make: "Subaru", model: "Outback", trim: "Limited", engine: "2.5", drivetrain: "AWD", mileage: 28000 },
@@ -980,6 +991,7 @@ async function main() {
         drivetrain: "drivetrain" in plan ? plan.drivetrain : undefined,
         mileage: plan.mileage,
         nickname: "nickname" in plan ? plan.nickname : undefined,
+        vin: "vin" in plan ? plan.vin : undefined,
       },
     });
     vehicles.push(vehicle);

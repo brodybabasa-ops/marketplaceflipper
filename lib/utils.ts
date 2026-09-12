@@ -55,6 +55,8 @@ export function formatAppointment(date: Date) {
   }).format(date);
 }
 
+export { formatAppointmentDate, formatAppointmentTime } from "@/lib/datetime";
+
 export function formatBoardDate(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",

@@ -61,7 +61,11 @@ export default async function MechanicJobsList({
                     {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
                   </td>
                   <td className="max-w-xs truncate">{job.serviceRequest.problemText}</td>
-                  <td>{job.scheduledAt ? formatAppointment(job.scheduledAt) : "—"}</td>
+                  <td>
+                    <Link href={`/mechanic/jobs/${job.id}#appointment`} className="text-navy">
+                      {job.scheduledAt ? formatAppointment(job.scheduledAt) : "Set time"}
+                    </Link>
+                  </td>
                   <td>
                     <JobStatusLabel status={job.status} />
                   </td>

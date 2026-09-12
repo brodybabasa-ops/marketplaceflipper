@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { ReviewCard } from "@/components/jobs/review-card";
+import { AppointmentCard } from "@/components/jobs/appointment-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea, Input } from "@/components/ui/input";
@@ -36,6 +37,20 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <StatusTimeline status={job.status} />
             </div>
           </Card>
+          {session.role === "CUSTOMER" || session.role === "MECHANIC" || session.role === "ADMIN" ? (
+            <AppointmentCard
+              jobId={job.id}
+              scheduledAt={job.scheduledAt}
+              preferredDate={job.serviceRequest.preferredDate}
+              preferredTimeWindow={job.serviceRequest.preferredTimeWindow}
+              canEdit={
+                (session.id === job.customerId || session.id === job.mechanicUserId) &&
+                job.status !== "COMPLETED" &&
+                job.status !== "CANCELLED"
+              }
+              calendarHref={job.scheduledAt ? `/jobs/${job.id}/calendar` : undefined}
+            />
+          ) : null}
           {job.estimates.map((estimate) => (
             <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
           ))}
