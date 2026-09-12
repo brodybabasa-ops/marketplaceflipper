@@ -35,7 +35,7 @@ export function CustomerRepairs({
   return (
     <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero />
-      <div className="relative z-10 mx-auto -mt-10 w-full max-w-[1180px] flex-1 px-4 pb-12 sm:px-6">
+      <div className="relative z-10 w-full flex-1 px-3 pb-8 lg:px-4">
         <div className="rounded-[28px] bg-white p-4 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-1">
@@ -70,7 +70,7 @@ export function CustomerRepairs({
             </label>
           </div>
 
-          <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,300px)]">
+          <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
             <div className="min-w-0 space-y-3">
               {visible.length === 0 ? (
                 <p className="py-10 text-center text-sm text-muted">No repairs in this list.</p>
@@ -109,7 +109,7 @@ function Hero() {
         <br />
         Out There.
       </p>
-      <div className="relative mx-auto max-w-[1180px] px-4 sm:px-6">
+      <div className="relative px-8 lg:px-9">
         <p className="text-[11px] font-semibold tracking-[0.22em] text-white/80">MY REPAIRS</p>
         <h1 className="mt-2 max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-[44px] sm:leading-[1.05]">
           Track Your <span className="text-[#2f7bff]">Repairs.</span>
