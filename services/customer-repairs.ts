@@ -214,7 +214,7 @@ function presentationFor(
       dateValue: "Aug 30, 2026",
       relativeLabel: null,
       steps: defaultSteps,
-      stepIndex: 1,
+      stepIndex: 2,
       priceLabel: "Estimated Total",
       price: "$620.00",
       actions: [{ href: details, label: "View Details", variant: "link" as const }],

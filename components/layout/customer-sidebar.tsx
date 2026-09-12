@@ -83,7 +83,7 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
             <img
               src="/landing/app-phone.png"
               alt=""
-              className="pointer-events-none absolute -right-6 bottom-2 h-[118px] w-[92px] object-cover object-[58%_center]"
+              className="pointer-events-none absolute -right-2 -top-3 h-[132px] w-[72px] object-cover object-[52%_38%]"
             />
           ) : null}
           <p className="relative text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>

@@ -97,9 +97,10 @@ function Hero() {
       <img
         src="/landing/repairs-hero.png"
         alt=""
-        className="absolute inset-0 h-full w-full object-cover object-[28%_58%]"
+        className="absolute top-0 h-[115%] w-[145%] max-w-none object-cover object-left"
+        style={{ left: "8%", top: "-6%" }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.72)_28%,rgba(7,20,34,0.28)_52%,rgba(7,20,34,0.08)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.90)_0%,rgba(7,20,34,0.62)_26%,rgba(7,20,34,0.22)_48%,rgba(7,20,34,0.06)_100%)]" />
       <p className="font-script pointer-events-none absolute right-8 top-[5.5rem] z-10 hidden max-w-[210px] rotate-[8deg] text-right text-[30px] leading-[1.08] text-white xl:block">
         Less Time
         <br />
@@ -131,9 +132,9 @@ function RepairItem({ row }: { row: RepairRow }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={row.photo} alt="" className="h-full w-full object-cover" />
       </div>
-      <div className="grid min-w-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(230px,1.2fr)_minmax(148px,auto)] xl:items-start">
+      <div className="grid min-w-0 flex-1 gap-4 xl:grid-cols-[minmax(210px,1.05fr)_minmax(260px,1.2fr)_minmax(148px,auto)] xl:items-start">
         <div className="min-w-0">
-          <p className="font-bold leading-tight">{row.vehicleLabel}</p>
+          <p className="truncate font-bold leading-tight">{row.vehicleLabel}</p>
           <p className="mt-0.5 text-sm text-[#6b7a8a]">{row.problem}</p>
           <div className="mt-2 flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -187,7 +188,7 @@ function Stepper({ steps, current }: { steps: string[]; current: number }) {
   const last = steps.length - 1;
   const progress = current <= 0 ? 0 : (Math.min(current, last) / last) * 80;
   return (
-    <div className="mt-3 w-full max-w-[280px]">
+    <div className="mt-3 w-full max-w-none">
       <div className="relative h-3">
         <span className="absolute left-[10%] right-[10%] top-1/2 h-[2px] -translate-y-1/2 bg-[#d5dee8]" />
         <span
@@ -217,7 +218,7 @@ function Stepper({ steps, current }: { steps: string[]; current: number }) {
       </div>
       <ol className="mt-1.5 grid grid-cols-5">
         {steps.map((step) => (
-          <li key={step} className="px-0.5 text-center text-[9px] leading-tight text-[#7a8794]">
+          <li key={step} className="px-0.5 text-center text-[8px] leading-tight tracking-tight text-[#7a8794] whitespace-nowrap">
             {step}
           </li>
         ))}
