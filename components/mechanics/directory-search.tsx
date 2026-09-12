@@ -26,7 +26,7 @@ export function DirectorySearchBar({ query }: { query: DirectoryQuery }) {
   const action = tab === "question" ? "/sign-up" : "/mechanics";
 
   return (
-    <form action={action} className="rounded-[28px] bg-[#102033] p-4 text-white shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-5">
+    <form action={action} className="bg-[#102033] p-4 text-white sm:p-5">
       <CommittedFilters query={query} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">

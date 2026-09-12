@@ -16,7 +16,7 @@ export function HeroSearch() {
   const cta = tab === "shop" ? "Find Shops" : tab === "estimate" ? "Get Estimates" : "Ask a Question";
 
   return (
-    <form action={action} className="rounded-[28px] bg-white p-4 text-left shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-5">
+    <form action={action} className="bg-white p-4 text-left sm:p-5">
       <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           <TabButton active={tab === "shop"} onClick={() => setTab("shop")} icon={Search}>

@@ -35,8 +35,8 @@ export function CustomerRepairs({
   return (
     <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero />
-      <div className="relative z-10 w-full flex-1 px-3 pb-8 lg:px-4">
-        <div className="rounded-[28px] bg-white p-4 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-5">
+      <div className="relative z-10 -mt-10 flex w-full flex-1 flex-col">
+        <div className="flex-1 bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-1">
               {TABS.map((item) => {
@@ -109,7 +109,7 @@ function Hero() {
         <br />
         Out There.
       </p>
-      <div className="relative px-8 lg:px-9">
+      <div className="relative px-5 lg:px-6">
         <p className="text-[11px] font-semibold tracking-[0.22em] text-white/80">MY REPAIRS</p>
         <h1 className="mt-2 max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-[44px] sm:leading-[1.05]">
           Track Your <span className="text-[#2f7bff]">Repairs.</span>

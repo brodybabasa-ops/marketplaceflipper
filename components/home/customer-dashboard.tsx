@@ -41,7 +41,7 @@ export function CustomerDashboard({
   return (
     <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero firstName={firstName} />
-      <div className="relative z-10 mx-auto -mt-8 max-w-[1180px] px-6 pb-10">
+      <div className="relative z-10 -mt-8 w-full flex-1 bg-white">
         <QuickActions />
         <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
           <ActiveRepairs repairs={repairs} />
@@ -60,7 +60,7 @@ export function CustomerDashboard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/landing/lifestyle.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />
         <div className="absolute inset-0 bg-[#071422]/55" />
-        <div className="relative mx-auto flex max-w-[1180px] items-center justify-between px-6 py-8">
+        <div className="relative flex w-full items-center justify-between px-4 py-8 lg:px-6">
           <p className="text-sm font-semibold tracking-[0.18em] text-white">POCKET MECHANIC</p>
           <p className="font-script text-2xl text-white">Keep It Running.</p>
         </div>
@@ -75,7 +75,7 @@ function Hero({ firstName }: { firstName: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/landing/dashboard-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[78%_center]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.62)_42%,rgba(7,20,34,0.18)_100%)]" />
-      <div className="relative mx-auto max-w-[1180px] px-6">
+      <div className="relative w-full px-5 lg:px-6">
         <h1 className="max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
           Welcome back,
           <br />
@@ -96,7 +96,7 @@ function QuickActions() {
     { href: "/messages", icon: HelpCircle, title: "Ask a Question", body: "Get help from your shops" },
   ];
   return (
-    <div className="grid gap-2 rounded-[24px] bg-white p-2 shadow-[0_18px_40px_rgba(14,28,47,0.08)] sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-2 bg-white p-2 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
         <Link key={item.title} href={item.href} className="flex items-center gap-3 rounded-2xl bg-[#f7f9fc] px-3 py-3 hover:bg-[#eef3f9]">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#2f7bff]">
@@ -115,7 +115,7 @@ function QuickActions() {
 
 function ActiveRepairs({ repairs }: { repairs: DashboardRepair[] }) {
   return (
-    <section className="h-fit rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+    <section className="h-fit bg-white p-5">
       <Header title="Active Repairs" href="/jobs" />
       {repairs.length === 0 ? (
         <p className="mt-6 text-sm text-muted">No active repairs. Request a shop when something needs fixed.</p>
@@ -183,7 +183,7 @@ function ActiveRepairs({ repairs }: { repairs: DashboardRepair[] }) {
 
 function MyVehicles({ vehicles }: { vehicles: DashboardVehicle[] }) {
   return (
-    <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+    <section className="bg-white p-5">
       <Header title="My Vehicles" href="/vehicles" action="Manage" />
       <div className="mt-4 grid grid-cols-2 gap-3">
         {vehicles.map((vehicle) => (
@@ -213,7 +213,7 @@ function NearbyShops({
   origin: { latitude: number; longitude: number; city: string } | null;
 }) {
   return (
-    <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+    <section className="bg-white p-5">
       <Header title="Nearby Shops" href="/mechanics" />
       <div className="mt-3 space-y-3">
         <DirectoryMap shops={shops} origin={origin} compact hideCities={origin?.city !== "Layton"} />
@@ -246,7 +246,7 @@ function NearbyShops({
 
 function RecentActivity({ items }: { items: DashboardActivity[] }) {
   return (
-    <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+    <section className="bg-white p-5">
       <Header title="Recent Activity" href="/jobs" />
       {items.length === 0 ? (
         <p className="mt-6 text-sm text-muted">Activity from jobs, estimates, and messages will show up here.</p>
@@ -271,7 +271,7 @@ function RecentActivity({ items }: { items: DashboardActivity[] }) {
 
 function MessagesCard({ items }: { items: DashboardMessage[] }) {
   return (
-    <section className="rounded-[24px] bg-white p-5 shadow-[0_10px_30px_rgba(14,28,47,0.06)]">
+    <section className="bg-white p-5">
       <Header title="Messages" href="/messages" />
       {items.length === 0 ? (
         <p className="mt-6 text-sm text-muted">No conversations yet.</p>
@@ -296,7 +296,7 @@ function MessagesCard({ items }: { items: DashboardMessage[] }) {
 
 function AppCta() {
   return (
-    <section className="overflow-hidden rounded-[24px] bg-[#071422] text-white">
+    <section className="overflow-hidden bg-[#071422] text-white">
       <div className="relative h-40 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/landing/app-phone.png" alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
