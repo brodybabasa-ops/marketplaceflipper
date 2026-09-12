@@ -97,9 +97,9 @@ function Hero() {
       <img
         src="/landing/repairs-hero.png"
         alt=""
-        className="absolute right-0 top-0 h-full w-[72%] object-cover object-[12%_58%]"
+        className="absolute right-0 top-0 h-full w-[80%] object-cover object-[4%_54%]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,#071422_0%,rgba(7,20,34,0.92)_22%,rgba(7,20,34,0.55)_40%,rgba(7,20,34,0.18)_58%,rgba(7,20,34,0.04)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,#071422_0%,rgba(7,20,34,0.88)_18%,rgba(7,20,34,0.42)_36%,rgba(7,20,34,0.12)_55%,rgba(7,20,34,0.02)_100%)]" />
       <p className="font-script pointer-events-none absolute right-8 top-[5.5rem] z-10 hidden max-w-[210px] rotate-[8deg] text-right text-[30px] leading-[1.08] text-white xl:block">
         Less Time
         <br />
