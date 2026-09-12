@@ -67,7 +67,7 @@ export default async function RequestPage({
           </Select>
         </Field>
         <Field label="What does your vehicle need?">
-          <Input name="problemText" required placeholder="Truck shakes when braking." />
+          <Input name="problemText" required placeholder="e.g. Impeller is noisy at idle" />
         </Field>
         <Field label="More detail (optional)">
           <Textarea name="description" placeholder="When it happens, warning lights, recent work..." />
