@@ -117,6 +117,21 @@ export function denverWeekday(date: Date) {
   return new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay();
 }
 
+export function startOfDenverWeek(date = new Date()) {
+  const ymd = formatDenverDateInput(date);
+  const noon = denverDateTimeToUtc(ymd, "12:00");
+  const startNoon = new Date(noon.getTime() - denverWeekday(date) * 24 * 60 * 60 * 1000);
+  return denverDateTimeToUtc(formatDenverDateInput(startNoon), "00:00");
+}
+
+export function addDenverDays(date: Date, days: number) {
+  const noon = denverDateTimeToUtc(formatDenverDateInput(date), "12:00");
+  return denverDateTimeToUtc(
+    formatDenverDateInput(new Date(noon.getTime() + days * 24 * 60 * 60 * 1000)),
+    "00:00",
+  );
+}
+
 export function nextDenverWeekday(weekday: number, time: string, from = new Date()) {
   const ymd = formatDenverDateInput(from);
   let delta = (weekday - denverWeekday(from) + 7) % 7;

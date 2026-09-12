@@ -83,6 +83,17 @@ export default async function MechanicDashboardPage() {
           </Button>
         </Card>
       ) : null}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button asChild size="sm">
+          <Link href="/mechanic/jobs/new">New repair order</Link>
+        </Button>
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/mechanic/schedule">Open scheduler</Link>
+        </Button>
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/mechanic/estimates">Estimates</Link>
+        </Button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="On the book today" value={today.length} />
         <StatCard label="Incoming requests" value={incoming.length} />
@@ -110,15 +121,20 @@ export default async function MechanicDashboardPage() {
       ) : null}
       {unscheduled.length ? (
         <div className="mt-4">
-          <Queue title="Needs a time" href="/mechanic/jobs" empty="" jobs={unscheduled} />
+          <Queue title="Needs a time" href="/mechanic/schedule" empty="" jobs={unscheduled} />
         </div>
       ) : null}
       <section className="mt-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold text-navy">Today&apos;s book</h2>
-          <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/jobs">
-            All jobs →
-          </Link>
+          <div className="flex gap-3">
+            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/schedule">
+              Scheduler →
+            </Link>
+            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/jobs">
+              All jobs →
+            </Link>
+          </div>
         </div>
         {today.length === 0 ? (
           <p className="text-sm text-muted">Nothing scheduled for today.</p>

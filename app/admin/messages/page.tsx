@@ -6,22 +6,23 @@ import { formatRelative } from "@/lib/utils";
 
 export const metadata = { title: "Messages" };
 
-export default async function MechanicMessagesPage() {
-  const session = await requireSession("MECHANIC");
+export default async function AdminMessagesPage() {
+  const session = await requireSession("ADMIN");
   const threads = await listThreadsForUser(session.id, session.role);
   return (
     <div className="space-y-3">
       {threads.length === 0 ? (
-        <EmptyState title="No conversations yet" body="Start from a job so the context stays with the work." />
+        <EmptyState title="No conversations yet" body="Threads open when a customer requests service or a shop creates a repair order." />
       ) : (
         threads.map((thread) => {
           const unread = latestIsUnread(thread.messages[0], session.id);
           return (
-            <BoardLink key={thread.id} href={`/mechanic/messages/${thread.id}`}>
+            <BoardLink key={thread.id} href={`/admin/messages/${thread.id}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-navy">
-                    {thread.customer.firstName} {thread.customer.lastName}
+                    {thread.customer.firstName} {thread.customer.lastName} →{" "}
+                    {thread.mechanic.mechanicProfile?.businessName ?? thread.mechanic.firstName}
                   </p>
                   <p className="truncate text-sm text-muted">{thread.messages[0]?.body}</p>
                   {thread.job ? (

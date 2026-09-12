@@ -8,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea, Input } from "@/components/ui/input";
 import { ThemedBoard } from "@/components/layout/themed-board";
 import { createDisputeAction, createReviewAction, sendMessageAction } from "@/app/actions/marketplace";
+import { MarkRead } from "@/components/messages/mark-read";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
 import { vehiclePhotoFor } from "@/lib/landing";
+import Link from "next/link";
 
 export const metadata = { title: "Job" };
 
@@ -103,7 +105,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <div className="space-y-4">
           {job.thread ? (
             <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
-              <h2 className="font-semibold text-navy">Messages</h2>
+              <MarkRead threadId={job.thread.id} />
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-semibold text-navy">Messages</h2>
+                <Link href={`/messages/${job.thread.id}`} className="text-sm font-semibold text-[#2f7bff]">
+                  Open thread →
+                </Link>
+              </div>
               <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">
                 {job.thread.messages.map((message) => (
                   <div key={message.id} className={message.senderId === session.id ? "text-right" : ""}>

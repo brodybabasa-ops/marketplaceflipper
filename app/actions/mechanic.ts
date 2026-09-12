@@ -53,3 +53,29 @@ export async function submitVerificationAction() {
   });
   revalidatePath("/mechanic/profile");
 }
+
+export async function saveAvailabilityAction(formData: FormData) {
+  const session = await requireSession("MECHANIC");
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const;
+  await prisma.$transaction(
+    days.map((dayOfWeek) => {
+      const closed = formData.get(`${dayOfWeek}-closed`) === "on";
+      const startTime = String(formData.get(`${dayOfWeek}-start`) ?? "08:00");
+      const endTime = String(formData.get(`${dayOfWeek}-end`) ?? "18:00");
+      if (closed) {
+        return prisma.mechanicAvailability.deleteMany({
+          where: { mechanicProfileId: profile.id, dayOfWeek },
+        });
+      }
+      return prisma.mechanicAvailability.upsert({
+        where: { mechanicProfileId_dayOfWeek: { mechanicProfileId: profile.id, dayOfWeek } },
+        update: { startTime, endTime },
+        create: { mechanicProfileId: profile.id, dayOfWeek, startTime, endTime },
+      });
+    }),
+  );
+  revalidatePath("/mechanic/settings");
+  revalidatePath("/mechanic/schedule");
+  revalidatePath("/mechanic");
+}

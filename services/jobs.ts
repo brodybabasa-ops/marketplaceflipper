@@ -33,6 +33,8 @@ export async function createServiceRequest(input: {
   preferredTimeWindow?: string;
   budgetCents?: number;
   mobilePreferred?: boolean;
+  source?: "customer" | "shop";
+  actorId?: string;
 }) {
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: input.vehicleId, customerId: input.customerId },
@@ -42,12 +44,16 @@ export async function createServiceRequest(input: {
   const mechanic = await resolveAssignedShop(input.mechanicProfileId);
   const zip = await prisma.zipCode.findUnique({ where: { zip: input.zip.slice(0, 5) } });
   const category = classifyProblem(input.problemText);
+  const openedByShop = input.source === "shop";
+  const scheduledAt = proposedAppointmentFromPreferred(input.preferredDate, input.preferredTimeWindow);
+  const initialStatus: JobStatus = openedByShop ? (scheduledAt ? "SCHEDULED" : "ACCEPTED") : "REQUESTED";
 
   const request = await prisma.serviceRequest.create({
     data: {
       customerId: input.customerId,
       vehicleId: input.vehicleId,
       mechanicProfileId: mechanic.id,
+      status: openedByShop ? "ACCEPTED" : "OPEN",
       problemText: input.problemText,
       description: input.description,
       category,
@@ -72,9 +78,14 @@ export async function createServiceRequest(input: {
       mechanicUserId: mechanic.userId,
       mechanicProfileId: mechanic.id,
       vehicleId: input.vehicleId,
-      status: "REQUESTED",
-      scheduledAt: proposedAppointmentFromPreferred(input.preferredDate, input.preferredTimeWindow),
-      events: { create: { status: "REQUESTED", note: "Customer requested service." } },
+      status: initialStatus,
+      scheduledAt,
+      events: {
+        create: {
+          status: initialStatus,
+          note: openedByShop ? "Shop opened a repair order." : "Customer requested service.",
+        },
+      },
     },
   });
 
@@ -86,22 +97,66 @@ export async function createServiceRequest(input: {
       requestId: request.id,
       messages: {
         create: {
-          senderId: input.customerId,
-          body: input.problemText,
+          senderId: openedByShop ? mechanic.userId : input.customerId,
+          body: openedByShop ? `Opened a repair order: ${input.problemText}` : input.problemText,
           kind: "TEXT",
         },
       },
     },
   });
 
-  await notify({
-    userId: mechanic.userId,
-    title: "New service request",
-    body: input.problemText,
-    href: `/mechanic/jobs/${job.id}`,
-  });
+  if (openedByShop) {
+    await notify({
+      userId: input.customerId,
+      title: `${mechanic.businessName} opened a repair order`,
+      body: input.problemText,
+      href: `/jobs/${job.id}`,
+    });
+  } else {
+    await notify({
+      userId: mechanic.userId,
+      title: "New service request",
+      body: input.problemText,
+      href: `/mechanic/jobs/${job.id}`,
+    });
+  }
 
   return { request, job, thread };
+}
+
+export async function createShopRepairOrder(input: {
+  mechanicUserId: string;
+  customerId: string;
+  vehicleId: string;
+  problemText: string;
+  description?: string;
+  date?: string;
+  time?: string;
+}) {
+  const mechanic = await prisma.mechanicProfile.findUniqueOrThrow({
+    where: { userId: input.mechanicUserId },
+  });
+  const result = await createServiceRequest({
+    customerId: input.customerId,
+    vehicleId: input.vehicleId,
+    mechanicProfileId: mechanic.id,
+    problemText: input.problemText,
+    description: input.description,
+    zip: mechanic.shopZip ?? "84041",
+    preferredDate: input.date && !input.time ? input.date : undefined,
+    source: "shop",
+    actorId: input.mechanicUserId,
+    mobilePreferred: false,
+  });
+  if (input.date && input.time) {
+    await scheduleJobAppointment({
+      jobId: result.job.id,
+      actorId: input.mechanicUserId,
+      date: input.date,
+      time: input.time,
+    });
+  }
+  return result;
 }
 
 export async function transitionJob(jobId: string, next: JobStatus, actorId: string, note?: string) {
@@ -192,7 +247,8 @@ export async function scheduleJobAppointment(input: {
     include: { thread: true },
   });
   if (job.customerId !== input.actorId && job.mechanicUserId !== input.actorId) {
-    throw new Error("Not authorized.");
+    const actor = await prisma.user.findUnique({ where: { id: input.actorId }, select: { role: true } });
+    if (actor?.role !== "ADMIN") throw new Error("Not authorized.");
   }
   if (job.status === "COMPLETED" || job.status === "CANCELLED") {
     throw new Error("This job cannot be scheduled.");
@@ -234,14 +290,18 @@ export async function scheduleJobAppointment(input: {
     });
   }
 
-  const otherParty = input.actorId === job.customerId ? job.mechanicUserId : job.customerId;
-  const otherHref = input.actorId === job.customerId ? `/mechanic/jobs/${job.id}` : `/jobs/${job.id}`;
-  await notify({
-    userId: otherParty,
-    title: wasSet ? "Appointment updated" : "Appointment scheduled",
-    body: label,
-    href: otherHref,
-  });
+  const recipients = [
+    input.actorId === job.customerId ? null : { userId: job.customerId, href: `/jobs/${job.id}` },
+    input.actorId === job.mechanicUserId ? null : { userId: job.mechanicUserId, href: `/mechanic/jobs/${job.id}` },
+  ].filter((item): item is { userId: string; href: string } => Boolean(item));
+  for (const recipient of recipients) {
+    await notify({
+      userId: recipient.userId,
+      title: wasSet ? "Appointment updated" : "Appointment scheduled",
+      body: label,
+      href: recipient.href,
+    });
+  }
 
   return updated;
 }

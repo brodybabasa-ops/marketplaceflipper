@@ -7,9 +7,11 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { PageHeading } from "@/components/layout/themed-board";
 import { createEstimateAction, saveRepairRecordAction, sendMessageAction, updateJobStatusAction } from "@/app/actions/marketplace";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { MarkRead } from "@/components/messages/mark-read";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
+import Link from "next/link";
 
 export const metadata = { title: "Job" };
 
@@ -97,7 +99,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
               <option value="CHANGE_ORDER">Additional work request</option>
             </Select>
             <Textarea name="reason" placeholder="During inspection we found..." />
-            {[0, 1, 2].map((index) => (
+            {[0, 1, 2, 3, 4].map((index) => (
               <div key={index} className="grid gap-2 md:grid-cols-4">
                 <Select name="itemCategory" defaultValue={index === 0 ? "DIAGNOSTIC" : index === 1 ? "PARTS" : "LABOR"}>
                   <option>DIAGNOSTIC</option>
@@ -144,7 +146,13 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         </Card>
         {job.thread ? (
           <Card className="border-0 p-5">
-            <h2 className="font-semibold text-navy">Message customer</h2>
+            <MarkRead threadId={job.thread.id} />
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-semibold text-navy">Message customer</h2>
+              <Link href={`/mechanic/messages/${job.thread.id}`} className="text-sm font-semibold text-[#7eb0ff]">
+                Open thread →
+              </Link>
+            </div>
             <div className="mt-3 space-y-2">
               {job.thread.messages.map((message) => (
                 <p key={message.id} className="text-sm">

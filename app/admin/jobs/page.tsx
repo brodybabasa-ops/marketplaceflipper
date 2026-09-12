@@ -8,17 +8,23 @@ export const metadata = { title: "Jobs" };
 export default async function AdminJobsPage() {
   await requireSession("ADMIN");
   const jobs = await prisma.job.findMany({
-    include: { customer: true, mechanicProfile: true, serviceRequest: true },
+    include: {
+      customer: true,
+      mechanicProfile: true,
+      serviceRequest: true,
+      vehicle: { include: { make: true, model: true } },
+    },
     orderBy: { createdAt: "desc" },
     take: 60,
   });
   return (
     <div className="space-y-3">
       {jobs.map((job) => (
-        <BoardLink key={job.id} href={`/jobs/${job.id}`}>
+        <BoardLink key={job.id} href={`/admin/jobs/${job.id}`}>
           <p className="font-semibold text-navy">{job.serviceRequest.problemText}</p>
           <p className="text-sm text-muted">
-            {job.customer.firstName} → {job.mechanicProfile.businessName} · {job.status.replaceAll("_", " ").toLowerCase()}
+            {job.customer.firstName} {job.customer.lastName} → {job.mechanicProfile.businessName} ·{" "}
+            {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.status.replaceAll("_", " ").toLowerCase()}
             {job.scheduledAt ? ` · ${formatAppointment(job.scheduledAt)}` : ""}
           </p>
         </BoardLink>

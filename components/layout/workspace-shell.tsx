@@ -7,8 +7,11 @@ import {
   AlertTriangle,
   BarChart3,
   Bell,
+  Calendar,
+  Car,
   ClipboardList,
   DollarSign,
+  FileText,
   HelpCircle,
   Inbox,
   LayoutDashboard,
@@ -129,11 +132,14 @@ export function WorkspaceShell({
 function opsPage(pathname: string, product: Product): PageCopy {
   const shop: { prefix: string; page: PageCopy }[] = [
     { prefix: "/mechanic/requests", page: { eyebrow: "REQUESTS", title: "Incoming", accent: "Work.", subtitle: "Customers who asked this shop for help." } },
+    { prefix: "/mechanic/jobs/new", page: { eyebrow: "JOBS", title: "New repair", accent: "Order.", subtitle: "Opens a live job, thread, and optional appointment." } },
     { prefix: "/mechanic/jobs", page: { eyebrow: "JOBS", title: "On the", accent: "Board.", subtitle: "Every request, estimate, and repair." } },
+    { prefix: "/mechanic/schedule", page: { eyebrow: "SCHEDULER", title: "This week's", accent: "Book.", subtitle: "The same appointment times customers see." } },
+    { prefix: "/mechanic/estimates", page: { eyebrow: "ESTIMATES", title: "Written", accent: "Quotes.", subtitle: "Sent to the customer on the live job." } },
     { prefix: "/mechanic/reviews", page: { eyebrow: "REVIEWS", title: "Job", accent: "Reviews.", subtitle: "Tied to completed Pocket Mechanic jobs." } },
     { prefix: "/mechanic/profile", page: { eyebrow: "PROFILE", title: "Shop", accent: "Profile.", subtitle: "What customers see before they request service." } },
     { prefix: "/mechanic/earnings", page: { eyebrow: "EARNINGS", title: "Job", accent: "Volume.", subtitle: "Totals from completed work. Payouts plug in later." } },
-    { prefix: "/mechanic/settings", page: { eyebrow: "SETTINGS", title: "Shop", accent: "Settings.", subtitle: "Notifications and payouts will live here." } },
+    { prefix: "/mechanic/settings", page: { eyebrow: "SETTINGS", title: "Shop", accent: "Settings.", subtitle: "Hours, notifications, and payouts." } },
     { prefix: "/mechanic/onboarding", page: { eyebrow: "SETUP", title: "Set up the", accent: "Shop.", subtitle: "Customers see this before they request service." } },
     { prefix: "/mechanic/customers", page: { eyebrow: "CUSTOMERS", title: "People you", accent: "Helped.", subtitle: "Customers attached to jobs at this shop." } },
     { prefix: "/mechanic/messages", page: { eyebrow: "MESSAGES", title: "Talk to the", accent: "Customer.", subtitle: "Conversations stay attached to the job." } },
@@ -143,9 +149,12 @@ function opsPage(pathname: string, product: Product): PageCopy {
     { prefix: "/admin/users", page: { eyebrow: "USERS", title: "Platform", accent: "Accounts.", subtitle: "Customers, shops, and who can sign in." } },
     { prefix: "/admin/mechanics", page: { eyebrow: "SHOPS", title: "Listed", accent: "Shops.", subtitle: "Verification, score, and completed jobs." } },
     { prefix: "/admin/jobs", page: { eyebrow: "JOBS", title: "Every", accent: "Repair.", subtitle: "Customer to shop, with the current status." } },
+    { prefix: "/admin/vehicles", page: { eyebrow: "VEHICLES", title: "Customer", accent: "Machines.", subtitle: "Every vehicle on file, tied to its owner." } },
+    { prefix: "/admin/messages", page: { eyebrow: "MESSAGES", title: "Every", accent: "Thread.", subtitle: "Customer and shop conversations on live jobs." } },
     { prefix: "/admin/reviews", page: { eyebrow: "REVIEWS", title: "Job", accent: "Reviews.", subtitle: "Hide anything that should not stay public." } },
     { prefix: "/admin/disputes", page: { eyebrow: "DISPUTES", title: "Open", accent: "Issues.", subtitle: "Problems customers reported on completed work." } },
     { prefix: "/admin/verification", page: { eyebrow: "VERIFICATION", title: "Shop", accent: "Checks.", subtitle: "Approve or reject shop verification." } },
+    { prefix: "/admin/analytics", page: { eyebrow: "ANALYTICS", title: "Live", accent: "Totals.", subtitle: "Jobs, estimates, messages, and upcoming work." } },
     { prefix: "/admin/settings", page: { eyebrow: "SETTINGS", title: "Platform", accent: "Config.", subtitle: "Commission, ranking, and adapter status." } },
     { prefix: "/admin", page: { eyebrow: "ADMIN", title: "Operations.", accent: "", subtitle: "Users, shops, jobs, and what needs a decision." } },
   ];
@@ -155,8 +164,11 @@ function opsPage(pathname: string, product: Product): PageCopy {
 
 function navIcon(href: string) {
   if (href.endsWith("/requests")) return Inbox;
+  if (href.endsWith("/schedule")) return Calendar;
+  if (href.endsWith("/estimates")) return FileText;
   if (href.endsWith("/jobs")) return Wrench;
   if (href.endsWith("/messages")) return MessageSquare;
+  if (href.endsWith("/vehicles")) return Car;
   if (href.endsWith("/reviews")) return Star;
   if (href.endsWith("/profile")) return User;
   if (href.endsWith("/earnings")) return DollarSign;

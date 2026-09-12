@@ -8,7 +8,7 @@ export const metadata = { title: "Admin" };
 
 export default async function AdminDashboardPage() {
   await requireSession("ADMIN");
-  const [users, mechanics, verified, jobs, completed, disputes, pendingVerifications, recentJobs, openDisputes] =
+  const [users, mechanics, verified, jobs, completed, disputes, pendingVerifications, recentJobs, openDisputes, vehicles, threads] =
     await Promise.all([
       prisma.user.count(),
       prisma.mechanicProfile.count(),
@@ -27,6 +27,8 @@ export default async function AdminDashboardPage() {
         include: { customer: true, mechanic: true, job: { include: { serviceRequest: true } } },
         take: 5,
       }),
+      prisma.vehicle.count(),
+      prisma.messageThread.count(),
     ]);
   const cancelled = await prisma.job.count({ where: { status: "CANCELLED" } });
   return (
@@ -37,6 +39,8 @@ export default async function AdminDashboardPage() {
         <StatCard label="Verified shops" value={verified} />
         <StatCard label="Open disputes" value={disputes} />
         <StatCard label="Jobs" value={jobs} />
+        <StatCard label="Vehicles" value={vehicles} />
+        <StatCard label="Threads" value={threads} />
         <StatCard label="Completed" value={completed} />
         <StatCard label="Cancellation rate" value={jobs ? `${Math.round((cancelled / jobs) * 100)}%` : "0%"} />
         <StatCard label="Pending verifications" value={pendingVerifications} />
@@ -62,7 +66,11 @@ export default async function AdminDashboardPage() {
               <tbody>
                 {recentJobs.map((job) => (
                   <tr key={job.id} className="border-b border-line last:border-0">
-                    <td className="py-3 pr-3 font-medium text-navy">{job.serviceRequest.problemText}</td>
+                    <td className="py-3 pr-3 font-medium text-navy">
+                      <Link href={`/admin/jobs/${job.id}`} className="hover:text-[#7eb0ff]">
+                        {job.serviceRequest.problemText}
+                      </Link>
+                    </td>
                     <td className="pr-3 text-muted">
                       {job.customer.firstName} → {job.mechanicProfile.businessName}
                     </td>
