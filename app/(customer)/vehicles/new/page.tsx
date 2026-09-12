@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Field, Input, Textarea } from "@/components/ui/input";
 import { ThemedBoard } from "@/components/layout/themed-board";
+import { VehicleMakeModelFields } from "@/components/vehicles/make-model-fields";
 import { createVehicleAction } from "@/app/actions/marketplace";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -10,46 +11,21 @@ export const metadata = { title: "Add a vehicle" };
 export default async function NewVehiclePage() {
   await requireSession("CUSTOMER");
   const makes = await prisma.vehicleMake.findMany({ include: { models: { orderBy: { name: "asc" } } }, orderBy: { name: "asc" } });
-  const years = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
-  const firstMake = makes[0];
   return (
     <ThemedBoard
       eyebrow="ADD A VEHICLE"
       title="Add a"
       accent="Machine."
-      subtitle="Start with year, make, and model. Everything else is optional."
+      subtitle="Start with year, make, and model. It shows up in My Garage, requests, and the shop board."
       script="Good Machines Lead to Great Days."
       image="/landing/cat-automotive.png"
       wide={false}
     >
       <form action={createVehicleAction} className="space-y-4">
         <Field label="Year">
-          <Select name="year" defaultValue={String(years[1])}>
-            {years.map((year) => (
-              <option key={year}>{year}</option>
-            ))}
-          </Select>
+          <Input name="year" type="number" required min={1980} max={new Date().getFullYear() + 1} defaultValue={2024} />
         </Field>
-        <Field label="Make">
-          <Select name="makeId" defaultValue={firstMake?.id}>
-            {makes.map((make) => (
-              <option key={make.id} value={make.id}>
-                {make.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Model">
-          <Select name="modelId" defaultValue={firstMake?.models[0]?.id}>
-            {makes.flatMap((make) =>
-              make.models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {make.name} {model.name}
-                </option>
-              )),
-            )}
-          </Select>
-        </Field>
+        <VehicleMakeModelFields makes={makes} />
         <Field label="Trim">
           <Input name="trim" placeholder="Lariat" />
         </Field>
@@ -59,10 +35,10 @@ export default async function NewVehiclePage() {
         <Field label="Drivetrain">
           <Input name="drivetrain" placeholder="4x4" />
         </Field>
-        <Field label="Mileage">
-          <Input name="mileage" type="number" required defaultValue={87000} />
+        <Field label="Mileage or hours">
+          <Input name="mileage" type="number" required min={0} placeholder="0" />
         </Field>
-        <Field label="VIN (optional)">
+        <Field label="VIN or HIN (optional)">
           <Input name="vin" maxLength={17} />
         </Field>
         <Field label="Nickname">

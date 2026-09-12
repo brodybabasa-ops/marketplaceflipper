@@ -13,8 +13,9 @@ import {
   serviceRequestSchema,
   vehicleSchema,
 } from "@/lib/validations";
-import { createServiceRequest, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
+import { createServiceRequest, createShopRepairOrder, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
+import { markThreadRead } from "@/services/messages";
 import { createReview } from "@/services/reviews";
 import type { JobStatus } from "@prisma/client";
 
@@ -37,20 +38,34 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/mechanic/jobs");
   revalidatePath("/mechanic/messages");
   revalidatePath("/mechanic/customers");
+  revalidatePath("/mechanic/schedule");
+  revalidatePath("/mechanic/estimates");
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/vehicles");
+  revalidatePath("/admin/analytics");
   if (jobId) {
     revalidatePath(`/jobs/${jobId}`);
     revalidatePath(`/mechanic/jobs/${jobId}`);
+    revalidatePath(`/admin/jobs/${jobId}`);
   }
 }
 
 export async function createVehicleAction(formData: FormData) {
   const session = await requireUser();
+  const modelId = String(formData.get("modelId") ?? "");
+  const modelLabel = String(formData.get("modelLabel") ?? "").trim().toLowerCase();
+  const models = await prisma.vehicleModel.findMany({ include: { make: true } });
+  const model =
+    models.find((item) => item.id === modelId) ??
+    models.find((item) => `${item.make.name} ${item.name}`.toLowerCase() === modelLabel) ??
+    models.find((item) => modelLabel.length >= 5 && `${item.make.name} ${item.name}`.toLowerCase().includes(modelLabel));
+  if (!model) throw new Error("Pick a make and model.");
   const parsed = vehicleSchema.safeParse({
     year: formData.get("year"),
-    makeId: formData.get("makeId"),
-    modelId: formData.get("modelId"),
+    makeId: model.makeId,
+    modelId: model.id,
     trim: formData.get("trim") || undefined,
     engine: formData.get("engine") || undefined,
     drivetrain: formData.get("drivetrain") || undefined,
@@ -63,6 +78,8 @@ export async function createVehicleAction(formData: FormData) {
   await prisma.vehicle.create({ data: { ...parsed.data, customerId: session.id } });
   revalidatePath("/vehicles");
   revalidatePath("/home");
+  revalidatePath("/request");
+  revalidatePath("/admin/vehicles");
   redirect("/vehicles");
 }
 
@@ -99,7 +116,7 @@ export async function sendMessageAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error("Message cannot be empty.");
   const thread = await prisma.messageThread.findUniqueOrThrow({ where: { id: parsed.data.threadId } });
-  if (thread.customerId !== session.id && thread.mechanicId !== session.id) {
+  if (thread.customerId !== session.id && thread.mechanicId !== session.id && session.role !== "ADMIN") {
     throw new Error("Not authorized.");
   }
   await prisma.message.create({
@@ -110,6 +127,45 @@ export async function sendMessageAction(formData: FormData) {
     data: { lastMessageAt: new Date() },
   });
   revalidateJobSurfaces(thread.jobId ?? undefined);
+  revalidatePath(`/messages/${thread.id}`);
+  revalidatePath(`/mechanic/messages/${thread.id}`);
+  revalidatePath(`/admin/messages/${thread.id}`);
+}
+
+export async function markThreadReadAction(threadId: string) {
+  const session = await requireUser();
+  const thread = await prisma.messageThread.findUnique({ where: { id: threadId } });
+  if (!thread || (thread.customerId !== session.id && thread.mechanicId !== session.id)) {
+    return;
+  }
+  await markThreadRead(threadId, session.id);
+  revalidatePath("/home");
+  revalidatePath("/messages");
+  revalidatePath("/vehicles");
+  revalidatePath("/mechanic");
+  revalidatePath("/mechanic/messages");
+}
+
+export async function createShopRepairOrderAction(formData: FormData) {
+  const session = await requireUser();
+  if (session.role !== "MECHANIC") throw new Error("Not authorized.");
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const problemText = String(formData.get("problemText") ?? "").trim();
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+  if (!vehicle || problemText.length < 8) {
+    throw new Error("Pick a customer vehicle and describe the work.");
+  }
+  const result = await createShopRepairOrder({
+    mechanicUserId: session.id,
+    customerId: vehicle.customerId,
+    vehicleId: vehicle.id,
+    problemText,
+    description: String(formData.get("description") ?? "") || undefined,
+    date: String(formData.get("date") ?? "") || undefined,
+    time: String(formData.get("time") ?? "") || undefined,
+  });
+  revalidateJobSurfaces(result.job.id);
+  redirect(`/mechanic/jobs/${result.job.id}`);
 }
 
 export async function createEstimateAction(formData: FormData) {

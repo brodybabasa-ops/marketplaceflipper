@@ -109,7 +109,7 @@ export async function getCustomerDashboard(userId: string) {
     }),
   ]);
 
-  const dashboardVehicles = vehicles.slice(0, 4);
+  const dashboardVehicles = [...vehicles].reverse().slice(0, 10);
   const activeJobs = jobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED");
   const { shops, zip } = await getDirectoryShops({
     zip: chrome.zip ?? "84041",
@@ -161,7 +161,7 @@ export async function getCustomerDashboard(userId: string) {
   const activity = buildActivity({ jobs, threads, reviews, photos, userId }).slice(0, 5);
   const messages: DashboardMessage[] = threads.slice(0, 4).map((thread) => ({
     id: thread.id,
-    href: thread.jobId ? `/jobs/${thread.jobId}` : "/messages",
+    href: `/messages/${thread.id}`,
     shopName: thread.mechanic.mechanicProfile?.businessName ?? `${thread.mechanic.firstName} ${thread.mechanic.lastName}`,
     preview: thread.messages[0]?.body ?? "No messages yet",
     when: formatRelative(thread.lastMessageAt),
@@ -272,7 +272,7 @@ function buildActivity({
       title: `New message from ${shop}`,
       detail: `“${message.body}”`,
       when: formatRelative(message.createdAt),
-      href: thread.jobId ? `/jobs/${thread.jobId}` : "/messages",
+      href: `/messages/${thread.id}`,
       at: message.createdAt.getTime(),
     });
   }

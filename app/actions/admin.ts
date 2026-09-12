@@ -15,6 +15,7 @@ export async function setAccountStatusAction(formData: FormData) {
     data: { adminId: admin.id, action: `set_status_${status}`, targetType: "User", targetId: userId },
   });
   revalidatePath("/admin/users");
+  revalidatePath("/admin");
 }
 
 export async function reviewVerificationAction(formData: FormData) {
@@ -36,6 +37,7 @@ export async function reviewVerificationAction(formData: FormData) {
     data: { adminId: admin.id, action: `verification_${status}`, targetType: "Verification", targetId: id },
   });
   revalidatePath("/admin/verification");
+  revalidatePath("/admin");
 }
 
 export async function hideReviewAction(formData: FormData) {
@@ -46,6 +48,7 @@ export async function hideReviewAction(formData: FormData) {
     data: { adminId: admin.id, action: "hide_review", targetType: "Review", targetId: id },
   });
   revalidatePath("/admin/reviews");
+  revalidatePath("/admin");
 }
 
 export async function resolveDisputeAction(formData: FormData) {
@@ -59,4 +62,5 @@ export async function resolveDisputeAction(formData: FormData) {
     data: { adminId: admin.id, action: "resolve_dispute", targetType: "Dispute", targetId: id },
   });
   revalidatePath("/admin/disputes");
+  revalidatePath("/admin");
 }

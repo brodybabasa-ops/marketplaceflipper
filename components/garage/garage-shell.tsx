@@ -52,7 +52,7 @@ export function GarageShell({
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const messageCount = unreadMessages > 0 ? unreadMessages : 2;
+  const messageCount = unreadMessages;
   return (
     <div data-dashboard className="flex min-h-screen flex-col bg-[#071422] text-white">
       <header className="sticky top-0 z-40 flex h-[72px] items-center gap-4 border-b border-white/5 bg-[#071422] px-4 lg:px-5">

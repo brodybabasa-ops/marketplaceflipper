@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { AcceptJobButton } from "@/components/jobs/accept-job-button";
 import { EmptyState } from "@/components/ui/card";
@@ -34,6 +35,13 @@ export default async function MechanicJobsList({
   });
   return (
     <div>
+      {!statuses ? (
+        <div className="mb-4 flex justify-end">
+          <Button asChild size="sm">
+            <Link href="/mechanic/jobs/new">New repair order</Link>
+          </Button>
+        </div>
+      ) : null}
       {jobs.length === 0 ? (
         <EmptyState title="Nothing here yet" body="New customer requests will show up in this list." />
       ) : (
