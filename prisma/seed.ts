@@ -89,7 +89,7 @@ const MECHANICS: MechanicSeed[] = [
   {
     firstName: "Mike",
     lastName: "Rodriguez",
-    email: "mechanic@demo.pocketmechanic.app",
+    email: "mike.rodriguez@demo.pocketmechanic.app",
     businessName: "Mike's Mobile Auto",
     slug: "mikes-mobile-auto",
     bio: "10 years specializing in Ford, GM, and diesel vehicles. I come to you with a fully stocked van and treat every truck like I’d treat my own.",
@@ -234,7 +234,7 @@ const DAVIS_SHOPS: MechanicSeed[] = [
   {
     firstName: "Fred",
     lastName: "Jensen",
-    email: "fred.jensen@demo.pocketmechanic.app",
+    email: "mechanic@demo.pocketmechanic.app",
     businessName: "Fred's Marine",
     slug: "freds-marine",
     tagline: "Boats · PWCs · Marine Engines",
@@ -1319,7 +1319,7 @@ async function main() {
 
   console.log("Seed complete.");
   console.log("Customer: customer@demo.pocketmechanic.app / Demo1234!  (Brody Babasa, Layton)");
-  console.log("Mechanic: mechanic@demo.pocketmechanic.app / Demo1234!");
+  console.log("Mechanic: mechanic@demo.pocketmechanic.app / Demo1234!  (Fred's Marine)");
   console.log("Shop:     sarah.chen@demo.pocketmechanic.app / Demo1234!");
   console.log("Admin:    admin@demo.pocketmechanic.app / Demo1234!");
 }

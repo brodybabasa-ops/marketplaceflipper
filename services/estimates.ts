@@ -51,6 +51,10 @@ export async function createEstimate(input: {
       events: { create: { status: "AWAITING_APPROVAL", note: input.type === "CHANGE_ORDER" ? "Additional work requested." : "Estimate sent." } },
     },
   });
+  await prisma.serviceRequest.update({
+    where: { id: job.serviceRequestId },
+    data: { status: "ACCEPTED", mechanicProfileId: job.mechanicProfileId },
+  });
 
   await notify({
     userId: job.customerId,

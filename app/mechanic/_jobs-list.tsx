@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
+import { AcceptJobButton } from "@/components/jobs/accept-job-button";
 import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
@@ -44,7 +45,8 @@ export default async function MechanicJobsList({
                 <th className="font-medium">Machine</th>
                 <th className="font-medium">Work</th>
                 <th className="font-medium">When</th>
-                <th className="pr-4 font-medium">Status</th>
+                <th className="font-medium">Status</th>
+                <th className="pr-4 font-medium"> </th>
               </tr>
             </thead>
             <tbody>
@@ -60,8 +62,11 @@ export default async function MechanicJobsList({
                   </td>
                   <td className="max-w-xs truncate">{job.serviceRequest.problemText}</td>
                   <td>{job.scheduledAt ? formatAppointment(job.scheduledAt) : "—"}</td>
-                  <td className="pr-4">
+                  <td>
                     <JobStatusLabel status={job.status} />
+                  </td>
+                  <td className="pr-4">
+                    {job.status === "REQUESTED" ? <AcceptJobButton jobId={job.id} /> : null}
                   </td>
                 </tr>
               ))}

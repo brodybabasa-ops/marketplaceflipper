@@ -1,6 +1,8 @@
 import type { JobStatus } from "@prisma/client";
+import { FREDS_MARINE_SLUG } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { shopPhotoFor, vehiclePhotoFor } from "@/lib/landing";
+import { formatBoardDate, formatRelative } from "@/lib/utils";
 
 export type RepairTab =
   | "all"
@@ -65,6 +67,22 @@ const DISPLAY_ORDER = [
   "Bearing replacement",
 ];
 
+type JobRow = {
+  id: string;
+  status: JobStatus;
+  totalCents: number;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+  scheduledAt: Date | null;
+  review: { id: string } | null;
+  thread: { id: string } | null;
+  mechanicProfile: { businessName: string; shopCity: string | null; shopState: string | null; slug: string };
+  vehicle: { year: number; make: { name: string }; model: { name: string } };
+  serviceRequest: { problemText: string };
+  estimates: { totalCents: number }[];
+};
+
 export async function getCustomerRepairs(userId: string) {
   const jobs = await prisma.job.findMany({
     where: { customerId: userId },
@@ -80,7 +98,15 @@ export async function getCustomerRepairs(userId: string) {
 
   const rows = jobs
     .map((job) => toRow(job))
-    .sort((a, b) => DISPLAY_ORDER.indexOf(a.problem) - DISPLAY_ORDER.indexOf(b.problem));
+    .sort((a, b) => {
+      const jobA = jobs.find((job) => job.id === a.id)!;
+      const jobB = jobs.find((job) => job.id === b.id)!;
+      const aLive = jobA.mechanicProfile.slug === FREDS_MARINE_SLUG;
+      const bLive = jobB.mechanicProfile.slug === FREDS_MARINE_SLUG;
+      if (aLive !== bLive) return aLive ? -1 : 1;
+      if (aLive && bLive) return jobB.updatedAt.getTime() - jobA.updatedAt.getTime();
+      return DISPLAY_ORDER.indexOf(a.problem) - DISPLAY_ORDER.indexOf(b.problem);
+    });
 
   const counts: Record<RepairTab, number> = {
     all: rows.length,
@@ -107,13 +133,15 @@ export async function getCustomerRepairs(userId: string) {
         }
       : null;
 
-  const demoBoard = rows.length === 6 && rows.some((row) => row.problem === "Engine not starting");
+  const mockupCount = jobs.filter((job) => job.mechanicProfile.slug !== FREDS_MARINE_SLUG).length;
+  const liveCount = jobs.filter((job) => job.mechanicProfile.slug === FREDS_MARINE_SLUG).length;
+  const demoBoard = mockupCount === 5 && liveCount === 1 && rows.some((row) => row.problem === "Engine not starting");
   const history: RepairHistorySummary = demoBoard
     ? { total: 6, completed: 4, inProgress: 2, spentLabel: "$3,485" }
     : {
         total: rows.length,
         completed: counts.completed,
-        inProgress: counts["in-progress"],
+        inProgress: counts["in-progress"] + counts["waiting-approval"] + counts["waiting-parts"],
         spentLabel: formatPrice(
           jobs.filter((job) => job.status === "COMPLETED").reduce((sum, job) => sum + job.totalCents, 0),
           true,
@@ -123,25 +151,15 @@ export async function getCustomerRepairs(userId: string) {
   return { rows, counts, appointment, history };
 }
 
-function toRow(job: {
-  id: string;
-  status: JobStatus;
-  totalCents: number;
-  createdAt: Date;
-  completedAt: Date | null;
-  scheduledAt: Date | null;
-  review: { id: string } | null;
-  thread: { id: string } | null;
-  mechanicProfile: { businessName: string; shopCity: string | null; shopState: string | null; slug: string };
-  vehicle: { year: number; make: { name: string }; model: { name: string } };
-  serviceRequest: { problemText: string };
-  estimates: { totalCents: number }[];
-}): RepairRow {
+function toRow(job: JobRow): RepairRow {
   const vehicleLabel = `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`;
   const problem = job.serviceRequest.problemText;
   const shopCity = [job.mechanicProfile.shopCity, job.mechanicProfile.shopState].filter(Boolean).join(", ");
   const amount = job.estimates[0]?.totalCents ?? job.totalCents;
-  const presentation = presentationFor(job.status, problem, amount, Boolean(job.review), job.id, job.thread?.id);
+  const live = job.mechanicProfile.slug === FREDS_MARINE_SLUG;
+  const presentation = live
+    ? livePresentation(job, amount)
+    : presentationFor(job.status, problem, amount, Boolean(job.review), job.id, job.thread?.id);
 
   return {
     id: job.id,
@@ -161,6 +179,121 @@ function toRow(job: {
     priceLabel: presentation.priceLabel,
     price: presentation.price,
     actions: presentation.actions,
+  };
+}
+
+function livePresentation(job: JobRow, amount: number) {
+  const details = `/jobs/${job.id}`;
+  const messageHref = job.thread?.id ? details : "/messages";
+  const hasReview = Boolean(job.review);
+  const date = job.completedAt ?? job.scheduledAt ?? job.updatedAt ?? job.createdAt;
+  const relative = formatRelative(date);
+  const dateValue = formatBoardDate(date);
+
+  if (job.status === "COMPLETED") {
+    return {
+      tab: "completed" as const,
+      badge: { label: "Completed", tone: "success" as const },
+      dateLabel: "Completed",
+      dateValue,
+      relativeLabel: relative,
+      steps: defaultSteps,
+      stepIndex: 4,
+      priceLabel: "Total",
+      price: formatPrice(amount, true),
+      actions: completedActions(details, hasReview),
+    };
+  }
+  if (job.status === "CANCELLED") {
+    return {
+      tab: "cancelled" as const,
+      badge: { label: "Cancelled", tone: "muted" as const },
+      dateLabel: "Cancelled",
+      dateValue,
+      relativeLabel: relative,
+      steps: defaultSteps,
+      stepIndex: 0,
+      priceLabel: "Total",
+      price: formatPrice(amount, true),
+      actions: [{ href: details, label: "View Details", variant: "link" as const }],
+    };
+  }
+  if (job.status === "AWAITING_APPROVAL") {
+    return {
+      tab: "waiting-approval" as const,
+      badge: { label: "Waiting on Approval", tone: "warning" as const },
+      dateLabel: "Estimate Received",
+      dateValue,
+      relativeLabel: relative,
+      steps: approvalSteps,
+      stepIndex: 2,
+      priceLabel: "Estimate",
+      price: formatPrice(amount, true),
+      actions: [
+        { href: details, label: "View Estimate", variant: "primary" as const },
+        { href: messageHref, label: "Message Shop", variant: "secondary" as const },
+      ],
+    };
+  }
+  if (job.status === "REQUESTED") {
+    return {
+      tab: "in-progress" as const,
+      badge: { label: "Request sent", tone: "muted" as const },
+      dateLabel: "Requested",
+      dateValue,
+      relativeLabel: relative,
+      steps: defaultSteps,
+      stepIndex: 0,
+      priceLabel: amount ? "Estimated Total" : "Estimate",
+      price: amount ? formatPrice(amount, true) : "Pending",
+      actions: [
+        { href: details, label: "View Details", variant: "primary" as const },
+        { href: messageHref, label: "Message Shop", variant: "secondary" as const },
+      ],
+    };
+  }
+  if (job.status === "ACCEPTED" || job.status === "SCHEDULED") {
+    return {
+      tab: "in-progress" as const,
+      badge: { label: job.status === "SCHEDULED" ? "Scheduled" : "Accepted", tone: "success" as const },
+      dateLabel: job.scheduledAt ? "Appointment" : "Accepted",
+      dateValue,
+      relativeLabel: relative,
+      steps: defaultSteps,
+      stepIndex: 1,
+      priceLabel: amount ? "Estimated Total" : "Estimate",
+      price: amount ? formatPrice(amount, true) : "Pending",
+      actions: [
+        { href: details, label: "View Details", variant: "primary" as const },
+        { href: messageHref, label: "Message Shop", variant: "secondary" as const },
+      ],
+    };
+  }
+  if (job.status === "DIAGNOSING") {
+    return {
+      tab: "in-progress" as const,
+      badge: { label: "Diagnosing", tone: "info" as const },
+      dateLabel: "Started",
+      dateValue,
+      relativeLabel: relative,
+      steps: defaultSteps,
+      stepIndex: 1,
+      priceLabel: "Estimated Total",
+      price: formatPrice(amount, true),
+      actions: [{ href: details, label: "View Details", variant: "link" as const }],
+    };
+  }
+  return {
+    tab: "in-progress" as const,
+    badge: { label: "In Progress", tone: "info" as const },
+    dateLabel: "Started",
+    dateValue,
+    relativeLabel: relative,
+    steps: defaultSteps,
+    stepIndex: job.status === "IN_PROGRESS" ? 3 : 2,
+    priceLabel: "Estimated Total",
+    price: formatPrice(amount, true),
+    actions: [{ href: details, label: "View Details", variant: "link" as const }],
   };
 }
 

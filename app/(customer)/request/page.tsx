@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { ThemedBoard } from "@/components/layout/themed-board";
 import { createRequestAction } from "@/app/actions/marketplace";
+import { FREDS_MARINE_SLUG } from "@/lib/constants";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -14,11 +15,29 @@ export default async function RequestPage({
 }) {
   const session = await requireSession("CUSTOMER");
   const params = await searchParams;
-  const vehicles = await prisma.vehicle.findMany({
-    where: { customerId: session.id },
-    include: { make: true, model: true },
-  });
-  const profile = await prisma.customerProfile.findUnique({ where: { userId: session.id } });
+  const [vehicles, profile, namedShop, fred] = await Promise.all([
+    prisma.vehicle.findMany({
+      where: { customerId: session.id },
+      include: { make: true, model: true },
+    }),
+    prisma.customerProfile.findUnique({ where: { userId: session.id } }),
+    params.mechanic
+      ? prisma.mechanicProfile.findUnique({
+          where: { id: params.mechanic },
+          select: { id: true, businessName: true, shopCity: true, shopState: true, slug: true },
+        })
+      : Promise.resolve(null),
+    prisma.mechanicProfile.findUnique({
+      where: { slug: FREDS_MARINE_SLUG },
+      select: { id: true, businessName: true, shopCity: true, shopState: true, slug: true },
+    }),
+  ]);
+  const shop = namedShop ?? fred;
+  const prefersBoat = shop?.slug === FREDS_MARINE_SLUG;
+  const boat = vehicles.find((vehicle) => vehicle.make.name === "Centurion");
+  const defaultVehicleId = params.vehicle ?? (prefersBoat ? boat?.id : undefined) ?? vehicles[0]?.id;
+  const shopPlace = [shop?.shopCity, shop?.shopState].filter(Boolean).join(", ");
+
   return (
     <ThemedBoard
       eyebrow="REQUEST SERVICE"
@@ -30,9 +49,16 @@ export default async function RequestPage({
       wide={false}
     >
       <form action={createRequestAction} className="space-y-4">
-        {params.mechanic ? <input type="hidden" name="mechanicProfileId" value={params.mechanic} /> : null}
+        {shop ? <input type="hidden" name="mechanicProfileId" value={shop.id} /> : null}
+        {shop ? (
+          <div className="rounded-2xl bg-[#f7f9fc] px-4 py-3">
+            <p className="text-xs font-bold tracking-[0.16em] text-[#2f7bff]">SENDING TO</p>
+            <p className="mt-1 font-semibold text-navy">{shop.businessName}</p>
+            {shopPlace ? <p className="text-sm text-muted">{shopPlace}</p> : null}
+          </div>
+        ) : null}
         <Field label="Vehicle">
-          <Select name="vehicleId" defaultValue={params.vehicle ?? vehicles[0]?.id} required>
+          <Select name="vehicleId" defaultValue={defaultVehicleId} required>
             {vehicles.map((vehicle) => (
               <option key={vehicle.id} value={vehicle.id}>
                 {vehicle.year} {vehicle.make.name} {vehicle.model.name}
@@ -64,7 +90,7 @@ export default async function RequestPage({
           <input type="checkbox" name="mobilePreferred" defaultChecked className="h-4 w-4" />
           Prefer a mechanic who can come to me
         </label>
-        <Button type="submit">{params.mechanic ? "Request this mechanic" : "Find Mechanics"}</Button>
+        <Button type="submit">{shop ? `Send request to ${shop.businessName}` : "Request service"}</Button>
       </form>
     </ThemedBoard>
   );

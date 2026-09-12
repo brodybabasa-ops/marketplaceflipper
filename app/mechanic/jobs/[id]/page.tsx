@@ -44,6 +44,13 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
               <Button type="submit">Update</Button>
             </form>
           ) : null}
+          {job.status === "REQUESTED" ? (
+            <form action={updateJobStatusAction} className="mt-3">
+              <input type="hidden" name="jobId" value={job.id} />
+              <input type="hidden" name="status" value="ACCEPTED" />
+              <Button type="submit">Accept this request</Button>
+            </form>
+          ) : null}
         </Card>
         <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Request details</h2>

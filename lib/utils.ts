@@ -54,3 +54,12 @@ export function formatAppointment(date: Date) {
     timeZone: "America/Denver",
   }).format(date);
 }
+
+export function formatBoardDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "America/Denver",
+  }).format(date);
+}

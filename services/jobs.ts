@@ -1,8 +1,24 @@
 import type { JobStatus } from "@prisma/client";
+import { FREDS_MARINE_SLUG } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
 import { notify } from "@/services/notifications";
 import { classifyProblem } from "@/services/problem-classifier";
+
+async function resolveAssignedShop(mechanicProfileId?: string) {
+  if (mechanicProfileId) {
+    return prisma.mechanicProfile.findUniqueOrThrow({
+      where: { id: mechanicProfileId },
+      include: { user: true },
+    });
+  }
+  const fred = await prisma.mechanicProfile.findUnique({
+    where: { slug: FREDS_MARINE_SLUG },
+    include: { user: true },
+  });
+  if (!fred) throw new Error("Fred's Marine is not available to take this request.");
+  return fred;
+}
 
 export async function createServiceRequest(input: {
   customerId: string;
@@ -21,6 +37,7 @@ export async function createServiceRequest(input: {
   });
   if (!vehicle) throw new Error("Vehicle not found.");
 
+  const mechanic = await resolveAssignedShop(input.mechanicProfileId);
   const zip = await prisma.zipCode.findUnique({ where: { zip: input.zip.slice(0, 5) } });
   const category = classifyProblem(input.problemText);
 
@@ -28,7 +45,7 @@ export async function createServiceRequest(input: {
     data: {
       customerId: input.customerId,
       vehicleId: input.vehicleId,
-      mechanicProfileId: input.mechanicProfileId,
+      mechanicProfileId: mechanic.id,
       problemText: input.problemText,
       description: input.description,
       category,
@@ -42,13 +59,6 @@ export async function createServiceRequest(input: {
       budgetCents: input.budgetCents,
       mobilePreferred: input.mobilePreferred ?? true,
     },
-  });
-
-  if (!input.mechanicProfileId) return { request, job: null, thread: null };
-
-  const mechanic = await prisma.mechanicProfile.findUniqueOrThrow({
-    where: { id: input.mechanicProfileId },
-    include: { user: true },
   });
 
   const job = await prisma.job.create({
@@ -83,7 +93,7 @@ export async function createServiceRequest(input: {
     userId: mechanic.userId,
     title: "New service request",
     body: input.problemText,
-    href: `/mechanic/requests`,
+    href: `/mechanic/jobs/${job.id}`,
   });
 
   return { request, job, thread };

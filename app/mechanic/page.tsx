@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { AcceptJobButton } from "@/components/jobs/accept-job-button";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { formatAppointment } from "@/lib/utils";
 
@@ -173,21 +174,23 @@ function Queue({
           <p className="py-6 text-sm text-muted">{empty}</p>
         ) : (
           jobs.map((job) => (
-            <Link
+            <div
               key={job.id}
-              href={`/mechanic/jobs/${job.id}`}
               className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
             >
-              <div className="min-w-0">
+              <Link href={`/mechanic/jobs/${job.id}`} className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-navy">
                   {job.customer.firstName} {job.customer.lastName}
                 </p>
                 <p className="truncate text-sm text-muted">
                   {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
                 </p>
+              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                <JobStatusLabel status={job.status} />
+                {job.status === "REQUESTED" ? <AcceptJobButton jobId={job.id} /> : null}
               </div>
-              <JobStatusLabel status={job.status} />
-            </Link>
+            </div>
           ))
         )}
       </div>

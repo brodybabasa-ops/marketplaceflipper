@@ -1,6 +1,7 @@
 import type { EstimateStatus, JobStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDirectoryShops, type DirectoryShop } from "@/services/landing";
+import { FREDS_MARINE_SLUG } from "@/lib/constants";
 import { FEATURED_SHOP_SLUGS, vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatAppointment, formatRelative } from "@/lib/utils";
@@ -113,7 +114,9 @@ export async function getCustomerDashboard(userId: string) {
   const dashboardVehicleIds = new Set(dashboardVehicles.map((vehicle) => vehicle.id));
   const activeJobs = jobs.filter(
     (job) =>
-      dashboardVehicleIds.has(job.vehicleId) && job.status !== "COMPLETED" && job.status !== "CANCELLED",
+      job.status !== "COMPLETED" &&
+      job.status !== "CANCELLED" &&
+      (job.mechanicProfile.slug === FREDS_MARINE_SLUG || dashboardVehicleIds.has(job.vehicleId)),
   );
   const { shops, zip } = await getDirectoryShops({
     zip: chrome.zip ?? "84041",
@@ -121,8 +124,15 @@ export async function getCustomerDashboard(userId: string) {
     sort: "closest",
   });
 
-  const statusOrder: JobStatus[] = ["IN_PROGRESS", "DIAGNOSING", "EN_ROUTE", "ARRIVED", "AWAITING_APPROVAL", "REQUESTED", "SCHEDULED", "ACCEPTED"];
-  const sortedActive = [...activeJobs].sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
+  const statusOrder: JobStatus[] = ["REQUESTED", "AWAITING_APPROVAL", "IN_PROGRESS", "DIAGNOSING", "EN_ROUTE", "ARRIVED", "SCHEDULED", "ACCEPTED"];
+  const sortedActive = [...activeJobs].sort((a, b) => {
+    const aFred = a.mechanicProfile.slug === FREDS_MARINE_SLUG ? 0 : 1;
+    const bFred = b.mechanicProfile.slug === FREDS_MARINE_SLUG ? 0 : 1;
+    if (aFred !== bFred) return aFred - bFred;
+    const byStatus = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+    if (byStatus !== 0) return byStatus;
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+  });
   const repairs: DashboardRepair[] = sortedActive.slice(0, 3).map((job) => {
     const estimate = job.estimates[0];
     const estimateReady = Boolean(estimate && (estimate.status === "SENT" || job.status === "AWAITING_APPROVAL"));

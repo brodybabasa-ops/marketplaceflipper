@@ -13,7 +13,7 @@ export default async function SignInPage() {
     <MarketingShell
       title="Welcome"
       accent="back."
-      subtitle="Demo accounts: customer@, mechanic@, sarah.chen@, and admin@demo.pocketmechanic.app · Demo1234!"
+      subtitle="Demo: customer@ (Brody) · mechanic@ (Fred's Marine) · sarah.chen@ · admin@demo.pocketmechanic.app · Demo1234!"
       image="/landing/dashboard-hero.png"
     >
       <SignInForm />

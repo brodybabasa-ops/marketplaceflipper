@@ -33,7 +33,7 @@ Password for all demo users: `Demo1234!`
 | Role | Email |
 | --- | --- |
 | Customer | `customer@demo.pocketmechanic.app` (Brody Babasa, Layton UT) |
-| Mechanic | `mechanic@demo.pocketmechanic.app` |
+| Mechanic (Fred's Marine) | `mechanic@demo.pocketmechanic.app` |
 | Shop | `sarah.chen@demo.pocketmechanic.app` |
 | Admin | `admin@demo.pocketmechanic.app` |
 
