@@ -97,10 +97,9 @@ function Hero() {
       <img
         src="/landing/repairs-hero.png"
         alt=""
-        className="absolute top-0 h-[115%] w-[145%] max-w-none object-cover object-left"
-        style={{ left: "8%", top: "-6%" }}
+        className="absolute right-0 top-0 h-full w-[72%] object-cover object-[12%_58%]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.90)_0%,rgba(7,20,34,0.62)_26%,rgba(7,20,34,0.22)_48%,rgba(7,20,34,0.06)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,#071422_0%,rgba(7,20,34,0.92)_22%,rgba(7,20,34,0.55)_40%,rgba(7,20,34,0.18)_58%,rgba(7,20,34,0.04)_100%)]" />
       <p className="font-script pointer-events-none absolute right-8 top-[5.5rem] z-10 hidden max-w-[210px] rotate-[8deg] text-right text-[30px] leading-[1.08] text-white xl:block">
         Less Time
         <br />
@@ -134,7 +133,7 @@ function RepairItem({ row }: { row: RepairRow }) {
       </div>
       <div className="grid min-w-0 flex-1 gap-4 xl:grid-cols-[minmax(210px,1.05fr)_minmax(260px,1.2fr)_minmax(148px,auto)] xl:items-start">
         <div className="min-w-0">
-          <p className="truncate font-bold leading-tight">{row.vehicleLabel}</p>
+          <p className="font-bold leading-tight">{row.vehicleLabel}</p>
           <p className="mt-0.5 text-sm text-[#6b7a8a]">{row.problem}</p>
           <div className="mt-2 flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
