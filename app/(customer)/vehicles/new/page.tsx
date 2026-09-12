@@ -11,7 +11,6 @@ export const metadata = { title: "Add a vehicle" };
 export default async function NewVehiclePage() {
   await requireSession("CUSTOMER");
   const makes = await prisma.vehicleMake.findMany({ include: { models: { orderBy: { name: "asc" } } }, orderBy: { name: "asc" } });
-  const years = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
   return (
     <ThemedBoard
       eyebrow="ADD A VEHICLE"
@@ -24,7 +23,7 @@ export default async function NewVehiclePage() {
     >
       <form action={createVehicleAction} className="space-y-4">
         <Field label="Year">
-          <SelectYear years={years} />
+          <Input name="year" type="number" required min={1980} max={new Date().getFullYear() + 1} defaultValue={2024} />
         </Field>
         <VehicleMakeModelFields makes={makes} />
         <Field label="Trim">
@@ -51,21 +50,5 @@ export default async function NewVehiclePage() {
         <Button type="submit">Save vehicle</Button>
       </form>
     </ThemedBoard>
-  );
-}
-
-function SelectYear({ years }: { years: number[] }) {
-  return (
-    <select
-      name="year"
-      defaultValue={String(years[1])}
-      className="h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-[#1b2430] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
-    >
-      {years.map((year) => (
-        <option key={year} value={year}>
-          {year}
-        </option>
-      ))}
-    </select>
   );
 }
