@@ -55,19 +55,19 @@ export function ThemedBoard({
 
 export function BoardLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="block rounded-2xl border border-line bg-[#f7f9fc] p-4 transition hover:bg-[#eef3f9]">
+    <Link href={href} className="block rounded-xl border border-line bg-paper p-4 transition hover:bg-card">
       {children}
     </Link>
   );
 }
 
 export function BoardRow({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-line bg-[#f7f9fc] p-4">{children}</div>;
+  return <div className="rounded-xl border border-line bg-paper p-4">{children}</div>;
 }
 
 export function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-[#f7f9fc] p-5">
+    <div className="rounded-xl bg-paper p-5">
       <p className="text-sm text-muted">{label}</p>
       <p className="number mt-1 text-3xl font-bold text-navy">{value}</p>
     </div>

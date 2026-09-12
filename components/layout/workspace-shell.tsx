@@ -12,7 +12,6 @@ import {
   HelpCircle,
   Inbox,
   LayoutDashboard,
-  MapPin,
   Menu,
   MessageSquare,
   Search,
@@ -25,43 +24,49 @@ import {
   X,
 } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
-import { KeepRunningBar } from "@/components/layout/keep-running-bar";
-import { LANDING_LOCATION } from "@/lib/landing";
+import { signOutAction } from "@/app/actions/auth";
 import { initials } from "@/lib/utils";
 import type { SessionUser } from "@/lib/session-token";
 import { cn } from "@/lib/utils";
 
-type HeroCopy = {
+type Product = "shop" | "admin";
+
+type PageCopy = {
   eyebrow: string;
   title: string;
   accent: string;
   subtitle: string;
-  script: string;
-  image: string;
 };
 
 export function WorkspaceShell({
   user,
   nav,
+  product,
+  workspace,
   children,
 }: {
   user: SessionUser;
   nav: { href: string; label: string }[];
+  product: Product;
+  workspace: string;
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const hero = workspaceHero(pathname, user);
+  const page = opsPage(pathname, product);
+  const search = product === "shop"
+    ? { action: "/mechanic/jobs", placeholder: "Search jobs or customers..." }
+    : { action: "/admin/jobs", placeholder: "Search users, shops, or jobs..." };
   return (
-    <div data-dashboard className="flex min-h-screen bg-[#e8eef4] text-navy">
+    <div data-dashboard data-ops={product} className="flex min-h-screen bg-[#071422] text-white">
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">
-        <WorkspaceSidebar user={user} nav={nav} />
+        <OpsSidebar user={user} nav={nav} product={product} workspace={workspace} />
       </div>
       {menuOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
           <div className="relative h-full w-[240px]">
-            <WorkspaceSidebar user={user} nav={nav} onNavigate={() => setMenuOpen(false)} />
+            <OpsSidebar user={user} nav={nav} product={product} workspace={workspace} onNavigate={() => setMenuOpen(false)} />
             <button
               type="button"
               className="absolute right-3 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"
@@ -73,268 +78,79 @@ export function WorkspaceShell({
           </div>
         </div>
       ) : null}
-      <div className="relative flex min-w-0 flex-1 flex-col">
-        <button
-          type="button"
-          className="absolute left-4 top-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#071422] text-white lg:hidden"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <header className="absolute inset-x-0 top-0 z-30 flex h-[72px] items-center justify-between gap-4 px-6 pl-16 text-white lg:px-6">
-          <form action="/mechanics" className="relative max-w-xl flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/10 bg-[#071422] px-4 pl-16 lg:px-5 lg:pl-5">
+          <button
+            type="button"
+            className="absolute left-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white lg:hidden"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <form action={search.action} className="relative max-w-xl flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <input
               name="q"
-              placeholder="Search jobs, customers, or shops..."
-              className="h-11 w-full rounded-full border border-white/15 bg-white/10 pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/45"
+              placeholder={search.placeholder}
+              className="h-10 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/40"
             />
           </form>
-          <div className="flex items-center gap-3">
-            <span className="hidden items-center gap-1.5 text-sm text-white/80 md:inline-flex">
-              <MapPin className="h-4 w-4 text-[#2f7bff]" />
-              {LANDING_LOCATION}
+          <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10">
+            <Bell className="h-4 w-4" />
+          </span>
+          <span className="hidden items-center gap-2 rounded-lg border border-white/10 py-1 pl-1 pr-3 sm:inline-flex">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[#2f7bff] text-xs font-bold">
+              {initials(user.firstName, user.lastName)}
             </span>
-            <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15">
-              <Bell className="h-4 w-4" />
+            <span className="text-sm font-semibold">
+              {user.firstName} {user.lastName.charAt(0)}.
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 py-1 pl-1 pr-3">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#2f7bff] text-xs font-bold">
-                {initials(user.firstName, user.lastName)}
-              </span>
-              <span className="hidden text-sm font-semibold sm:inline">
-                {user.firstName} {user.lastName.charAt(0)}.
-              </span>
-            </span>
-          </div>
+          </span>
+          <form action={signOutAction}>
+            <button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white">
+              Sign out
+            </button>
+          </form>
         </header>
-        <section className="relative overflow-hidden bg-[#071422] pb-16 pt-24">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={hero.image} alt="" className="absolute inset-0 h-full w-full object-cover object-[78%_center]" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_40%,rgba(7,20,34,0.22)_100%)]" />
-          <div className="relative w-full px-5 lg:px-6">
-            <p className="text-xs font-semibold tracking-[0.22em] text-white/75">{hero.eyebrow}</p>
-            <h1 className="mt-2 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-              {hero.title} <span className="text-[#2f7bff]">{hero.accent}</span>
-            </h1>
-            <p className="mt-3 max-w-lg text-white/75">{hero.subtitle}</p>
-            <p className="font-script mt-4 text-2xl text-white/90">{hero.script}</p>
-          </div>
-        </section>
-        <div className="relative z-10 -mt-8 flex w-full flex-1 flex-col">
-          <div className="flex-1 bg-white p-5 sm:p-6">
-            {children}
-          </div>
+        <div className="border-b border-white/10 px-5 py-5">
+          <p className="text-[11px] font-bold tracking-[0.22em] text-[#2f7bff]">{page.eyebrow}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            {page.title} <span className="text-[#2f7bff]">{page.accent}</span>
+          </h1>
+          <p className="mt-1.5 text-sm text-white/55">{page.subtitle}</p>
         </div>
-        <KeepRunningBar />
+        <div className="flex-1 px-5 py-5">{children}</div>
       </div>
     </div>
   );
 }
 
-function workspaceHero(pathname: string, user: SessionUser): HeroCopy {
-  const heroes: { prefix: string; hero: HeroCopy }[] = [
-    {
-      prefix: "/mechanic/requests",
-      hero: {
-        eyebrow: "REQUESTS",
-        title: "Incoming",
-        accent: "Work.",
-        subtitle: "Customers who asked this shop for help.",
-        script: "Get work. Get it done.",
-        image: "/landing/shop-diesel.png",
-      },
-    },
-    {
-      prefix: "/mechanic/jobs",
-      hero: {
-        eyebrow: "JOBS",
-        title: "Shop",
-        accent: "Jobs.",
-        subtitle: "Every request, estimate, and repair on the board.",
-        script: "Get it Fixed.",
-        image: "/landing/shop-1.png",
-      },
-    },
-    {
-      prefix: "/mechanic/reviews",
-      hero: {
-        eyebrow: "REVIEWS",
-        title: "What customers",
-        accent: "Said.",
-        subtitle: "Reviews only come from completed Pocket Mechanic jobs.",
-        script: "Real People. Real Repairs.",
-        image: "/landing/lifestyle.png",
-      },
-    },
-    {
-      prefix: "/mechanic/profile",
-      hero: {
-        eyebrow: "PROFILE",
-        title: "Your",
-        accent: "Shop.",
-        subtitle: "What customers see before they request service.",
-        script: "Earn the work.",
-        image: "/landing/shop-2.png",
-      },
-    },
-    {
-      prefix: "/mechanic/earnings",
-      hero: {
-        eyebrow: "EARNINGS",
-        title: "Job",
-        accent: "Volume.",
-        subtitle: "Totals from completed jobs. Payouts plug in later.",
-        script: "Keep It Running.",
-        image: "/landing/dashboard-hero.png",
-      },
-    },
-    {
-      prefix: "/mechanic/settings",
-      hero: {
-        eyebrow: "SETTINGS",
-        title: "Shop",
-        accent: "Settings.",
-        subtitle: "Notifications and payouts will live here.",
-        script: "Stay in the Loop.",
-        image: "/landing/lifestyle.png",
-      },
-    },
-    {
-      prefix: "/mechanic/onboarding",
-      hero: {
-        eyebrow: "ONBOARDING",
-        title: "Set up your",
-        accent: "Profile.",
-        subtitle: "Customers see this before they request service.",
-        script: "Earn the work.",
-        image: "/landing/shop-3.png",
-      },
-    },
-    {
-      prefix: "/mechanic/customers",
-      hero: {
-        eyebrow: "CUSTOMERS",
-        title: "People you",
-        accent: "Helped.",
-        subtitle: "Customers attached to jobs at this shop.",
-        script: "Real People. Real Repairs.",
-        image: "/landing/lifestyle.png",
-      },
-    },
-    {
-      prefix: "/mechanic/messages",
-      hero: {
-        eyebrow: "MESSAGES",
-        title: "Talk to the",
-        accent: "Customer.",
-        subtitle: "Conversations stay attached to the job.",
-        script: "Stay in the Loop.",
-        image: "/landing/lifestyle.png",
-      },
-    },
-    {
-      prefix: "/mechanic",
-      hero: {
-        eyebrow: "SHOP COMMAND",
-        title: "Good morning,",
-        accent: `${user.firstName}.`,
-        subtitle: "Requests, jobs, and the work on the board today.",
-        script: "Keep It Running.",
-        image: "/landing/shop-diesel.png",
-      },
-    },
-    {
-      prefix: "/admin/users",
-      hero: {
-        eyebrow: "USERS",
-        title: "Platform",
-        accent: "Accounts.",
-        subtitle: "Customers, shops, and who can sign in.",
-        script: "Keep It Running.",
-        image: "/landing/dashboard-hero.png",
-      },
-    },
-    {
-      prefix: "/admin/mechanics",
-      hero: {
-        eyebrow: "SHOPS",
-        title: "Listed",
-        accent: "Shops.",
-        subtitle: "Verification, score, and completed jobs.",
-        script: "Find the Right Shop.",
-        image: "/landing/shop-1.png",
-      },
-    },
-    {
-      prefix: "/admin/jobs",
-      hero: {
-        eyebrow: "JOBS",
-        title: "Every",
-        accent: "Repair.",
-        subtitle: "Customer to shop, with the current status.",
-        script: "Stay in the Loop.",
-        image: "/landing/repairs-hero.png",
-      },
-    },
-    {
-      prefix: "/admin/reviews",
-      hero: {
-        eyebrow: "REVIEWS",
-        title: "Job",
-        accent: "Reviews.",
-        subtitle: "Hide anything that should not stay public.",
-        script: "Real People. Real Repairs.",
-        image: "/landing/lifestyle.png",
-      },
-    },
-    {
-      prefix: "/admin/disputes",
-      hero: {
-        eyebrow: "DISPUTES",
-        title: "Open",
-        accent: "Issues.",
-        subtitle: "Problems customers reported on completed work.",
-        script: "No surprises.",
-        image: "/landing/shop-2.png",
-      },
-    },
-    {
-      prefix: "/admin/verification",
-      hero: {
-        eyebrow: "VERIFICATION",
-        title: "Shop",
-        accent: "Checks.",
-        subtitle: "Approve or reject shop verification requests.",
-        script: "Verified Shops.",
-        image: "/landing/shop-3.png",
-      },
-    },
-    {
-      prefix: "/admin/settings",
-      hero: {
-        eyebrow: "SETTINGS",
-        title: "Platform",
-        accent: "Config.",
-        subtitle: "Commission, ranking, and adapter status.",
-        script: "Keep It Running.",
-        image: "/landing/lifestyle.png",
-      },
-    },
-    {
-      prefix: "/admin",
-      hero: {
-        eyebrow: "ADMIN",
-        title: "Platform",
-        accent: "Overview.",
-        subtitle: "Users, shops, jobs, and open disputes.",
-        script: "Keep It Running.",
-        image: "/landing/dashboard-hero.png",
-      },
-    },
+function opsPage(pathname: string, product: Product): PageCopy {
+  const shop: { prefix: string; page: PageCopy }[] = [
+    { prefix: "/mechanic/requests", page: { eyebrow: "REQUESTS", title: "Incoming", accent: "Work.", subtitle: "Customers who asked this shop for help." } },
+    { prefix: "/mechanic/jobs", page: { eyebrow: "JOBS", title: "On the", accent: "Board.", subtitle: "Every request, estimate, and repair." } },
+    { prefix: "/mechanic/reviews", page: { eyebrow: "REVIEWS", title: "Job", accent: "Reviews.", subtitle: "Tied to completed Pocket Mechanic jobs." } },
+    { prefix: "/mechanic/profile", page: { eyebrow: "PROFILE", title: "Shop", accent: "Profile.", subtitle: "What customers see before they request service." } },
+    { prefix: "/mechanic/earnings", page: { eyebrow: "EARNINGS", title: "Job", accent: "Volume.", subtitle: "Totals from completed work. Payouts plug in later." } },
+    { prefix: "/mechanic/settings", page: { eyebrow: "SETTINGS", title: "Shop", accent: "Settings.", subtitle: "Notifications and payouts will live here." } },
+    { prefix: "/mechanic/onboarding", page: { eyebrow: "SETUP", title: "Set up the", accent: "Shop.", subtitle: "Customers see this before they request service." } },
+    { prefix: "/mechanic/customers", page: { eyebrow: "CUSTOMERS", title: "People you", accent: "Helped.", subtitle: "Customers attached to jobs at this shop." } },
+    { prefix: "/mechanic/messages", page: { eyebrow: "MESSAGES", title: "Talk to the", accent: "Customer.", subtitle: "Conversations stay attached to the job." } },
+    { prefix: "/mechanic", page: { eyebrow: "SHOP COMMAND", title: "Today.", accent: "", subtitle: "Requests, the bay, and what is on the book." } },
   ];
-  return heroes.find((item) => pathname === item.prefix || pathname.startsWith(`${item.prefix}/`))?.hero ?? heroes[heroes.length - 1].hero;
+  const admin: { prefix: string; page: PageCopy }[] = [
+    { prefix: "/admin/users", page: { eyebrow: "USERS", title: "Platform", accent: "Accounts.", subtitle: "Customers, shops, and who can sign in." } },
+    { prefix: "/admin/mechanics", page: { eyebrow: "SHOPS", title: "Listed", accent: "Shops.", subtitle: "Verification, score, and completed jobs." } },
+    { prefix: "/admin/jobs", page: { eyebrow: "JOBS", title: "Every", accent: "Repair.", subtitle: "Customer to shop, with the current status." } },
+    { prefix: "/admin/reviews", page: { eyebrow: "REVIEWS", title: "Job", accent: "Reviews.", subtitle: "Hide anything that should not stay public." } },
+    { prefix: "/admin/disputes", page: { eyebrow: "DISPUTES", title: "Open", accent: "Issues.", subtitle: "Problems customers reported on completed work." } },
+    { prefix: "/admin/verification", page: { eyebrow: "VERIFICATION", title: "Shop", accent: "Checks.", subtitle: "Approve or reject shop verification." } },
+    { prefix: "/admin/settings", page: { eyebrow: "SETTINGS", title: "Platform", accent: "Config.", subtitle: "Commission, ranking, and adapter status." } },
+    { prefix: "/admin", page: { eyebrow: "ADMIN", title: "Operations.", accent: "", subtitle: "Users, shops, jobs, and what needs a decision." } },
+  ];
+  const pages = product === "shop" ? shop : admin;
+  return pages.find((item) => pathname === item.prefix || pathname.startsWith(`${item.prefix}/`))?.page ?? pages[pages.length - 1].page;
 }
 
 function navIcon(href: string) {
@@ -355,21 +171,27 @@ function navIcon(href: string) {
   return ClipboardList;
 }
 
-function WorkspaceSidebar({
+function OpsSidebar({
   user,
   nav,
+  product,
+  workspace,
   onNavigate,
 }: {
   user: SessionUser;
   nav: { href: string; label: string }[];
+  product: Product;
+  workspace: string;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const home = nav[0]?.href ?? "/";
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col overflow-y-auto bg-[#071422] text-white">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-[#071422] text-white">
       <div className="px-5 py-5">
         <Logo light stacked />
+        <p className="mt-3 text-[11px] font-bold tracking-[0.18em] text-[#2f7bff]">{product === "shop" ? "SHOP" : "ADMIN"}</p>
+        <p className="mt-1 text-sm font-semibold leading-snug text-white/90">{workspace}</p>
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {nav.map((link) => {
@@ -381,7 +203,7 @@ function WorkspaceSidebar({
               href={link.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold",
                 active ? "bg-[#2f7bff] text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
               )}
             >
@@ -392,15 +214,20 @@ function WorkspaceSidebar({
         })}
       </nav>
       <div className="px-4 pb-6">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold">
-          <HelpCircle className="h-4 w-4 text-[#2f7bff]" />
-          Need Help?
+        <p className="text-[11px] font-semibold tracking-[0.16em] text-white/40">
+          {product === "shop" ? "WEBSITE COMMAND" : "WEBSITE OPS"}
         </p>
-        <Link href="/how-it-works" className="mt-2 block text-sm text-white/65 hover:text-white">
+        <p className="mt-2 text-xs leading-5 text-white/45">
+          {product === "shop"
+            ? "Shops run the board here. Customers will live in the app."
+            : "Admin stays on the website. Customers will live in the app."}
+        </p>
+        <Link href="/how-it-works" className="mt-3 inline-flex items-center gap-2 text-sm text-white/65 hover:text-white">
+          <HelpCircle className="h-4 w-4 text-[#2f7bff]" />
           Help Center
         </Link>
-        <p className="mt-6 text-[11px] text-white/45">
-          Signed in as {user.firstName} · {user.role.toLowerCase()}
+        <p className="mt-4 text-[11px] text-white/40">
+          {user.firstName} · {user.role.toLowerCase()}
         </p>
       </div>
     </aside>

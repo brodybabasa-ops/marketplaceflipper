@@ -31,7 +31,7 @@ export default async function MechanicProfileSettingsPage() {
           <Link href="/mechanic/onboarding">Edit profile</Link>
         </Button>
       </div>
-      <Card className="mt-6 border-0 bg-[#f7f9fc] p-5 shadow-none">
+      <Card className="mt-6 border-0 p-5">
         <h3 className="font-semibold text-navy">Verification</h3>
         <p className="mt-2 text-sm text-muted">{level?.description}</p>
         <form action={submitVerificationAction} className="mt-4">

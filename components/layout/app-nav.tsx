@@ -43,7 +43,7 @@ export const CUSTOMER_NAV = [
 ];
 
 export const MECHANIC_NAV = [
-  { href: "/mechanic", label: "Dashboard" },
+  { href: "/mechanic", label: "Today" },
   { href: "/mechanic/requests", label: "Requests" },
   { href: "/mechanic/jobs", label: "Jobs" },
   { href: "/mechanic/messages", label: "Messages" },
@@ -54,9 +54,9 @@ export const MECHANIC_NAV = [
 ];
 
 export const ADMIN_NAV = [
-  { href: "/admin", label: "Dashboard" },
+  { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
-  { href: "/admin/mechanics", label: "Mechanics" },
+  { href: "/admin/mechanics", label: "Shops" },
   { href: "/admin/jobs", label: "Jobs" },
   { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/disputes", label: "Disputes" },

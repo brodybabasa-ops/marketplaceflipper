@@ -5,7 +5,7 @@ export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return (
     <input
       className={cn(
-        "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-ink outline-none transition placeholder:text-muted/80 focus:border-accent focus:ring-2 focus:ring-accent/15",
+        "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-[#1b2430] outline-none transition placeholder:text-[#5c6b7a] focus:border-accent focus:ring-2 focus:ring-accent/15",
         className,
       )}
       {...props}
@@ -17,7 +17,7 @@ export function Textarea({ className, ...props }: React.ComponentProps<"textarea
   return (
     <textarea
       className={cn(
-        "min-h-28 w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm text-ink outline-none transition placeholder:text-muted/80 focus:border-accent focus:ring-2 focus:ring-accent/15",
+        "min-h-28 w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm text-[#1b2430] outline-none transition placeholder:text-[#5c6b7a] focus:border-accent focus:ring-2 focus:ring-accent/15",
         className,
       )}
       {...props}
@@ -29,7 +29,7 @@ export function Select({ className, children, ...props }: React.ComponentProps<"
   return (
     <select
       className={cn(
-        "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15",
+        "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm text-[#1b2430] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15",
         className,
       )}
       {...props}

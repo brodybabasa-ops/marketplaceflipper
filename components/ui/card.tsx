@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 export function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("rounded-2xl border border-line bg-[#f7f9fc]", className)} {...props} />;
+  return <div className={cn("rounded-xl border border-line bg-paper", className)} {...props} />;
 }
 
 export function Badge({
@@ -10,7 +10,7 @@ export function Badge({
   ...props
 }: React.ComponentProps<"span"> & { tone?: "navy" | "accent" | "success" | "warning" | "muted" }) {
   const tones = {
-    navy: "bg-navy text-white",
+    navy: "bg-[#071422] text-white",
     accent: "bg-accent-soft text-accent",
     success: "bg-emerald-50 text-success",
     warning: "bg-amber-50 text-warning",

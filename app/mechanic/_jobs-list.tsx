@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { EmptyState } from "@/components/ui/card";
-import { BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
+import { formatAppointment } from "@/lib/utils";
 
 export default async function MechanicJobsList({
-  title,
   statuses,
 }: {
-  title: string;
-  href: string;
+  title?: string;
+  href?: string;
   statuses?: (
     | "REQUESTED"
     | "ACCEPTED"
@@ -34,28 +33,42 @@ export default async function MechanicJobsList({
   });
   return (
     <div>
-      <h2 className="text-lg font-bold text-navy">{title}</h2>
-      <div className="mt-4 space-y-3">
-        {jobs.length === 0 ? (
-          <EmptyState title="Nothing here yet" body="New customer requests will show up in this list." />
-        ) : (
-          jobs.map((job) => (
-            <BoardLink key={job.id} href={`/mechanic/jobs/${job.id}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-navy">
-                    {job.customer.firstName} {job.customer.lastName}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
-                  </p>
-                </div>
-                <JobStatusLabel status={job.status} />
-              </div>
-            </BoardLink>
-          ))
-        )}
-      </div>
+      {jobs.length === 0 ? (
+        <EmptyState title="Nothing here yet" body="New customer requests will show up in this list." />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-line bg-paper">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="border-b border-line text-muted">
+              <tr>
+                <th className="px-4 py-3 font-medium">Customer</th>
+                <th className="font-medium">Machine</th>
+                <th className="font-medium">Work</th>
+                <th className="font-medium">When</th>
+                <th className="pr-4 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((job) => (
+                <tr key={job.id} className="border-b border-line last:border-0">
+                  <td className="px-4 py-3">
+                    <Link href={`/mechanic/jobs/${job.id}`} className="font-semibold text-navy hover:text-[#7eb0ff]">
+                      {job.customer.firstName} {job.customer.lastName}
+                    </Link>
+                  </td>
+                  <td>
+                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                  </td>
+                  <td className="max-w-xs truncate">{job.serviceRequest.problemText}</td>
+                  <td>{job.scheduledAt ? formatAppointment(job.scheduledAt) : "—"}</td>
+                  <td className="pr-4">
+                    <JobStatusLabel status={job.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

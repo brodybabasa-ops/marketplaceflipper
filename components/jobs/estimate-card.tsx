@@ -25,7 +25,7 @@ export function EstimateCard({
 }) {
   const title = estimate.type === "CHANGE_ORDER" ? "Additional work request" : "Estimate";
   return (
-        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+        <Card className="border-0 p-5 shadow-none">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-navy">{title}</h3>

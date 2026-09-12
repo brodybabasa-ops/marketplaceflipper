@@ -6,7 +6,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await getSession();
   if (!session || session.role !== "ADMIN") return children;
   return (
-    <WorkspaceShell user={session} nav={ADMIN_NAV}>
+    <WorkspaceShell user={session} nav={ADMIN_NAV} product="admin" workspace="Platform">
       {children}
     </WorkspaceShell>
   );
