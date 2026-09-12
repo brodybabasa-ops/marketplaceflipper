@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/home", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vehicles", label: "My Garage", icon: Car },
+  { href: "/vehicles", label: "My Vehicles", icon: Car },
   { href: "/jobs", label: "My Repairs", icon: Wrench },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/estimates", label: "Estimates", icon: ClipboardList },
@@ -77,15 +77,23 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
         })}
       </nav>
       <div className="mt-auto px-4 pb-5 pt-4">
-        <div className="rounded-2xl bg-white/5 p-3">
-          <p className="text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
+        <div className={cn("relative overflow-hidden rounded-2xl bg-white/5 p-3", pathname.startsWith("/jobs") && "pr-14")}>
+          {pathname.startsWith("/jobs") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src="/landing/app-phone.png"
+              alt=""
+              className="pointer-events-none absolute -right-2 -top-3 h-[132px] w-[72px] object-cover object-[52%_38%]"
+            />
+          ) : null}
+          <p className="relative text-sm font-semibold leading-snug">Take Pocket Mechanic on the go.</p>
           <Link
             href="/sign-up"
-            className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2f7bff] text-sm font-semibold text-white"
+            className="relative mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#2f7bff] text-sm font-semibold text-white"
           >
             Get the App
           </Link>
-          <div className="mt-3 flex gap-1.5">
+          <div className="relative mt-3 flex gap-1.5">
             <StoreBadge href="/sign-up" store="apple" />
             <StoreBadge href="/sign-up" store="google" />
           </div>
