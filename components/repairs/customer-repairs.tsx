@@ -35,7 +35,7 @@ export function CustomerRepairs({
   return (
     <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero />
-      <div className="relative z-10 w-full flex-1 px-3 pb-8 lg:px-4">
+      <div className="relative z-10 -mt-10 w-full flex-1 px-3 pb-8 lg:px-4">
         <div className="rounded-[28px] bg-white p-4 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-1">

@@ -61,7 +61,7 @@ export function CustomerGarage({
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.82)_0%,rgba(7,20,34,0.42)_34%,rgba(7,20,34,0.06)_68%),linear-gradient(180deg,rgba(7,20,34,0.18)_0%,rgba(7,20,34,0)_32%,rgba(7,20,34,0.88)_100%)]" />
       </div>
 
-      <div className="relative px-4 pt-4 sm:px-6 lg:px-7">
+      <div className="relative px-3 pt-4 lg:px-4">
         <p className="text-[11px] font-bold tracking-[0.22em] text-[#2f7bff]">MY GARAGE</p>
         <h1 className="mt-1.5 max-w-xl text-[38px] font-extrabold leading-[1.05] tracking-tight sm:text-[42px]">
           All Your Vehicles.

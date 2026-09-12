@@ -42,7 +42,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
 function AppHeader({ user }: { user: SessionUser | null }) {
   return (
     <header className="app-header sticky top-0 z-40 border-b border-white/10 bg-[#071422]">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="flex h-16 w-full items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-8">
           <Logo light />
           <nav className="hidden items-center gap-6 text-sm font-medium text-white/70 md:flex">
@@ -73,7 +73,7 @@ function LandingHeader({ user }: { user: SessionUser | null }) {
 
   return (
     <header className="landing-header absolute inset-x-0 top-0 z-50">
-      <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-4 sm:px-6">
+      <div className="flex h-[72px] w-full items-center justify-between px-4 lg:px-6">
         <Logo light stacked />
         <nav className="hidden items-center gap-6 text-[13px] font-medium text-white/80 lg:flex">
           {LANDING_LINKS.map((link) => (
@@ -195,7 +195,7 @@ function LandingAuth({ user }: { user: SessionUser | null }) {
 export function SiteFooter() {
   return (
     <footer className="app-footer mt-auto border-t border-white/10 bg-[#071422] text-white">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-4">
+      <div className="grid w-full gap-8 px-4 py-12 md:grid-cols-4 lg:px-6">
         <div className="md:col-span-2">
           <Logo light stacked />
           <p className="mt-3 max-w-sm text-sm text-white/70">Anything Mechanical. Anywhere.</p>

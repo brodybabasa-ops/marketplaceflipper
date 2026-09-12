@@ -11,7 +11,6 @@ export function ThemedBoard({
   image = "/landing/hero-truck.png",
   objectPosition = "object-[78%_center]",
   children,
-  wide = true,
 }: {
   eyebrow?: string;
   title: React.ReactNode;
@@ -29,7 +28,7 @@ export function ThemedBoard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className={cn("absolute inset-0 h-full w-full object-cover", objectPosition)} />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_40%,rgba(7,20,34,0.22)_100%)]" />
-        <div className="relative mx-auto max-w-[1180px] px-4 sm:px-6">
+        <div className="relative w-full px-8 lg:px-9">
           {eyebrow ? <p className="text-xs font-semibold tracking-[0.22em] text-white/75">{eyebrow}</p> : null}
           <h1 className="mt-2 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
             {title}
@@ -44,7 +43,7 @@ export function ThemedBoard({
           {script ? <p className="font-script mt-4 text-2xl text-white/90">{script}</p> : null}
         </div>
       </section>
-      <div className={cn("relative z-10 mx-auto -mt-8 w-full flex-1 px-4 pb-12 sm:px-6", wide ? "max-w-[1180px]" : "max-w-[840px]")}>
+      <div className="relative z-10 -mt-8 w-full flex-1 px-3 pb-12 lg:px-4">
         <div className="overflow-hidden rounded-[28px] bg-white p-5 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-6">
           {children}
         </div>

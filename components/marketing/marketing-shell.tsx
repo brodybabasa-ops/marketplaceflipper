@@ -12,7 +12,6 @@ export function MarketingShell({
   image = "/landing/hero-truck.png",
   objectPosition = "object-[72%_center]",
   children,
-  wide,
 }: {
   title: React.ReactNode;
   accent?: string;
@@ -29,7 +28,7 @@ export function MarketingShell({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className={cn("absolute inset-0 h-full w-full object-cover", objectPosition)} />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_48%,rgba(7,20,34,0.28)_100%)]" />
-        <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6">
+        <div className="relative w-full px-8 lg:px-9">
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl">
             {title}
             {accent ? (
@@ -43,7 +42,7 @@ export function MarketingShell({
           {script ? <p className="font-script mt-4 text-2xl text-white/90">{script}</p> : null}
         </div>
       </section>
-      <div className={cn("relative z-10 mx-auto -mt-10 flex-1 px-4 pb-16 sm:px-6", wide ? "max-w-[1100px]" : "max-w-[840px]")}>
+      <div className="relative z-10 -mt-10 w-full flex-1 px-3 pb-16 lg:px-4">
         <div className="rounded-[28px] bg-[#eef2f6] p-6 text-navy shadow-[0_18px_40px_rgba(14,28,47,0.12)] sm:p-8">{children}</div>
       </div>
       <MarketingFooter />
@@ -81,7 +80,7 @@ export function StoreBadges({ className }: { className?: string }) {
 export function MarketingFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#071422]">
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex w-full flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between lg:px-6">
         <div>
           <Logo light stacked />
           <p className="mt-3 text-sm text-white/60">Anything Mechanical. Anywhere.</p>
@@ -103,7 +102,7 @@ export function MarketingFooter() {
           </Link>
         </div>
       </div>
-      <div className="mx-auto max-w-[1280px] px-4 pb-8 text-xs leading-5 text-white/40 sm:px-6">
+      <div className="w-full px-4 pb-8 text-xs leading-5 text-white/40 lg:px-6">
         <p>{PLATFORM_DISCLAIMER}</p>
         <div className="mt-3 flex flex-wrap gap-4">
           <Link href="/legal/terms">Terms</Link>

@@ -41,7 +41,7 @@ export function CustomerDashboard({
   return (
     <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <Hero firstName={firstName} />
-      <div className="relative z-10 mx-auto -mt-8 max-w-[1180px] px-6 pb-10">
+      <div className="relative z-10 -mt-8 w-full px-3 pb-10 lg:px-4">
         <QuickActions />
         <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
           <ActiveRepairs repairs={repairs} />
@@ -60,7 +60,7 @@ export function CustomerDashboard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/landing/lifestyle.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />
         <div className="absolute inset-0 bg-[#071422]/55" />
-        <div className="relative mx-auto flex max-w-[1180px] items-center justify-between px-6 py-8">
+        <div className="relative flex w-full items-center justify-between px-4 py-8 lg:px-6">
           <p className="text-sm font-semibold tracking-[0.18em] text-white">POCKET MECHANIC</p>
           <p className="font-script text-2xl text-white">Keep It Running.</p>
         </div>
@@ -75,7 +75,7 @@ function Hero({ firstName }: { firstName: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/landing/dashboard-hero.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[78%_center]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.62)_42%,rgba(7,20,34,0.18)_100%)]" />
-      <div className="relative mx-auto max-w-[1180px] px-6">
+      <div className="relative w-full px-8 lg:px-9">
         <h1 className="max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
           Welcome back,
           <br />

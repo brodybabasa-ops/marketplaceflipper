@@ -113,7 +113,7 @@ export function WorkspaceShell({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={hero.image} alt="" className="absolute inset-0 h-full w-full object-cover object-[78%_center]" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_40%,rgba(7,20,34,0.22)_100%)]" />
-          <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6">
+          <div className="relative w-full px-8 lg:px-9">
             <p className="text-xs font-semibold tracking-[0.22em] text-white/75">{hero.eyebrow}</p>
             <h1 className="mt-2 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
               {hero.title} <span className="text-[#2f7bff]">{hero.accent}</span>
@@ -122,7 +122,7 @@ export function WorkspaceShell({
             <p className="font-script mt-4 text-2xl text-white/90">{hero.script}</p>
           </div>
         </section>
-        <div className="relative z-10 mx-auto -mt-8 w-full max-w-[1100px] flex-1 px-4 pb-12 sm:px-6">
+        <div className="relative z-10 -mt-8 w-full flex-1 px-3 pb-12 lg:px-4">
           <div className="overflow-hidden rounded-[28px] bg-white p-5 shadow-[0_18px_40px_rgba(14,28,47,0.10)] sm:p-6">
             {children}
           </div>

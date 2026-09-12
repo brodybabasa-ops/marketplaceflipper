@@ -90,7 +90,7 @@ function MechanicProfile({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={shopPhotoFor(mechanic.slug)} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.88)_0%,rgba(7,20,34,0.55)_55%,rgba(7,20,34,0.25)_100%)]" />
-        <div className="relative mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="relative w-full px-8 lg:px-9">
           <p className="text-xs font-semibold tracking-[0.22em] text-white/75">
             {mechanic.shopCity}, {mechanic.shopState}
           </p>
@@ -101,7 +101,7 @@ function MechanicProfile({
           <p className="font-script mt-4 text-2xl text-white/90">Get it Fixed. Get back out there.</p>
         </div>
       </section>
-      <div className="relative z-10 mx-auto -mt-10 max-w-5xl px-4 pb-16 text-navy sm:px-6">
+      <div className="relative z-10 -mt-10 w-full px-3 pb-16 text-navy lg:px-4">
       <div className="rounded-[28px] bg-[#eef2f6] p-6 sm:p-8">
       <div className="flex flex-col gap-6 rounded-2xl bg-white p-6 shadow-[0_10px_30px_rgba(14,28,47,0.06)] md:flex-row md:items-start">
         <Avatar name={mechanic.businessName} src={mechanic.profilePhotoUrl} size="lg" />
