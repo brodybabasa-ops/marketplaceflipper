@@ -41,7 +41,11 @@ export function AppointmentCard({
 
   return (
     <Card
-      className={surface === "shop" ? "border-0 p-5" : "border-0 bg-[#f7f9fc] p-5 shadow-none"}
+      className={
+        surface === "shop"
+          ? "scroll-mt-28 border-0 p-5"
+          : "scroll-mt-28 border-0 bg-[#f7f9fc] p-5 shadow-none"
+      }
       id="appointment"
     >
       <h2 className="font-semibold text-navy">Appointment</h2>

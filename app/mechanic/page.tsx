@@ -55,7 +55,12 @@ export default async function MechanicDashboardPage() {
       include: jobInclude,
       orderBy: { scheduledAt: "asc" },
     }),
-    prisma.job.count({ where: { mechanicProfileId: profile.id, createdAt: { gte: startOfMonth } } }),
+    prisma.job.count({
+      where: {
+        mechanicProfileId: profile.id,
+        OR: [{ createdAt: { gte: startOfMonth } }, { scheduledAt: { gte: startOfMonth } }],
+      },
+    }),
     prisma.job.findMany({
       where: {
         mechanicProfileId: profile.id,
