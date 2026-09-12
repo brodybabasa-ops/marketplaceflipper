@@ -42,8 +42,8 @@ function Hero() {
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.78)_38%,rgba(7,20,34,0.28)_68%,rgba(7,20,34,0.18)_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,20,34,0.35)_0%,transparent_22%,transparent_72%,rgba(7,20,34,0.88)_100%)]" />
 
-      <div className="relative w-full px-4 lg:px-6">
-        <div className="max-w-xl pt-4">
+      <div className="relative w-full">
+        <div className="max-w-xl px-5 pt-4 lg:px-6">
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-[64px]">
             Something
             <br />
@@ -104,7 +104,7 @@ function HowItWorks() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/landing/hero-truck.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[50%_30%] opacity-60" />
       <div className="absolute inset-0 bg-[#071422]/80" />
-      <div className="relative w-full px-4 lg:px-6">
+      <div className="relative w-full px-5 lg:px-6">
         <div className="max-w-xl">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
             A better way
@@ -162,7 +162,7 @@ function HowItWorks() {
 function FeaturedShops({ shops }: { shops: FeaturedShop[] }) {
   return (
     <section className="bg-[#e8eef4] py-16 text-navy sm:py-20">
-      <div className="relative w-full px-4 lg:px-6">
+      <div className="relative w-full px-5 lg:px-6">
         <div className="flex items-end justify-between gap-4 lg:pr-[300px]">
             <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Featured Shops Near You</h2>
             <Link href="/mechanics?zip=84041" className="hidden items-center gap-1 text-sm font-semibold text-[#2f7bff] sm:inline-flex">
@@ -263,7 +263,7 @@ function Reviews({ reviews }: { reviews: LandingReview[] }) {
           Out Here.
         </p>
       </div>
-      <div className="relative w-full px-4 lg:px-6">
+      <div className="relative w-full px-5 lg:px-6">
         <div className="flex items-end justify-between gap-4 lg:max-w-[58%]">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Real People. Real Repairs.</h2>
           <Link href="/mechanics" className="hidden items-center gap-1 text-sm font-semibold text-[#2f7bff] sm:inline-flex">

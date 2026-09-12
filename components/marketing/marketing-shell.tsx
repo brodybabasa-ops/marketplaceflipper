@@ -28,7 +28,7 @@ export function MarketingShell({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className={cn("absolute inset-0 h-full w-full object-cover", objectPosition)} />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.94)_0%,rgba(7,20,34,0.72)_48%,rgba(7,20,34,0.28)_100%)]" />
-        <div className="relative w-full px-8 lg:px-9">
+        <div className="relative w-full px-5 lg:px-6">
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl">
             {title}
             {accent ? (
@@ -42,8 +42,8 @@ export function MarketingShell({
           {script ? <p className="font-script mt-4 text-2xl text-white/90">{script}</p> : null}
         </div>
       </section>
-      <div className="relative z-10 -mt-10 w-full flex-1 px-3 pb-16 lg:px-4">
-        <div className="rounded-[28px] bg-[#eef2f6] p-6 text-navy shadow-[0_18px_40px_rgba(14,28,47,0.12)] sm:p-8">{children}</div>
+      <div className="relative z-10 -mt-10 flex w-full flex-1 flex-col">
+        <div className="flex-1 bg-[#eef2f6] p-6 text-navy sm:p-8">{children}</div>
       </div>
       <MarketingFooter />
     </div>

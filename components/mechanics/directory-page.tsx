@@ -30,9 +30,9 @@ export function DirectoryPage({
   return (
     <div data-landing className="bg-[#071422] text-white">
       <Hero />
-      <div className="relative z-10 -mt-14 w-full px-3 pb-8 sm:-mt-16 lg:px-4">
+      <div className="relative z-10 -mt-14 w-full sm:-mt-16">
         <DirectorySearchBar query={query} />
-        <form action="/mechanics" className="mt-6 rounded-[28px] bg-[#eef2f6] p-4 text-navy sm:p-5">
+        <form action="/mechanics" className="bg-[#eef2f6] p-4 text-navy sm:p-5">
           <CommittedSearch query={query} />
           <div className="grid items-start gap-4 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
             <DirectoryFilters query={query} />
@@ -96,7 +96,7 @@ function Hero() {
         className="absolute inset-0 h-full w-full object-cover object-[72%_center]"
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,20,34,0.92)_0%,rgba(7,20,34,0.68)_42%,rgba(7,20,34,0.22)_100%)]" />
-      <div className="relative w-full px-8 lg:px-9">
+      <div className="relative w-full px-5 lg:px-6">
         <h1 className="max-w-xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-[56px]">
           Find the <span className="text-[#2f7bff]">Right Shop</span>
         </h1>
