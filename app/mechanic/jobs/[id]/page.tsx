@@ -85,7 +85,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
                 </Select>
                 <Input name="itemDescription" placeholder={index === 0 ? "Diagnostic labor" : "Description"} defaultValue={index === 0 ? "Diagnostic labor" : ""} />
                 <Input name="itemQuantity" defaultValue="1" />
-                <Input name="itemUnit" placeholder="95" defaultValue={index === 0 ? "95" : ""} />
+                <Input name="itemUnit" placeholder={index === 0 ? "95" : "0"} defaultValue={index === 0 ? "95" : ""} />
               </div>
             ))}
             <Button type="submit">Send to customer</Button>
