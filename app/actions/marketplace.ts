@@ -54,11 +54,13 @@ function revalidateJobSurfaces(jobId?: string) {
 
 export async function createVehicleAction(formData: FormData) {
   const session = await requireUser();
+  const modelId = String(formData.get("modelId") ?? "");
   const modelLabel = String(formData.get("modelLabel") ?? "").trim().toLowerCase();
   const models = await prisma.vehicleModel.findMany({ include: { make: true } });
   const model =
+    models.find((item) => item.id === modelId) ??
     models.find((item) => `${item.make.name} ${item.name}`.toLowerCase() === modelLabel) ??
-    models.find((item) => `${item.make.name} ${item.name}`.toLowerCase().includes(modelLabel) && modelLabel.length >= 5);
+    models.find((item) => modelLabel.length >= 5 && `${item.make.name} ${item.name}`.toLowerCase().includes(modelLabel));
   if (!model) throw new Error("Pick a make and model.");
   const parsed = vehicleSchema.safeParse({
     year: formData.get("year"),

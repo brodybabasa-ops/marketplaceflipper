@@ -1,4 +1,4 @@
-import { Field, Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/input";
 
 export function VehicleMakeModelFields({
   makes,
@@ -6,27 +6,28 @@ export function VehicleMakeModelFields({
   makes: { id: string; name: string; models: { id: string; name: string }[] }[];
   defaultMakeId?: string;
 }) {
-  const options = makes.flatMap((make) =>
-    make.models.map((model) => ({
-      id: model.id,
-      label: `${make.name} ${model.name}`,
-    })),
-  );
   return (
     <Field label="Make and model">
-      <Input
-        name="modelLabel"
-        list="vehicle-models"
+      <select
+        name="modelId"
         required
-        placeholder="Yamaha FX Cruiser"
-        autoComplete="off"
-      />
-      <datalist id="vehicle-models">
-        {options.map((option) => (
-          <option key={option.id} value={option.label} />
+        defaultValue=""
+        size={8}
+        className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-sm text-[#1b2430] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
+      >
+        <option value="" disabled>
+          Choose make and model
+        </option>
+        {makes.map((make) => (
+          <optgroup key={make.id} label={make.name}>
+            {make.models.map((model) => (
+              <option key={model.id} value={model.id}>
+                {make.name} {model.name}
+              </option>
+            ))}
+          </optgroup>
         ))}
-      </datalist>
-      <p className="mt-1 text-xs text-muted">Type the make and model, then pick it from the list.</p>
+      </select>
     </Field>
   );
 }
