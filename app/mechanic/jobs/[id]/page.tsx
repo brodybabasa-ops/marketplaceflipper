@@ -26,7 +26,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+        <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Job status</h2>
           <div className="mt-4">
             <StatusTimeline status={job.status} />
@@ -45,7 +45,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
             </form>
           ) : null}
         </Card>
-        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+        <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Request details</h2>
           <p className="mt-2 text-sm">{job.serviceRequest.description || job.serviceRequest.problemText}</p>
           <p className="mt-2 text-sm text-muted">Preferred: {job.serviceRequest.preferredTimeWindow || "flexible"}</p>
@@ -56,7 +56,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         {job.estimates.map((estimate) => (
           <EstimateCard key={estimate.id} estimate={estimate} />
         ))}
-        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+        <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Create estimate or additional work request</h2>
           <p className="text-sm text-muted">Additional work cannot silently rewrite the original estimate. It creates a new approval record.</p>
           <form action={createEstimateAction} className="mt-4 space-y-3">
@@ -84,7 +84,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
             <Button type="submit">Send to customer</Button>
           </form>
         </Card>
-        <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+        <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Repair documentation</h2>
           <form action={saveRepairRecordAction} className="mt-4 space-y-3">
             <input type="hidden" name="jobId" value={job.id} />
@@ -113,7 +113,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           </form>
         </Card>
         {job.thread ? (
-          <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+          <Card className="border-0 p-5">
             <h2 className="font-semibold text-navy">Message customer</h2>
             <div className="mt-3 space-y-2">
               {job.thread.messages.map((message) => (

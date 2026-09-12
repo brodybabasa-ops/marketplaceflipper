@@ -9,7 +9,7 @@ export default async function AdminSettingsPage() {
   await requireSession("ADMIN");
   const config = await prisma.platformConfig.findUnique({ where: { id: "default" } });
   return (
-    <Card className="space-y-2 border-0 bg-[#f7f9fc] p-5 text-sm shadow-none">
+    <Card className="space-y-2 border-0 p-5 text-sm">
       <p>Marketplace commission: {config?.commissionPercent}%</p>
       <p>Mechanic Pro: {formatCents(config?.mechanicProMonthlyCents ?? 4900)} / month</p>
       <p>Ranking weights are stored in PlatformConfig.rankingWeights and are not payable.</p>

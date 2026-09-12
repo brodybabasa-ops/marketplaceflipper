@@ -81,3 +81,14 @@ body:has([data-dashboard]) .app-header,
 body:has([data-dashboard]) .app-footer {
   display: none;
 }
+
+[data-ops] {
+  --navy: #f4f7fb;
+  --ink: #e8eef4;
+  --muted: rgba(255, 255, 255, 0.55);
+  --line: rgba(255, 255, 255, 0.12);
+  --paper: #12243a;
+  --card: #0d1c2e;
+  --background: #071422;
+  --foreground: #f4f7fb;
+}

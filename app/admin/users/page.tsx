@@ -9,7 +9,7 @@ export default async function AdminUsersPage() {
   await requireSession("ADMIN");
   const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 80 });
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-[#f7f9fc]">
+    <div className="overflow-x-auto rounded-xl border border-line bg-paper">
       <table className="w-full min-w-[720px] text-left text-sm">
         <thead className="border-b border-line text-muted">
           <tr>
