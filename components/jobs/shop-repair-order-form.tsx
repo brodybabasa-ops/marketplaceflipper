@@ -20,7 +20,13 @@ export function ShopRepairOrderForm({
   return (
     <form action={createShopRepairOrderAction} className="space-y-4">
       <Field label="Customer vehicle">
-        <Select name="vehicleId" required defaultValue="">
+        <select
+          name="vehicleId"
+          required
+          defaultValue=""
+          size={8}
+          className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-sm text-[#1b2430] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15"
+        >
           <option value="" disabled>
             Choose a machine
           </option>
@@ -33,7 +39,7 @@ export function ShopRepairOrderForm({
               ))}
             </optgroup>
           ))}
-        </Select>
+        </select>
       </Field>
       <Field label="What needs done?">
         <Input name="problemText" required minLength={8} placeholder="e.g. Winterize and impeller inspection" />
