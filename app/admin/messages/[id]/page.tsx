@@ -24,6 +24,7 @@ export default async function AdminThreadPage({ params }: { params: Promise<{ id
       jobHref={thread.jobId ? `/admin/jobs/${thread.jobId}` : null}
       jobLabel="Open job"
       markRead={false}
+      returnTo={`/admin/messages/${thread.id}`}
       messages={thread.messages.map((message) => ({
         id: message.id,
         senderId: message.senderId,

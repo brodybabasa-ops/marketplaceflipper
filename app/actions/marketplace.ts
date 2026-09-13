@@ -15,7 +15,7 @@ import {
 } from "@/lib/validations";
 import { createServiceRequest, createShopRepairOrder, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
-import { getOrCreateShopThread, markThreadRead } from "@/services/messages";
+import { getOrCreateShopThread, markThreadRead, postThreadMessage, threadPathForRole } from "@/services/messages";
 import { createReview } from "@/services/reviews";
 import { decodeVinToCatalog } from "@/services/vin";
 import { savePublicUpload } from "@/lib/uploads";
@@ -194,21 +194,18 @@ export async function sendMessageAction(formData: FormData) {
     body: formData.get("body"),
   });
   if (!parsed.success) throw new Error("Message cannot be empty.");
-  const thread = await prisma.messageThread.findUniqueOrThrow({ where: { id: parsed.data.threadId } });
-  if (thread.customerId !== session.id && thread.mechanicId !== session.id && session.role !== "ADMIN") {
-    throw new Error("Not authorized.");
-  }
-  await prisma.message.create({
-    data: { threadId: thread.id, senderId: session.id, body: parsed.data.body },
+  const result = await postThreadMessage({
+    threadId: parsed.data.threadId,
+    senderId: session.id,
+    senderRole: session.role,
+    body: parsed.data.body,
   });
-  await prisma.messageThread.update({
-    where: { id: thread.id },
-    data: { lastMessageAt: new Date() },
-  });
-  revalidateJobSurfaces(thread.jobId ?? undefined);
-  revalidatePath(`/messages/${thread.id}`);
-  revalidatePath(`/mechanic/messages/${thread.id}`);
-  revalidatePath(`/admin/messages/${thread.id}`);
+  revalidateJobSurfaces(result.thread.jobId ?? undefined);
+  revalidatePath(`/messages/${result.thread.id}`);
+  revalidatePath(`/mechanic/messages/${result.thread.id}`);
+  revalidatePath(`/admin/messages/${result.thread.id}`);
+  const next = safeInternalPath(formData.get("returnTo")) ?? threadPathForRole(result.thread.id, session.role);
+  redirect(next);
 }
 
 export async function markThreadReadAction(threadId: string) {
@@ -221,8 +218,12 @@ export async function markThreadReadAction(threadId: string) {
   revalidatePath("/home");
   revalidatePath("/messages");
   revalidatePath("/vehicles");
+  revalidatePath("/notifications");
   revalidatePath("/mechanic");
   revalidatePath("/mechanic/messages");
+  revalidatePath(`/mechanic/messages/${threadId}`);
+  revalidatePath(`/messages/${threadId}`);
+  revalidatePath("/mechanic/notifications");
 }
 
 export async function createShopRepairOrderAction(formData: FormData) {

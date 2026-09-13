@@ -34,7 +34,7 @@ export default async function MessagesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-navy">{title}</p>
-                    <p className="truncate text-sm text-muted">{thread.messages[0]?.body}</p>
+                    <p className="truncate text-sm text-muted">{thread.messages[0]?.body ?? "No messages yet"}</p>
                     {thread.job ? (
                       <p className="mt-1 text-xs text-muted">{thread.job.serviceRequest.problemText}</p>
                     ) : null}

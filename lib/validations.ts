@@ -73,7 +73,7 @@ export const reviewSchema = z.object({
 
 export const messageSchema = z.object({
   threadId: z.string().uuid(),
-  body: z.string().min(1).max(4000),
+  body: z.string().trim().min(1).max(4000),
 });
 
 export const mechanicOnboardingSchema = z.object({
