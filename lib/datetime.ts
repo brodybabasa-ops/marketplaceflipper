@@ -79,6 +79,45 @@ export function startOfDenverMonth(date = new Date()) {
   return denverDateTimeToUtc(`${ymd.slice(0, 8)}01`, "00:00");
 }
 
+export function addDenverMonths(date: Date, months: number) {
+  const ymd = formatDenverDateInput(date);
+  const year = Number(ymd.slice(0, 4));
+  const month = Number(ymd.slice(5, 7));
+  const total = year * 12 + (month - 1) + months;
+  const nextYear = Math.floor(total / 12);
+  const nextMonth = (total % 12) + 1;
+  return denverDateTimeToUtc(`${nextYear}-${String(nextMonth).padStart(2, "0")}-01`, "00:00");
+}
+
+export function formatDenverMonthLabel(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: TIMEZONE,
+  }).format(date);
+}
+
+export function denverMonthGrid(monthStart: Date) {
+  const start = startOfDenverMonth(monthStart);
+  const nextMonth = addDenverMonths(start, 1);
+  const lastDay = addDenverDays(nextMonth, -1);
+  const gridStart = startOfDenverWeek(start);
+  const gridEnd = addDenverDays(startOfDenverWeek(lastDay), 7);
+  const days: Date[] = [];
+  for (let cursor = gridStart; cursor < gridEnd; cursor = addDenverDays(cursor, 1)) {
+    days.push(cursor);
+  }
+  return { start, nextMonth, lastDay, gridStart, gridEnd, days };
+}
+
+export function mechanicScheduleHref(input: { view?: "week" | "month"; week: string; moving?: string }) {
+  const params = new URLSearchParams();
+  if (input.view === "month") params.set("view", "month");
+  params.set("week", input.week);
+  if (input.moving) params.set("moving", input.moving);
+  return `/mechanic/schedule?${params.toString()}`;
+}
+
 export function proposedAppointmentFromPreferred(preferredDate?: string, preferredTimeWindow?: string) {
   if (!preferredDate) return undefined;
   return denverDateTimeToUtc(preferredDate, timeWindowToClock(preferredTimeWindow));

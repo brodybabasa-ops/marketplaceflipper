@@ -308,6 +308,8 @@ export async function scheduleAppointmentAction(formData: FormData) {
     time: String(formData.get("time") ?? ""),
   });
   revalidateJobSurfaces(jobId);
+  const next = safeInternalPath(formData.get("returnTo"));
+  if (next) redirect(next);
 }
 
 export async function createReviewAction(formData: FormData) {
