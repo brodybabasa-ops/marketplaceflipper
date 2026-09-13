@@ -2,6 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 
+function friendlyErrorMessage(error: Error) {
+  const message = error.message ?? "";
+  if (message.includes("Minified React error #441") || message.includes("Server Components render")) {
+    return "We couldn't load live shop data just then. Hit Try again in a moment.";
+  }
+  return message;
+}
+
 export default function ErrorPage({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div data-landing className="bg-[#071422] text-white">
@@ -18,7 +26,7 @@ export default function ErrorPage({ error, reset }: { error: Error; reset: () =>
       </section>
       <div className="relative z-10 -mt-10 flex w-full flex-1 flex-col">
         <div className="flex-1 bg-[#eef2f6] p-6 text-navy sm:p-8">
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm text-muted">{friendlyErrorMessage(error)}</p>
           <Button className="mt-6" onClick={reset}>
             Try again
           </Button>
