@@ -137,11 +137,11 @@ export const US_STATES: { code: string; name: string; slug: string }[] = [
 export const JOB_STATUS_ORDER = [
   "REQUESTED",
   "ACCEPTED",
+  "AWAITING_APPROVAL",
   "SCHEDULED",
   "EN_ROUTE",
   "ARRIVED",
   "DIAGNOSING",
-  "AWAITING_APPROVAL",
   "IN_PROGRESS",
   "COMPLETED",
 ] as const;

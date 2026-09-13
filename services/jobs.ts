@@ -82,7 +82,7 @@ async function selectMatchedShops(input: {
     sort: "recommended",
   });
   const fallback = await resolveAssignedShop(undefined, input.vehicle);
-  const uniqueIds = [...new Set([...matches.map((item) => item.id), fallback.id])];
+  const uniqueIds = [...new Set([fallback.id, ...matches.map((item) => item.id)])];
   const profiles = await prisma.mechanicProfile.findMany({
     where: { id: { in: uniqueIds }, acceptsNewJobs: true },
     include: { user: true },

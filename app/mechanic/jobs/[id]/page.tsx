@@ -42,7 +42,7 @@ export default async function MechanicJobPage({
       />
 
       {awaitingCustomer ? (
-        <div className="mb-4 rounded-xl border border-[#7b4fd4]/35 bg-[#7b4fd4]/10 px-4 py-3 text-sm">
+        <div className="mb-4 rounded-xl border border-[#d4c4f5] bg-[#f3edff] px-4 py-3 text-sm">
           <p className="font-semibold text-navy">Estimate sent. Waiting on the customer.</p>
           <p className="mt-1 text-muted">The board shows Waiting on customer until they approve or decline.</p>
         </div>
