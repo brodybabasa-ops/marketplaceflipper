@@ -42,15 +42,15 @@ export default async function MechanicJobPage({
       />
 
       {awaitingCustomer ? (
-        <div className="mb-4 rounded-xl border border-[#d4c4f5] bg-[#f3edff] px-4 py-3 text-sm">
-          <p className="font-semibold text-navy">Estimate sent. Waiting on the customer.</p>
-          <p className="mt-1 text-muted">The board shows Waiting on customer until they approve or decline.</p>
+        <div className="mb-4 rounded-xl border border-[#7b4fd4] bg-[#3b1d73] px-4 py-3 text-sm text-[#f4f7fb]">
+          <p className="font-semibold">Estimate sent. Waiting on the customer.</p>
+          <p className="mt-1 text-[#d4c4f5]">The board shows Waiting on customer until they approve or decline.</p>
         </div>
       ) : null}
       {needsRevision ? (
-        <div className="mb-4 rounded-xl border border-warning/30 bg-[#fff4de] px-4 py-3 text-sm">
-          <p className="font-semibold text-navy">Customer declined this estimate.</p>
-          <p className="mt-1 text-muted">Send a revision below. The job is no longer waiting on approval.</p>
+        <div className="mb-4 rounded-xl border border-warning/40 bg-[#5a3a08] px-4 py-3 text-sm text-[#fff4de]">
+          <p className="font-semibold">Customer declined this estimate.</p>
+          <p className="mt-1 text-[#f0d9a0]">Send a revision below. The job is no longer waiting on approval.</p>
         </div>
       ) : null}
 

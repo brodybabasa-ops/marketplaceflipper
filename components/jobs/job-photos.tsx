@@ -43,7 +43,7 @@ export function JobPhotos({
         </div>
       )}
       {canUpload ? (
-        <form action={uploadJobPhotoAction} encType="multipart/form-data" className="mt-4 space-y-3">
+        <form action={uploadJobPhotoAction} className="mt-4 space-y-3">
           <input type="hidden" name="jobId" value={jobId} />
           <Field label="Add a photo">
             <Input name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required />
