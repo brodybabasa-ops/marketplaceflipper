@@ -37,7 +37,7 @@ export function NotificationsInbox({
               <input type="hidden" name="id" value={item.id} />
               <button
                 type="submit"
-                className={`w-full rounded-xl border border-line px-4 py-3 text-left ${item.readAt ? "bg-paper" : "bg-white"}`}
+                className={`w-full rounded-xl border border-line bg-card px-4 py-3 text-left ${item.readAt ? "opacity-70" : ""}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-semibold text-navy">{item.title}</p>
