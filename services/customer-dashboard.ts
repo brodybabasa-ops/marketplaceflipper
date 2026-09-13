@@ -69,7 +69,7 @@ export async function getCustomerChrome(userId: string) {
 
 export async function getCustomerDashboard(userId: string) {
   const chrome = await getCustomerChrome(userId);
-  const [vehicles, jobs, threads, reviews, photos] = await Promise.all([
+  const [vehicles, jobs, threads, reviews, photos, matchingRequests] = await Promise.all([
     prisma.vehicle.findMany({
       where: { customerId: userId, archivedAt: null },
       include: { make: true, model: true },
@@ -108,6 +108,12 @@ export async function getCustomerDashboard(userId: string) {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    prisma.serviceRequest.findMany({
+      where: { customerId: userId, status: { in: ["MATCHED", "OPEN"] }, jobs: { none: {} } },
+      include: { vehicle: { include: { make: true, model: true } }, offers: { include: { mechanic: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
   ]);
 
   const dashboardVehicles = [...vehicles].reverse().slice(0, 10);
@@ -127,7 +133,24 @@ export async function getCustomerDashboard(userId: string) {
     if (b.status === "AWAITING_APPROVAL" && a.status !== "AWAITING_APPROVAL") return 1;
     return b.updatedAt.getTime() - a.updatedAt.getTime();
   });
-  const repairs: DashboardRepair[] = sortedActive.slice(0, 6).map((job) => {
+  const matchingRows: DashboardRepair[] = matchingRequests.map((request) => ({
+    id: request.id,
+    vehicleLabel: `${request.vehicle.year} ${request.vehicle.make.name} ${request.vehicle.model.name}`,
+    problem: request.problemText,
+    shopName: request.offers.length ? `${request.offers.length} shops notified` : "Matching shops",
+    shopCity: request.city ?? "",
+    photo: vehiclePhotoFor(request.vehicle.make.name, request.vehicle.model.name),
+    status: "REQUESTED",
+    badge: { label: "Waiting on shops", tone: "muted" },
+    estimateLabel: null,
+    appointmentLabel: "Request sent",
+    updatedLabel: formatRelative(request.updatedAt),
+    showStepper: false,
+    stepIndex: 0,
+    actions: [{ href: `/requests/${request.id}`, label: "View Request", variant: "primary" }],
+  }));
+
+  const repairs: DashboardRepair[] = [...matchingRows, ...sortedActive.slice(0, 6).map((job) => {
     const estimate = job.estimates[0];
     const estimateReady = estimate?.status === "SENT";
     const approved = job.estimates.find((item) => item.status === "APPROVED");
@@ -135,6 +158,9 @@ export async function getCustomerDashboard(userId: string) {
     const hasAppointment = Boolean(job.scheduledAt);
     const actions: DashboardRepair["actions"] = [];
     if (estimateReady) actions.push({ href: `/jobs/${job.id}#estimate`, label: "Approve Estimate", variant: "primary" });
+    if (job.status === "COMPLETED" && job.paymentStatus !== "PAID") {
+      actions.unshift({ href: `/jobs/${job.id}#invoice`, label: "Pay Invoice", variant: "primary" });
+    }
     actions.push({
       href: `/jobs/${job.id}#appointment`,
       label: hasAppointment ? "Reschedule" : "Set time",
@@ -159,7 +185,7 @@ export async function getCustomerDashboard(userId: string) {
       stepIndex: stepperIndex(job.status),
       actions,
     };
-  });
+  })];
 
   const activity = buildActivity({ jobs, threads, reviews, photos, userId }).slice(0, 5);
   const messages: DashboardMessage[] = threads.slice(0, 4).map((thread) => ({

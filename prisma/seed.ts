@@ -687,6 +687,7 @@ async function seedBrodyStory({
         status,
         totalCents: price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
+        repairOrderNumber: `RO-SEED-${request.id.replaceAll("-", "").slice(0, 10).toUpperCase()}`,
         scheduledAt,
         durationMinutes: durationForCategory(category),
         completedAt: doneAt,
@@ -760,6 +761,18 @@ async function seedBrodyStory({
           laborHours: 2,
           warrantySummary: "12 months / 12,000 miles",
           createdAt: doneAt ?? createdAt,
+        },
+      });
+      await prisma.invoice.create({
+        data: {
+          jobId: job.id,
+          number: `INV-SEED-${request.id.replaceAll("-", "").slice(0, 10).toUpperCase()}`,
+          status: "PAID",
+          subtotalCents: price,
+          totalCents: price,
+          issuedAt: doneAt ?? createdAt,
+          paidAt: doneAt ?? createdAt,
+          paymentIntentId: `mock_pi_${job.id.slice(0, 8)}`,
         },
       });
     }
@@ -1380,6 +1393,7 @@ async function main() {
         status,
         totalCents: problem.price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
+        repairOrderNumber: `RO-SEED-${request.id.replaceAll("-", "").slice(0, 10).toUpperCase()}`,
         scheduledAt: status === "REQUESTED" ? undefined : createdAt,
         durationMinutes: durationForCategory(category),
         completedAt: status === "COMPLETED" ? new Date(createdAt.getTime() + 86400000 * 2) : undefined,
@@ -1443,6 +1457,18 @@ async function main() {
           laborHours: 1.5 + (i % 3),
           warrantySummary: "12 months / 12,000 miles",
           createdAt: job.completedAt ?? createdAt,
+        },
+      });
+      await prisma.invoice.create({
+        data: {
+          jobId: job.id,
+          number: `INV-SEED-${request.id.replaceAll("-", "").slice(0, 10).toUpperCase()}`,
+          status: "PAID",
+          subtotalCents: problem.price,
+          totalCents: problem.price,
+          issuedAt: job.completedAt ?? createdAt,
+          paidAt: job.completedAt ?? createdAt,
+          paymentIntentId: `mock_pi_${job.id.slice(0, 8)}`,
         },
       });
       if (completed <= 100) {

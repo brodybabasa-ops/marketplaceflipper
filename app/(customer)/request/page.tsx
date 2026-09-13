@@ -3,7 +3,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { ThemedBoard } from "@/components/layout/themed-board";
 import { RequestFormFields } from "@/components/jobs/request-form-fields";
 import { createRequestAction } from "@/app/actions/marketplace";
-import { FREDS_MARINE_SLUG, PRECISION_AUTO_SLUG } from "@/lib/constants";
+import { FREDS_MARINE_SLUG } from "@/lib/constants";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { isMarineVehicle } from "@/lib/vehicles";
@@ -48,14 +48,7 @@ export default async function RequestPage({
       ? vehicles.find((vehicle) => isMarineVehicle(vehicle.make.name, vehicle.model.name))
       : undefined) ??
     vehicles[0];
-  const defaultSlug = selectedVehicle && isMarineVehicle(selectedVehicle.make.name, selectedVehicle.model.name)
-    ? FREDS_MARINE_SLUG
-    : PRECISION_AUTO_SLUG;
-  const defaultShopId =
-    (namedShop?.acceptsNewJobs ? namedShop.id : undefined) ??
-    shops.find((shop) => shop.slug === defaultSlug)?.id ??
-    shops[0]?.id;
-  const submitShop = shops.find((shop) => shop.id === defaultShopId);
+  const defaultShopId = namedShop?.acceptsNewJobs ? namedShop.id : undefined;
 
   return (
     <ThemedBoard
@@ -95,7 +88,7 @@ export default async function RequestPage({
             Prefer a mechanic who can come to me
           </label>
           <Button type="submit" name="sendRequest">
-            {lockShop && namedShop ? `Send request to ${namedShop.businessName}` : submitShop ? `Send request to ${submitShop.businessName}` : "Request service"}
+            {lockShop && namedShop ? `Send request to ${namedShop.businessName}` : "Send to matched shops"}
           </Button>
         </form>
       )}

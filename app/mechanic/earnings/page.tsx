@@ -9,21 +9,27 @@ export default async function EarningsPage() {
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const config = await prisma.platformConfig.findUnique({ where: { id: "default" } });
-  const jobs = await prisma.job.findMany({
-    where: { mechanicProfileId: profile.id, status: "COMPLETED" },
-    select: { totalCents: true },
-  });
-  const gross = jobs.reduce((sum, job) => sum + job.totalCents, 0);
+  const [paidJobs, pendingPayouts] = await Promise.all([
+    prisma.job.findMany({
+      where: { mechanicProfileId: profile.id, paymentStatus: "PAID" },
+      select: { totalCents: true },
+    }),
+    prisma.payout.aggregate({
+      where: { mechanicUserId: session.id, status: { in: ["PENDING", "PROCESSING"] } },
+      _sum: { amountCents: true },
+    }),
+  ]);
+  const gross = paidJobs.reduce((sum, job) => sum + job.totalCents, 0);
   const commission = Math.round(gross * ((config?.commissionPercent ?? 10) / 100));
   return (
     <div>
       <p className="text-sm text-muted">
-        Payments are not processed in this MVP. When Stripe Connect is enabled, payouts will use the same job totals and configurable commission.
+        Paid jobs settle on the job record now. Stripe Connect will move these same totals when keys are added; until then checkout uses the mock processor.
       </p>
       <div className="mt-6 grid gap-3 md:grid-cols-3">
-        <StatCard label="Completed job volume" value={formatCents(gross)} />
+        <StatCard label="Paid volume" value={formatCents(gross)} />
         <StatCard label={`Platform commission (${config?.commissionPercent ?? 10}%)`} value={formatCents(commission)} />
-        <StatCard label="Mechanic net" value={formatCents(gross - commission)} />
+        <StatCard label="Pending payout" value={formatCents(pendingPayouts._sum.amountCents ?? gross - commission)} />
       </div>
     </div>
   );

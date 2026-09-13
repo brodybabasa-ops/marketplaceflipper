@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
 import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
-import { transitionJob } from "@/services/jobs";
+import { ensureAppointmentAfterApproval, transitionJob } from "@/services/jobs";
 import { notify } from "@/services/notifications";
 import type { EstimateLineCategory, EstimateType, JobStatus } from "@prisma/client";
 
@@ -133,14 +133,23 @@ export async function respondToEstimate(input: {
       where: { id: estimate.jobId },
       data: { totalCents: estimate.totalCents },
     });
+    const scheduled = await ensureAppointmentAfterApproval(estimate.jobId);
     if (estimate.job.status === "AWAITING_APPROVAL") {
-      await transitionJob(estimate.jobId, "IN_PROGRESS", input.userId, "Customer approved the estimate.");
+      const next =
+        estimate.type === "CHANGE_ORDER"
+          ? "IN_PROGRESS"
+          : scheduled.scheduledAt
+            ? "SCHEDULED"
+            : "IN_PROGRESS";
+      await transitionJob(estimate.jobId, next, input.userId, "Customer approved the estimate.");
     }
     await postJobNote(estimate.jobId, input.userId, `Approved the estimate (${formatCents(estimate.totalCents)}).`);
     await notify({
       userId: estimate.job.mechanicUserId,
       title: "Estimate approved",
-      body: `${customerName} approved ${formatCents(estimate.totalCents)}. The job is in progress.`,
+      body: scheduled.scheduledAt
+        ? `${customerName} approved ${formatCents(estimate.totalCents)}. Appointment is on the board.`
+        : `${customerName} approved ${formatCents(estimate.totalCents)}. Set a time to start the work.`,
       href: `/mechanic/jobs/${estimate.jobId}`,
     });
   } else {

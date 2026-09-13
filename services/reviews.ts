@@ -20,6 +20,7 @@ export async function createReview(input: {
 
   if (job.customerId !== input.customerId) throw new Error("Not authorized.");
   if (job.status !== "COMPLETED") throw new Error("Reviews are only allowed after a completed Pocket Mechanic job.");
+  if (job.paymentStatus !== "PAID") throw new Error("Pay the invoice before leaving a verified review.");
   if (job.review) throw new Error("This job already has a review.");
   if (job.customerId === job.mechanicUserId) throw new Error("You cannot review your own work.");
 

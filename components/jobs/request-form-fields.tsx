@@ -36,7 +36,7 @@ export function RequestFormFields({
   const [vehicleId, setVehicleId] = useState(defaultVehicleId ?? vehicles[0]?.id ?? "");
   const suggestedSlug = vehicles.find((item) => item.id === vehicleId)?.marine ? FREDS_MARINE_SLUG : PRECISION_AUTO_SLUG;
   const suggestedShopId = shops.find((shop) => shop.slug === suggestedSlug)?.id ?? shops[0]?.id ?? "";
-  const [shopId, setShopId] = useState(defaultShopId ?? suggestedShopId);
+  const [shopId, setShopId] = useState(lockShop ? (defaultShopId ?? suggestedShopId) : "");
   const selectedShop = useMemo(() => shops.find((shop) => shop.id === shopId) ?? null, [shops, shopId]);
   const shopPlace = [selectedShop?.shopCity, selectedShop?.shopState].filter(Boolean).join(", ");
 
@@ -57,8 +57,8 @@ export function RequestFormFields({
             name="mechanicProfileId"
             value={shopId}
             onChange={(event) => setShopId(event.target.value)}
-            required
           >
+            <option value="">Match nearby shops</option>
             {shops.map((shop) => (
               <option key={shop.id} value={shop.id}>
                 {shop.businessName}
@@ -77,10 +77,7 @@ export function RequestFormFields({
             const next = event.target.value;
             setVehicleId(next);
             if (!lockShop) {
-              const marine = vehicles.find((item) => item.id === next)?.marine;
-              const slug = marine ? FREDS_MARINE_SLUG : PRECISION_AUTO_SLUG;
-              const match = shops.find((shop) => shop.slug === slug);
-              if (match) setShopId(match.id);
+              setShopId("");
             }
           }}
         >

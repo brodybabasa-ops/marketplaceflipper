@@ -13,8 +13,9 @@ import {
   serviceRequestSchema,
   vehicleSchema,
 } from "@/lib/validations";
-import { createServiceRequest, createShopRepairOrder, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
+import { createServiceRequest, createShopRepairOrder, getJobForUser, scheduleJobAppointment, transitionJob, acceptServiceRequestOffer, declineServiceRequestOffer } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
+import { payJobInvoice } from "@/services/billing";
 import { getOrCreateShopThread, markThreadRead, postThreadMessage, threadPathForRole } from "@/services/messages";
 import { createReview } from "@/services/reviews";
 import { decodeVinToCatalog } from "@/services/vin";
@@ -53,6 +54,8 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/admin/vehicles");
   revalidatePath("/admin/analytics");
   revalidatePath("/admin/notifications");
+  revalidatePath("/mechanic/earnings");
+  revalidatePath("/mechanic/reviews");
   if (jobId) {
     revalidatePath(`/jobs/${jobId}`);
     revalidatePath(`/mechanic/jobs/${jobId}`);
@@ -181,10 +184,11 @@ export async function createRequestAction(formData: FormData) {
     ...parsed.data,
   });
   revalidateJobSurfaces(result.job?.id);
+  revalidatePath("/request");
   if (result.job) {
     redirect(`/jobs/${result.job.id}`);
   }
-  redirect(`/mechanics?request=${result.request.id}&zip=${parsed.data.zip}`);
+  redirect(`/requests/${result.request.id}`);
 }
 
 export async function sendMessageAction(formData: FormData) {
@@ -357,7 +361,13 @@ export async function createDisputeAction(formData: FormData) {
       description: parsed.data.description,
     },
   });
-  await prisma.job.update({ where: { id: job.id }, data: { status: "DISPUTED" } });
+  if (job.status !== "DISPUTED") {
+    try {
+      await transitionJob(job.id, "DISPUTED", session.id, parsed.data.description);
+    } catch {
+      await prisma.job.update({ where: { id: job.id }, data: { status: "DISPUTED" } });
+    }
+  }
   revalidateJobSurfaces(job.id);
   redirect(`/jobs/${job.id}`);
 }
@@ -454,4 +464,32 @@ export async function toggleSavedShopAction(formData: FormData) {
   revalidatePath("/search");
   revalidatePath(`/mechanics/${profile.slug}`);
   redirect(returnTo);
+}
+
+export async function acceptRequestOfferAction(formData: FormData) {
+  const session = await requireUser();
+  if (session.role !== "MECHANIC") throw new Error("Not authorized.");
+  const job = await acceptServiceRequestOffer(String(formData.get("offerId")), session.id);
+  revalidateJobSurfaces(job.id);
+  revalidatePath("/mechanic/requests");
+  redirect(`/mechanic/jobs/${job.id}`);
+}
+
+export async function declineRequestOfferAction(formData: FormData) {
+  const session = await requireUser();
+  if (session.role !== "MECHANIC") throw new Error("Not authorized.");
+  await declineServiceRequestOffer(String(formData.get("offerId")), session.id);
+  revalidatePath("/mechanic");
+  revalidatePath("/mechanic/requests");
+  revalidatePath("/jobs");
+  revalidatePath("/home");
+}
+
+export async function payInvoiceAction(formData: FormData) {
+  const session = await requireUser();
+  const jobId = String(formData.get("jobId") ?? "");
+  await payJobInvoice(jobId, session.id);
+  revalidateJobSurfaces(jobId);
+  const next = safeInternalPath(formData.get("returnTo")) ?? `/jobs/${jobId}`;
+  redirect(next);
 }

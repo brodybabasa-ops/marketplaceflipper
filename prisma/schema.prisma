@@ -81,6 +81,21 @@ enum ServiceRequestStatus {
   CANCELLED
 }
 
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
 enum EstimateType {
   PRELIMINARY
   PRIMARY
@@ -304,6 +319,8 @@ model MechanicProfile {
   makeExpertise  MechanicMakeExpertise[]
   verifications  Verification[]
   jobs           Job[]
+  serviceRequests ServiceRequest[]
+  offers         ServiceRequestOffer[]
   reviews        Review[]
   savedBy        SavedMechanic[]
   schedulerResources SchedulerResource[]
@@ -482,7 +499,9 @@ model ServiceRequest {
 
   customer User             @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle  Vehicle          @relation(fields: [vehicleId], references: [id])
+  mechanic MechanicProfile? @relation(fields: [mechanicProfileId], references: [id])
   jobs     Job[]
+  offers   ServiceRequestOffer[]
   thread   MessageThread?
 
   @@index([customerId, status])
@@ -496,6 +515,7 @@ model Job {
   mechanicUserId    String        @db.Uuid
   mechanicProfileId String        @db.Uuid
   vehicleId         String        @db.Uuid
+  repairOrderNumber String?       @unique
   status            JobStatus     @default(REQUESTED)
   scheduledAt       DateTime?
   durationMinutes   Int           @default(90)
@@ -525,11 +545,47 @@ model Job {
   thread          MessageThread?
   disputes        Dispute[]
   payouts         Payout[]
+  invoice         Invoice?
 
   @@index([customerId, status])
   @@index([mechanicProfileId, status])
   @@index([status])
   @@index([resourceId, scheduledAt])
+}
+
+model ServiceRequestOffer {
+  id                String      @id @default(uuid()) @db.Uuid
+  requestId         String      @db.Uuid
+  mechanicProfileId String      @db.Uuid
+  status            OfferStatus @default(PENDING)
+  rank              Int         @default(0)
+  notifiedAt        DateTime?
+  respondedAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  request  ServiceRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  mechanic MechanicProfile @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, mechanicProfileId])
+  @@index([mechanicProfileId, status])
+  @@index([requestId, status])
+}
+
+model Invoice {
+  id               String        @id @default(uuid()) @db.Uuid
+  jobId            String        @unique @db.Uuid
+  number           String        @unique
+  status           InvoiceStatus @default(ISSUED)
+  subtotalCents    Int           @default(0)
+  totalCents       Int           @default(0)
+  issuedAt         DateTime      @default(now())
+  paidAt           DateTime?
+  paymentIntentId  String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 model SchedulerResource {

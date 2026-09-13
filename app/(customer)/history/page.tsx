@@ -46,6 +46,9 @@ export default async function HistoryPage() {
                       <p className="font-semibold text-navy">{record.title}</p>
                       <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
                       <p className="number mt-1 font-semibold">{formatCents(record.job.totalCents)}</p>
+                      {record.job.repairOrderNumber ? (
+                        <p className="text-xs text-muted">{record.job.repairOrderNumber}</p>
+                      ) : null}
                       <a href={`/jobs/${record.jobId}`} className="mt-2 inline-block text-sm font-semibold text-[#2f7bff]">
                         View job
                       </a>

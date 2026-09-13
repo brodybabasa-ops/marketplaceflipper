@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { PageHeading } from "@/components/layout/themed-board";
 import { createEstimateAction, saveRepairRecordAction, updateJobStatusAction } from "@/app/actions/marketplace";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { InvoiceCard } from "@/components/jobs/invoice-card";
 import { JobPhotos } from "@/components/jobs/job-photos";
 import { ThreadView } from "@/components/messages/thread-view";
 import { requireSession } from "@/lib/guards";
@@ -37,7 +38,7 @@ export default async function MechanicJobPage({
     <div>
       <PageHeading
         title={job.serviceRequest.problemText}
-        subtitle={`${job.customer.firstName} ${job.customer.lastName} · ${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name} · ${job.serviceRequest.zip}`}
+        subtitle={`${job.customer.firstName} ${job.customer.lastName} · ${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name} · ${job.repairOrderNumber ?? job.serviceRequest.zip}`}
       />
 
       {awaitingCustomer ? (
@@ -106,6 +107,17 @@ export default async function MechanicJobPage({
           preferredTimeWindow={job.serviceRequest.preferredTimeWindow}
           canEdit={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
           surface="shop"
+        />
+      </div>
+
+      <div className="mt-4">
+        <InvoiceCard
+          jobId={job.id}
+          invoice={job.invoice}
+          paymentStatus={job.paymentStatus}
+          repairOrderNumber={job.repairOrderNumber}
+          canPay={false}
+          audience="shop"
         />
       </div>
 

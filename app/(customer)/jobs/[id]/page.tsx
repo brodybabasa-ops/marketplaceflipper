@@ -3,6 +3,7 @@ import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { ReviewCard } from "@/components/jobs/review-card";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { InvoiceCard } from "@/components/jobs/invoice-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/input";
@@ -27,7 +28,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     <ThemedBoard
       eyebrow={job.mechanicProfile.businessName.toUpperCase()}
       title={job.serviceRequest.problemText}
-      subtitle={vehicleLabel}
+      subtitle={`${vehicleLabel}${job.repairOrderNumber ? ` · ${job.repairOrderNumber}` : ""}`}
       script="Stay in the Loop."
       image={vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name)}
     >
@@ -53,6 +54,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               calendarHref={job.scheduledAt ? `/jobs/${job.id}/calendar` : undefined}
             />
           ) : null}
+          <InvoiceCard
+            jobId={job.id}
+            invoice={job.invoice}
+            paymentStatus={job.paymentStatus}
+            repairOrderNumber={job.repairOrderNumber}
+            canPay={session.role === "CUSTOMER" && job.status === "COMPLETED"}
+          />
           {job.estimates.map((estimate, index) => (
             <EstimateCard
               key={estimate.id}
@@ -69,7 +77,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           />
           {job.repairRecord ? (
             <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
-              <h2 className="font-semibold text-navy">Repair completed</h2>
+              <h2 className="font-semibold text-navy">Repair saved to vehicle history</h2>
               <p className="mt-2 text-lg font-semibold">{job.repairRecord.title}</p>
               <p className="text-sm text-muted">
                 {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
@@ -81,10 +89,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               {job.totalCents ? <p className="mt-2 number font-semibold">{formatCents(job.totalCents)}</p> : null}
             </Card>
           ) : null}
-          {job.status === "COMPLETED" && !job.review && session.role === "CUSTOMER" ? (
+          {job.status === "COMPLETED" && job.paymentStatus === "PAID" && !job.review && session.role === "CUSTOMER" ? (
             <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
-              <h2 className="font-semibold text-navy">Leave a review</h2>
-              <p className="text-sm text-muted">Only completed Pocket Mechanic jobs can be reviewed.</p>
+              <h2 className="font-semibold text-navy">Leave a verified review</h2>
+              <p className="text-sm text-muted">This review is tied to a paid Pocket Mechanic repair.</p>
               <form action={createReviewAction} className="mt-4 space-y-3">
                 <input type="hidden" name="jobId" value={job.id} />
                 {["overallRating", "communicationRating", "professionalismRating", "pricingRating", "timelinessRating", "qualityRating"].map((name) => (
@@ -109,6 +117,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 </Field>
                 <Button type="submit">Submit review</Button>
               </form>
+            </Card>
+          ) : null}
+          {job.status === "COMPLETED" && job.paymentStatus !== "PAID" && session.role === "CUSTOMER" && !job.review ? (
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+              <h2 className="font-semibold text-navy">Review unlocks after payment</h2>
+              <p className="text-sm text-muted">Pay the invoice above to leave a verified review and lock this repair into history.</p>
             </Card>
           ) : null}
           {job.review ? <ReviewCard review={{ ...job.review, customer: job.customer }} /> : null}

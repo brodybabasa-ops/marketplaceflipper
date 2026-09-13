@@ -1,6 +1,7 @@
 import type { JobStatus, Prisma } from "@prisma/client";
 import { FREDS_MARINE_SLUG, PRECISION_AUTO_SLUG } from "@/lib/constants";
-import { denverDateTimeToUtc, proposedAppointmentFromPreferred } from "@/lib/datetime";
+import { denverDateTimeToUtc, formatDenverDateInput, proposedAppointmentFromPreferred, timeWindowToClock } from "@/lib/datetime";
+import { nextRepairOrderNumber } from "@/lib/document-numbers";
 import { prisma } from "@/lib/db";
 import { formatAppointment } from "@/lib/utils";
 import { isMarineVehicle } from "@/lib/vehicles";
@@ -8,6 +9,10 @@ import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechan
 import { notify } from "@/services/notifications";
 import { durationForCategory } from "@/lib/scheduler";
 import { classifyProblem } from "@/services/problem-classifier";
+import { searchMechanics } from "@/services/search";
+import { issueInvoiceForJob, persistRepairHistory } from "@/services/billing";
+
+const MATCH_LIMIT = 5;
 
 async function resolveAssignedShop(
   mechanicProfileId: string | undefined,
@@ -37,6 +42,42 @@ async function resolveAssignedShop(
   return fallback;
 }
 
+async function selectMatchedShops(input: {
+  mechanicProfileId?: string;
+  vehicle: { year: number; make: { name: string }; model: { name: string } };
+  zip: string;
+  category: ReturnType<typeof classifyProblem>;
+}) {
+  if (input.mechanicProfileId) {
+    const named = await prisma.mechanicProfile.findUnique({
+      where: { id: input.mechanicProfileId },
+      include: { user: true },
+    });
+    if (!named) throw new Error("That shop is not available.");
+    if (!named.acceptsNewJobs) throw new Error("That shop is not taking new requests.");
+    return [named];
+  }
+
+  const { matches } = await searchMechanics({
+    zip: input.zip,
+    category: input.category,
+    make: input.vehicle.make.name,
+    vehicle: `${input.vehicle.year} ${input.vehicle.make.name} ${input.vehicle.model.name}`,
+    distance: "50",
+    sort: "recommended",
+  });
+  const fallback = await resolveAssignedShop(undefined, input.vehicle);
+  const uniqueIds = [...new Set([...matches.map((item) => item.id), fallback.id])];
+  const profiles = await prisma.mechanicProfile.findMany({
+    where: { id: { in: uniqueIds }, acceptsNewJobs: true },
+    include: { user: true },
+  });
+  const byId = new Map(profiles.map((profile) => [profile.id, profile]));
+  const selected = uniqueIds.map((id) => byId.get(id)).filter((profile): profile is NonNullable<typeof profile> => Boolean(profile));
+  if (selected.length === 0) throw new Error("No shop is available to take this request.");
+  return selected.slice(0, MATCH_LIMIT);
+}
+
 export function jobSearchWhere(q?: string | null): Prisma.JobWhereInput {
   const term = q?.trim();
   if (!term) return {};
@@ -50,6 +91,7 @@ export function jobSearchWhere(q?: string | null): Prisma.JobWhereInput {
       { vehicle: { nickname: { contains: term, mode: "insensitive" } } },
       { vehicle: { make: { name: { contains: term, mode: "insensitive" } } } },
       { vehicle: { model: { name: { contains: term, mode: "insensitive" } } } },
+      { repairOrderNumber: { contains: term, mode: "insensitive" } },
     ],
   };
 }
@@ -74,19 +116,25 @@ export async function createServiceRequest(input: {
   });
   if (!vehicle) throw new Error("Vehicle not found.");
 
-  const mechanic = await resolveAssignedShop(input.mechanicProfileId, vehicle);
   const zip = await prisma.zipCode.findUnique({ where: { zip: input.zip.slice(0, 5) } });
   const category = classifyProblem(input.problemText);
   const openedByShop = input.source === "shop";
-  const scheduledAt = proposedAppointmentFromPreferred(input.preferredDate, input.preferredTimeWindow);
-  const initialStatus: JobStatus = openedByShop ? (scheduledAt ? "SCHEDULED" : "ACCEPTED") : "REQUESTED";
+  const shops = openedByShop
+    ? [await resolveAssignedShop(input.mechanicProfileId, vehicle)]
+    : await selectMatchedShops({
+        mechanicProfileId: input.mechanicProfileId,
+        vehicle,
+        zip: input.zip.slice(0, 5),
+        category,
+      });
+  const primary = shops[0];
 
   const request = await prisma.serviceRequest.create({
     data: {
       customerId: input.customerId,
       vehicleId: input.vehicleId,
-      mechanicProfileId: mechanic.id,
-      status: openedByShop ? "ACCEPTED" : "OPEN",
+      mechanicProfileId: openedByShop || shops.length === 1 ? primary.id : null,
+      status: openedByShop ? "ACCEPTED" : "MATCHED",
       problemText: input.problemText,
       description: input.description,
       category,
@@ -95,67 +143,190 @@ export async function createServiceRequest(input: {
       state: zip?.stateCode,
       latitude: zip?.latitude,
       longitude: zip?.longitude,
-      preferredDate: input.preferredDate
-        ? denverDateTimeToUtc(input.preferredDate, "12:00")
-        : undefined,
+      preferredDate: input.preferredDate ? denverDateTimeToUtc(input.preferredDate, "12:00") : undefined,
       preferredTimeWindow: input.preferredTimeWindow,
       budgetCents: input.budgetCents,
       mobilePreferred: input.mobilePreferred ?? true,
     },
   });
 
+  if (openedByShop) {
+    const scheduledAt = proposedAppointmentFromPreferred(input.preferredDate, input.preferredTimeWindow);
+    const job = await openJobFromRequest({
+      requestId: request.id,
+      mechanicProfileId: primary.id,
+      actorId: input.actorId ?? primary.userId,
+      status: scheduledAt ? "SCHEDULED" : "ACCEPTED",
+      scheduledAt,
+      note: "Shop opened a repair order.",
+      openingMessage: `Opened a repair order: ${input.problemText}`,
+    });
+    await notify({
+      userId: input.customerId,
+      title: `${primary.businessName} opened a repair order`,
+      body: input.problemText,
+      href: `/jobs/${job.id}`,
+    });
+    return { request, job, thread: job.thread };
+  }
+
+  const now = new Date();
+  await prisma.serviceRequestOffer.createMany({
+    data: shops.map((shop, rank) => ({
+      requestId: request.id,
+      mechanicProfileId: shop.id,
+      rank,
+      status: "PENDING" as const,
+      notifiedAt: now,
+    })),
+  });
+
+  for (const shop of shops) {
+    await notify({
+      userId: shop.userId,
+      title: "New service request",
+      body: input.problemText,
+      href: "/mechanic/requests",
+    });
+  }
+
+  return { request, job: null, thread: null };
+}
+
+export async function openJobFromRequest(input: {
+  requestId: string;
+  mechanicProfileId: string;
+  actorId: string;
+  status: JobStatus;
+  scheduledAt?: Date | null;
+  note: string;
+  openingMessage: string;
+}) {
+  const request = await prisma.serviceRequest.findUniqueOrThrow({
+    where: { id: input.requestId },
+    include: { jobs: true },
+  });
+  const existing = request.jobs.find((job) => job.mechanicProfileId === input.mechanicProfileId && job.status !== "CANCELLED");
+  if (existing) return prisma.job.findUniqueOrThrow({ where: { id: existing.id }, include: { thread: true } });
+
+  const mechanic = await prisma.mechanicProfile.findUniqueOrThrow({
+    where: { id: input.mechanicProfileId },
+    include: { user: true },
+  });
   const job = await prisma.job.create({
     data: {
       serviceRequestId: request.id,
-      customerId: input.customerId,
+      customerId: request.customerId,
       mechanicUserId: mechanic.userId,
       mechanicProfileId: mechanic.id,
-      vehicleId: input.vehicleId,
-      status: initialStatus,
-      scheduledAt,
-      durationMinutes: durationForCategory(category),
-      events: {
-        create: {
-          status: initialStatus,
-          note: openedByShop ? "Shop opened a repair order." : "Customer requested service.",
-        },
-      },
+      vehicleId: request.vehicleId,
+      repairOrderNumber: await nextRepairOrderNumber(),
+      status: input.status,
+      scheduledAt: input.scheduledAt ?? undefined,
+      durationMinutes: durationForCategory(request.category),
+      events: { create: { status: input.status, note: input.note } },
     },
   });
 
   const thread = await prisma.messageThread.create({
     data: {
-      customerId: input.customerId,
+      customerId: request.customerId,
       mechanicId: mechanic.userId,
       jobId: job.id,
       requestId: request.id,
       messages: {
         create: {
-          senderId: openedByShop ? mechanic.userId : input.customerId,
-          body: openedByShop ? `Opened a repair order: ${input.problemText}` : input.problemText,
+          senderId: input.actorId,
+          body: input.openingMessage,
           kind: "TEXT",
         },
       },
     },
   });
 
-  if (openedByShop) {
-    await notify({
-      userId: input.customerId,
-      title: `${mechanic.businessName} opened a repair order`,
-      body: input.problemText,
-      href: `/jobs/${job.id}`,
-    });
-  } else {
-    await notify({
-      userId: mechanic.userId,
-      title: "New service request",
-      body: input.problemText,
-      href: `/mechanic/jobs/${job.id}`,
-    });
+  await prisma.serviceRequest.update({
+    where: { id: request.id },
+    data: { status: "ACCEPTED", mechanicProfileId: mechanic.id },
+  });
+
+  return { ...job, thread };
+}
+
+export async function acceptServiceRequestOffer(offerId: string, mechanicUserId: string) {
+  const offer = await prisma.serviceRequestOffer.findUniqueOrThrow({
+    where: { id: offerId },
+    include: {
+      mechanic: true,
+      request: { include: { customer: true, vehicle: { include: { make: true, model: true } } } },
+    },
+  });
+  if (offer.mechanic.userId !== mechanicUserId) throw new Error("Not authorized.");
+  if (offer.status !== "PENDING") throw new Error("This request is no longer available.");
+  if (offer.request.status !== "MATCHED" && offer.request.status !== "OPEN") {
+    throw new Error("Another shop already took this request.");
   }
 
-  return { request, job, thread };
+  const scheduledAt = proposedAppointmentFromPreferred(
+    offer.request.preferredDate ? formatDenverDateInput(offer.request.preferredDate) : undefined,
+    offer.request.preferredTimeWindow ?? undefined,
+  );
+  const job = await openJobFromRequest({
+    requestId: offer.requestId,
+    mechanicProfileId: offer.mechanicProfileId,
+    actorId: mechanicUserId,
+    status: scheduledAt ? "SCHEDULED" : "ACCEPTED",
+    scheduledAt,
+    note: "Shop accepted the request.",
+    openingMessage: offer.request.problemText,
+  });
+
+  await prisma.serviceRequestOffer.update({
+    where: { id: offer.id },
+    data: { status: "ACCEPTED", respondedAt: new Date() },
+  });
+  await prisma.serviceRequestOffer.updateMany({
+    where: { requestId: offer.requestId, id: { not: offer.id }, status: "PENDING" },
+    data: { status: "WITHDRAWN", respondedAt: new Date() },
+  });
+
+  await notify({
+    userId: offer.request.customerId,
+    title: `${offer.mechanic.businessName} accepted your request`,
+    body: "You can message them, approve an estimate, and track the repair from here.",
+    href: `/jobs/${job.id}`,
+  });
+  return job;
+}
+
+export async function declineServiceRequestOffer(offerId: string, mechanicUserId: string) {
+  const offer = await prisma.serviceRequestOffer.findUniqueOrThrow({
+    where: { id: offerId },
+    include: { mechanic: true, request: true },
+  });
+  if (offer.mechanic.userId !== mechanicUserId) throw new Error("Not authorized.");
+  if (offer.status !== "PENDING") throw new Error("This request is no longer available.");
+
+  await prisma.serviceRequestOffer.update({
+    where: { id: offer.id },
+    data: { status: "DECLINED", respondedAt: new Date() },
+  });
+
+  const remaining = await prisma.serviceRequestOffer.count({
+    where: { requestId: offer.requestId, status: "PENDING" },
+  });
+  if (remaining === 0) {
+    await prisma.serviceRequest.update({
+      where: { id: offer.requestId },
+      data: { status: "EXPIRED" },
+    });
+    await notify({
+      userId: offer.request.customerId,
+      title: "No shops took this request",
+      body: "Send it again or pick a shop from Find a Shop.",
+      href: "/request",
+    });
+  }
+  return offer.requestId;
 }
 
 export async function createShopRepairOrder(input: {
@@ -184,6 +355,7 @@ export async function createShopRepairOrder(input: {
     actorId: input.mechanicUserId,
     mobilePreferred: false,
   });
+  if (!result.job) throw new Error("The repair order did not open.");
   if (input.date && input.time) {
     await scheduleJobAppointment({
       jobId: result.job.id,
@@ -202,7 +374,7 @@ export async function createShopRepairOrder(input: {
       },
     });
   }
-  return result;
+  return { request: result.request, job: result.job, thread: result.thread };
 }
 
 export async function transitionJob(jobId: string, next: JobStatus, actorId: string, note?: string) {
@@ -221,6 +393,9 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
   if (next === "CANCELLED") {
     data.cancelledAt = new Date();
     data.cancelReason = note;
+  }
+  if (!job.repairOrderNumber && (next === "ACCEPTED" || next === "SCHEDULED" || next === "IN_PROGRESS" || next === "COMPLETED")) {
+    data.repairOrderNumber = await nextRepairOrderNumber();
   }
 
   const updated = await prisma.job.update({ where: { id: jobId }, data });
@@ -247,11 +422,13 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
       data: { completedJobsCount: { increment: 1 } },
     });
     await refreshMechanicScore(job.mechanicProfileId);
+    await persistRepairHistory(job.id);
+    await issueInvoiceForJob(job.id);
     await notify({
       userId: job.customerId,
       title: "Repair complete",
-      body: "Review the work and leave a rating when you are ready.",
-      href: `/jobs/${job.id}`,
+      body: "Pay the invoice, then leave a verified review. This repair is saved to the vehicle.",
+      href: `/jobs/${job.id}#invoice`,
     });
   }
 
@@ -361,6 +538,26 @@ export async function scheduleJobAppointment(input: {
   return updated;
 }
 
+export async function ensureAppointmentAfterApproval(jobId: string) {
+  const job = await prisma.job.findUniqueOrThrow({
+    where: { id: jobId },
+    include: { serviceRequest: true },
+  });
+  if (job.scheduledAt) return job;
+  const preferredDate = job.serviceRequest.preferredDate
+    ? formatDenverDateInput(job.serviceRequest.preferredDate)
+    : undefined;
+  if (!preferredDate) return job;
+  const when = denverDateTimeToUtc(preferredDate, timeWindowToClock(job.serviceRequest.preferredTimeWindow));
+  return prisma.job.update({
+    where: { id: job.id },
+    data: {
+      scheduledAt: when,
+      events: { create: { status: job.status, note: `Appointment set for ${formatAppointment(when)}.` } },
+    },
+  });
+}
+
 export async function getJobForUser(jobId: string, userId: string, role: string) {
   const job = await prisma.job.findUnique({
     where: { id: jobId },
@@ -377,10 +574,26 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       review: { include: { response: true } },
       thread: { include: { messages: { include: { sender: true }, orderBy: { createdAt: "asc" } } } },
       disputes: true,
+      invoice: true,
     },
   });
   if (!job) return null;
   if (role === "ADMIN") return job;
   if (job.customerId !== userId && job.mechanicUserId !== userId) return null;
   return job;
+}
+
+export async function getMatchedRequestForCustomer(requestId: string, customerId: string) {
+  const request = await prisma.serviceRequest.findFirst({
+    where: { id: requestId, customerId },
+    include: {
+      vehicle: { include: { make: true, model: true } },
+      jobs: { include: { mechanicProfile: true }, orderBy: { createdAt: "desc" } },
+      offers: {
+        include: { mechanic: true },
+        orderBy: { rank: "asc" },
+      },
+    },
+  });
+  return request;
 }

@@ -19,7 +19,7 @@ export function ReviewCard({
     <Card className="border-0 p-5 shadow-none">
       <div className="flex items-center justify-between gap-3">
         <Rating value={review.overallRating} />
-        <Badge tone="accent">Verified Pocket Mechanic Job</Badge>
+        <Badge tone="accent">Verified paid repair</Badge>
       </div>
       <p className="mt-3 text-ink">“{review.body}”</p>
       <div className="mt-3 grid gap-1 text-sm text-muted">

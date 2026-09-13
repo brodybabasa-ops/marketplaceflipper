@@ -62,6 +62,7 @@ export type RepairHistorySummary = {
 type JobRow = {
   id: string;
   status: JobStatus;
+  paymentStatus: "UNPAID" | "PENDING" | "AUTHORIZED" | "PAID" | "REFUNDED" | "FAILED";
   totalCents: number;
   createdAt: Date;
   updatedAt: Date;
@@ -198,17 +199,18 @@ function livePresentation(job: JobRow, amount: number) {
   const waitingParts = jobWaitingOnParts(job.status, approved?.lineItems);
 
   if (job.status === "COMPLETED") {
+    const unpaid = job.paymentStatus !== "PAID";
     return {
       tab: "completed" as const,
-      badge: { label: "Completed", tone: "success" as const },
+      badge: { label: unpaid ? "Invoice due" : "Completed", tone: unpaid ? ("warning" as const) : ("success" as const) },
       dateLabel: "Completed",
       dateValue: formatBoardDate(job.completedAt ?? stamp),
       relativeLabel: relative,
       steps: defaultSteps,
       stepIndex: 4,
-      priceLabel: "Total",
+      priceLabel: unpaid ? "Amount due" : "Total",
       price: formatPrice(amount, true),
-      actions: completedActions(details, hasReview),
+      actions: completedActions(details, hasReview, unpaid),
     };
   }
   if (job.status === "CANCELLED") {
@@ -317,9 +319,11 @@ function stepIndexFor(status: JobStatus) {
   return 0;
 }
 
-function completedActions(details: string, hasReview: boolean): RepairAction[] {
-  const actions: RepairAction[] = [{ href: details, label: "View Invoice", variant: "primary" }];
-  if (!hasReview) actions.push({ href: details, label: "Leave a Review", variant: "secondary" });
+function completedActions(details: string, hasReview: boolean, unpaid: boolean): RepairAction[] {
+  const actions: RepairAction[] = unpaid
+    ? [{ href: `${details}#invoice`, label: "Pay Invoice", variant: "primary" }]
+    : [{ href: `${details}#invoice`, label: "View Invoice", variant: "primary" }];
+  if (!hasReview && !unpaid) actions.push({ href: `${details}#invoice`, label: "Leave a Review", variant: "secondary" });
   return actions;
 }
 

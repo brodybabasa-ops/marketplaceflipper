@@ -5,6 +5,7 @@ import { StatCard } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { AcceptJobButton } from "@/components/jobs/accept-job-button";
+import { OfferResponseButtons } from "@/components/jobs/offer-response-buttons";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { startOfDenverDay, startOfDenverMonth, startOfNextDenverDay } from "@/lib/datetime";
 import { formatAppointment, formatRelative } from "@/lib/utils";
@@ -26,10 +27,18 @@ export default async function MechanicDashboardPage() {
   const endOfDay = startOfNextDenverDay();
   const startOfMonth = startOfDenverMonth();
 
-  const [incoming, inBay, waiting, today, monthJobs, unscheduled, unreadThreads] = await Promise.all([
+  const [incoming, offers, inBay, waiting, today, monthJobs, unscheduled, unreadThreads] = await Promise.all([
     prisma.job.findMany({
       where: { mechanicProfileId: profile.id, status: "REQUESTED" },
       include: jobInclude,
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.serviceRequestOffer.findMany({
+      where: { mechanicProfileId: profile.id, status: "PENDING" },
+      include: {
+        request: { include: { customer: true, vehicle: { include: { make: true, model: true } } } },
+      },
       orderBy: { createdAt: "desc" },
       take: 6,
     }),
@@ -98,17 +107,59 @@ export default async function MechanicDashboardPage() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="On the book today" value={today.length} />
-        <StatCard label="Incoming requests" value={incoming.length} />
+        <StatCard label="Incoming requests" value={incoming.length + offers.length} />
         <StatCard label="In the bay" value={inBay.length} />
         <StatCard label="This month" value={monthJobs} />
       </div>
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-2">
-        <Queue
-          title="Incoming"
-          href="/mechanic/requests"
-          empty="No new requests."
-          jobs={incoming}
-        />
+        <section className="rounded-xl border border-line bg-paper p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-navy">Incoming</h2>
+            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/requests">
+              View all →
+            </Link>
+          </div>
+          <div className="mt-3 space-y-2">
+            {offers.length === 0 && incoming.length === 0 ? (
+              <p className="py-6 text-sm text-muted">No new requests.</p>
+            ) : (
+              <>
+                {offers.map((offer) => (
+                  <div key={offer.id} className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-navy">
+                        {offer.request.customer.firstName} {offer.request.customer.lastName}
+                      </p>
+                      <p className="truncate text-sm text-muted">
+                        {offer.request.vehicle.year} {offer.request.vehicle.make.name} {offer.request.vehicle.model.name} · {offer.request.problemText}
+                      </p>
+                    </div>
+                    <OfferResponseButtons offerId={offer.id} />
+                  </div>
+                ))}
+                {incoming.map((job) => (
+                  <div
+                    key={job.id}
+                    className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
+                  >
+                    <Link href={`/mechanic/jobs/${job.id}#appointment`} className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-navy">
+                        {job.customer.firstName} {job.customer.lastName}
+                      </p>
+                      <p className="truncate text-sm text-muted">
+                        {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
+                      </p>
+                    </Link>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <JobStatusLabel status={job.status} audience="shop" />
+                      <AcceptJobButton jobId={job.id} />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </section>
         <section className="rounded-xl border border-line bg-paper p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-navy">Unread messages</h2>
