@@ -50,3 +50,12 @@ export function homeForRole(role: UserRole) {
   if (role === "ADMIN") return "/admin";
   return "/home";
 }
+
+export function safeInternalPath(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.includes("\\") || trimmed.includes("://")) {
+    return null;
+  }
+  return trimmed;
+}

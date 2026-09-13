@@ -3,12 +3,13 @@ import {
   decryptSession,
   encryptSession,
   homeForRole,
+  safeInternalPath,
   SESSION_COOKIE,
   SESSION_DURATION,
   type SessionUser,
 } from "@/lib/session-token";
 
-export { decryptSession, encryptSession, homeForRole, SESSION_COOKIE, type SessionUser };
+export { decryptSession, encryptSession, homeForRole, safeInternalPath, SESSION_COOKIE, type SessionUser };
 
 export async function getSession(): Promise<SessionUser | null> {
   const store = await cookies();

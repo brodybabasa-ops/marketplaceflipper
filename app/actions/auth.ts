@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { signInSchema, signUpSchema } from "@/lib/validations";
 import { createUser, findUserByEmail, verifyPassword } from "@/services/auth";
-import { clearSessionCookie, homeForRole, setSessionCookie } from "@/lib/session";
+import { clearSessionCookie, homeForRole, safeInternalPath, setSessionCookie } from "@/lib/session";
 
 export type AuthState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -44,7 +44,7 @@ export async function signInAction(_prev: AuthState, formData: FormData): Promis
     lastName: user.lastName,
   });
 
-  redirect(homeForRole(user.role));
+  redirect(safeInternalPath(formData.get("next")) ?? homeForRole(user.role));
 }
 
 export async function signUpAction(_prev: AuthState, formData: FormData): Promise<AuthState> {

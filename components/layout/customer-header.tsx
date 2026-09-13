@@ -25,7 +25,7 @@ export function CustomerHeader({
         overlay ? "absolute inset-x-0 top-0 pl-16 lg:px-6" : "relative bg-[#071422] text-white pl-16 lg:px-6",
       )}
     >
-      <form action="/mechanics" className="relative max-w-xl flex-1">
+      <form action="/search" className="relative max-w-xl flex-1">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
         <input
           name="q"

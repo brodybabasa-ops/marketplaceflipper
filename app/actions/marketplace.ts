@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, safeInternalPath } from "@/lib/session";
 import {
   disputeSchema,
   estimateSchema,
@@ -15,7 +15,7 @@ import {
 } from "@/lib/validations";
 import { createServiceRequest, createShopRepairOrder, getJobForUser, scheduleJobAppointment, transitionJob } from "@/services/jobs";
 import { createEstimate, respondToEstimate } from "@/services/estimates";
-import { markThreadRead } from "@/services/messages";
+import { getOrCreateShopThread, markThreadRead } from "@/services/messages";
 import { createReview } from "@/services/reviews";
 import { decodeVinToCatalog } from "@/services/vin";
 import { savePublicUpload } from "@/lib/uploads";
@@ -37,6 +37,8 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/history");
   revalidatePath("/notifications");
   revalidatePath("/account");
+  revalidatePath("/saved");
+  revalidatePath("/search");
   revalidatePath("/mechanic");
   revalidatePath("/mechanic/requests");
   revalidatePath("/mechanic/jobs");
@@ -400,4 +402,46 @@ export async function saveRepairRecordAction(formData: FormData) {
     },
   });
   revalidateJobSurfaces(jobId);
+}
+
+export async function startShopThreadAction(formData: FormData) {
+  const mechanicProfileId = String(formData.get("mechanicProfileId") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+  const next = `/messages/start?shop=${encodeURIComponent(mechanicProfileId)}`;
+  const session = await getSession();
+  if (!session) redirect(`/sign-in?next=${encodeURIComponent(next)}`);
+  if (session.role !== "CUSTOMER") redirect(slug ? `/mechanics/${slug}` : "/mechanics");
+  const result = await getOrCreateShopThread(session.id, mechanicProfileId);
+  if (!result) throw new Error("Shop not found.");
+  revalidatePath("/messages");
+  revalidatePath("/mechanic/messages");
+  revalidatePath("/notifications");
+  revalidatePath(`/messages/${result.thread.id}`);
+  revalidatePath(`/mechanic/messages/${result.thread.id}`);
+  redirect(`/messages/${result.thread.id}`);
+}
+
+export async function toggleSavedShopAction(formData: FormData) {
+  const mechanicProfileId = String(formData.get("mechanicProfileId") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+  const returnTo = safeInternalPath(formData.get("returnTo")) ?? (slug ? `/mechanics/${slug}` : "/saved");
+  const session = await getSession();
+  if (!session) {
+    redirect(`/sign-in?next=${encodeURIComponent(`/saved/add?shop=${encodeURIComponent(mechanicProfileId)}`)}`);
+  }
+  if (session.role !== "CUSTOMER") redirect(returnTo);
+  const profile = await prisma.mechanicProfile.findUnique({ where: { id: mechanicProfileId } });
+  if (!profile) throw new Error("Shop not found.");
+  const existing = await prisma.savedMechanic.findUnique({
+    where: { customerId_mechanicProfileId: { customerId: session.id, mechanicProfileId } },
+  });
+  if (existing) {
+    await prisma.savedMechanic.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.savedMechanic.create({ data: { customerId: session.id, mechanicProfileId } });
+  }
+  revalidatePath("/saved");
+  revalidatePath("/search");
+  revalidatePath(`/mechanics/${profile.slug}`);
+  redirect(returnTo);
 }

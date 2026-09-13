@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { Rating, Avatar } from "@/components/ui/rating";
 import { ReviewCard } from "@/components/jobs/review-card";
@@ -14,6 +12,8 @@ import { MechanicCard } from "@/components/mechanics/mechanic-card";
 import { searchMechanics } from "@/services/search";
 import { shopPhotoFor } from "@/lib/landing";
 import { MarketingFooter, MarketingShell } from "@/components/marketing/marketing-shell";
+import { getSession } from "@/lib/session";
+import { ShopProfileActions } from "@/components/mechanics/shop-profile-actions";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -29,7 +29,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function MechanicSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const mechanic = await getMechanicBySlug(slug);
-  if (mechanic) return <MechanicProfile mechanic={mechanic} />;
+  if (mechanic) {
+    const session = await getSession();
+    const saved =
+      session?.role === "CUSTOMER"
+        ? Boolean(
+            await prisma.savedMechanic.findUnique({
+              where: { customerId_mechanicProfileId: { customerId: session.id, mechanicProfileId: mechanic.id } },
+            }),
+          )
+        : false;
+    return (
+      <MechanicProfile
+        mechanic={mechanic}
+        isOwner={session?.id === mechanic.userId}
+        isCustomer={session?.role === "CUSTOMER"}
+        saved={saved}
+      />
+    );
+  }
 
   const state = US_STATES.find((item) => item.slug === slug);
   if (state) {
@@ -80,8 +98,14 @@ function SeoList({
 
 function MechanicProfile({
   mechanic,
+  isOwner,
+  isCustomer,
+  saved,
 }: {
   mechanic: NonNullable<Awaited<ReturnType<typeof getMechanicBySlug>>>;
+  isOwner: boolean;
+  isCustomer: boolean;
+  saved: boolean;
 }) {
   const level = VERIFICATION_LEVELS.find((item) => item.value === mechanic.verificationLevel);
   return (
@@ -124,14 +148,13 @@ function MechanicProfile({
             {mechanic.completedJobsCount} verified jobs · {mechanic.shopCity}, {mechanic.shopState} · Serves within{" "}
             {mechanic.serviceRadiusMiles} miles
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href={`/request?mechanic=${mechanic.id}`}>Request Service</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href={`/sign-in`}>Message</Link>
-            </Button>
-          </div>
+          <ShopProfileActions
+            mechanicId={mechanic.id}
+            slug={mechanic.slug}
+            isOwner={isOwner}
+            isCustomer={isCustomer}
+            saved={saved}
+          />
         </div>
       </div>
 
