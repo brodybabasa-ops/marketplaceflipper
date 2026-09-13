@@ -57,7 +57,7 @@ export function DayGantt({
       data-day-gantt
       className={cn("relative overflow-x-auto rounded-2xl border border-white/10 bg-[#0b1a2c]", busy && "pointer-events-none opacity-70")}
     >
-      <div className="relative min-w-[1100px]">
+      <div className="relative">
         <div className="grid grid-cols-[220px_1fr] border-b border-white/10">
           <div className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-white/35">Team</div>
           <div className="relative grid" style={{ gridTemplateColumns: `repeat(${hourSlots.length}, minmax(0, 1fr))` }}>
@@ -225,7 +225,7 @@ function JobBlock({
         event.dataTransfer.effectAllowed = "move";
       }}
       className={cn(
-        "absolute top-2 z-10 overflow-hidden rounded-md px-2 py-1 text-white shadow-[0_8px_18px_rgba(0,0,0,0.28)]",
+        "group absolute top-2 z-10 overflow-hidden rounded-md px-2 py-1 text-white shadow-[0_8px_18px_rgba(0,0,0,0.28)]",
         moving && "ring-2 ring-white",
       )}
       style={{ left: style.left, width: style.width, background: job.color, height: 54 }}
@@ -235,7 +235,7 @@ function JobBlock({
         <p className="truncate text-[10px] text-white/80">{job.vehicleLabel}</p>
         <p className="truncate text-[10px] text-white/70">{job.rangeLabel}</p>
       </Link>
-      <Link href={mechanicScheduleHref({ view, date, moving: job.id })} data-move-job={job.id} className="text-[10px] font-semibold text-white/90">
+      <Link href={mechanicScheduleHref({ view, date, moving: job.id })} data-move-job={job.id} className="text-[10px] font-semibold text-white/90 opacity-0 group-hover:opacity-100">
         {moving ? "Picked" : "Move"}
       </Link>
     </article>

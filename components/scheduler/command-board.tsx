@@ -665,7 +665,7 @@ function ScheduleForm({
               <input name="date" type="date" required defaultValue={date} className={fieldClass} />
             </Field>
             <Field label="Time">
-              <input name="time" type="time" required defaultValue="09:00" className={fieldClass} />
+              <TimeSelect name="time" defaultValue="09:00" />
             </Field>
           </div>
           <Field label="Technician / bay">
@@ -714,7 +714,7 @@ function ScheduleForm({
             <input name="date" type="date" defaultValue={date} className={fieldClass} />
           </Field>
           <Field label="Time">
-            <input name="time" type="time" defaultValue="09:00" className={fieldClass} />
+            <TimeSelect name="time" defaultValue="09:00" />
           </Field>
         </div>
         <Field label="Lane">
@@ -769,7 +769,7 @@ function BlockForm({
           <input name="date" type="date" required defaultValue={date} className={fieldClass} />
         </Field>
         <Field label="Start">
-          <input name="time" type="time" required defaultValue={defaultTime} className={fieldClass} />
+          <TimeSelect name="time" defaultValue={defaultTime} />
         </Field>
       </div>
       <Field label="Minutes">
@@ -833,5 +833,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function TimeSelect({ name, defaultValue }: { name: string; defaultValue: string }) {
+  const options: string[] = [];
+  for (let minutes = 7 * 60; minutes <= 17 * 60 + 45; minutes += 15) {
+    const hour = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const minute = String(minutes % 60).padStart(2, "0");
+    options.push(`${hour}:${minute}`);
+  }
+  const value = options.includes(defaultValue) ? defaultValue : "09:00";
+  return (
+    <select name={name} defaultValue={value} className={fieldClass}>
+      {options.map((time) => {
+        const [hour, minute] = time.split(":").map(Number);
+        const suffix = hour >= 12 ? "PM" : "AM";
+        const display = hour % 12 === 0 ? 12 : hour % 12;
+        return (
+          <option key={time} value={time}>
+            {display}:{String(minute).padStart(2, "0")} {suffix}
+          </option>
+        );
+      })}
+    </select>
+  );
+}
+
 const fieldClass =
   "h-10 w-full rounded-lg border border-white/10 bg-[#071422] px-3 text-sm text-white outline-none";
+

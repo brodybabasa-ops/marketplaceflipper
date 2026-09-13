@@ -5,6 +5,7 @@ import {
   denverDateTimeToUtc,
   formatAppointmentTime,
   formatClockRange,
+  formatDenverDateInput,
   formatDenverTimeInput,
   minutesToClock,
 } from "@/lib/datetime";
@@ -297,8 +298,7 @@ export function toResourceCard(
 ): SchedulerResourceCard {
   const inUse = todayJobCount > 0;
   const status =
-    resource.statusLabel ??
-    (resource.kind === "BAY"
+    resource.kind === "BAY"
       ? inUse
         ? "In Use"
         : "Open"
@@ -306,9 +306,7 @@ export function toResourceCard(
         ? inUse
           ? "On Route"
           : "Ready"
-        : hasMobileWork
-          ? "Active · Mobile"
-          : "Active · On Site");
+        : (resource.statusLabel ?? (hasMobileWork ? "Active · Mobile" : "Active · On Site"));
   return {
     id: resource.id,
     kind: resource.kind,
@@ -393,8 +391,8 @@ function overlaps(a: Busy, b: Busy) {
   return a.start < b.end && a.end > b.start;
 }
 
-function nextOpenSlot(busy: Busy[], duration: number) {
-  let cursor = SCHEDULE_START_MIN;
+function nextOpenSlot(busy: Busy[], duration: number, origin = SCHEDULE_START_MIN) {
+  let cursor = origin;
   const ordered = [...busy].sort((left, right) => left.start - right.start);
   while (cursor + duration <= SCHEDULE_END_MIN) {
     const candidate = { start: cursor, end: cursor + duration };
@@ -408,6 +406,11 @@ function nextOpenSlot(busy: Busy[], duration: number) {
 export async function optimizeShopDay(input: { profileId: string; actorId: string; date: string }) {
   const dayStart = denverDateTimeToUtc(input.date, "00:00");
   const dayEnd = denverDateTimeToUtc(input.date, "23:59");
+  const now = new Date();
+  const origin =
+    input.date === formatDenverDateInput(now)
+      ? Math.max(SCHEDULE_START_MIN, Math.ceil(denverClockMinutes(now) / SCHEDULE_SNAP_MIN) * SCHEDULE_SNAP_MIN)
+      : SCHEDULE_START_MIN;
   const [resources, jobs, blocks] = await Promise.all([
     prisma.schedulerResource.findMany({
       where: { mechanicProfileId: input.profileId },
@@ -433,10 +436,24 @@ export async function optimizeShopDay(input: { profileId: string; actorId: strin
       resource.id,
       blocks
         .filter((block) => block.resourceId === resource.id)
-        .map((block) => ({ start: denverClockMinutes(block.startAt), end: denverClockMinutes(block.endAt) || denverClockMinutes(block.startAt) + 30 })),
+        .map((block) => ({
+          start: denverClockMinutes(block.startAt),
+          end: denverClockMinutes(block.endAt) || denverClockMinutes(block.startAt) + 30,
+        })),
     );
   }
   for (const job of jobs) {
+    if (!job.scheduledAt || !inProgressStatuses().includes(job.status)) continue;
+    const duration = job.durationMinutes || durationForCategory(job.serviceRequest.category);
+    const lane = job.resourceId && busy.has(job.resourceId) ? job.resourceId : lanes[0]?.id;
+    if (!lane) continue;
+    const start = denverClockMinutes(job.scheduledAt);
+    const laneBusy = busy.get(lane) ?? [];
+    laneBusy.push({ start, end: start + duration });
+    busy.set(lane, laneBusy);
+  }
+  for (const job of jobs) {
+    if (inProgressStatuses().includes(job.status)) continue;
     const duration = job.durationMinutes || durationForCategory(job.serviceRequest.category);
     const preferred =
       lanes.find((item) => item.id === job.resourceId) ??
@@ -445,7 +462,7 @@ export async function optimizeShopDay(input: { profileId: string; actorId: strin
     if (!preferred) continue;
     const travel = preferred.kind === "MOBILE" ? 15 : 0;
     const laneBusy = busy.get(preferred.id) ?? [];
-    const start = nextOpenSlot(laneBusy, duration + travel) ?? SCHEDULE_START_MIN;
+    const start = nextOpenSlot(laneBusy, duration + travel, origin) ?? origin;
     const time = minutesToClock(start);
     const when = denverDateTimeToUtc(input.date, time);
     const nextStatus =

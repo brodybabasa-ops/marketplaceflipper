@@ -136,6 +136,14 @@ export function mechanicScheduleHref(input: {
   return `/mechanic/schedule?${params.toString()}`;
 }
 
+export function formatDenverMonthDay(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: TIMEZONE,
+  }).format(date);
+}
+
 export function formatDenverWeekdayLong(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",

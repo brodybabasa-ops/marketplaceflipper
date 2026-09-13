@@ -6,6 +6,7 @@ import {
   addDenverMonths,
   denverMonthGrid,
   formatDenverDateInput,
+  formatDenverMonthDay,
   formatDenverMonthLabel,
   formatDenverWeekdayLong,
   startOfDenverDay,
@@ -202,7 +203,13 @@ export default async function MechanicSchedulePage({
     <CommandBoard
       view={view}
       date={selectedYmd}
-      dateLabel={view === "month" ? formatDenverMonthLabel(monthStart) : view === "week" ? `${formatDenverDateInput(weekStart).slice(5)} – ${formatDenverDateInput(addDenverDays(weekStart, 6)).slice(5)}` : formatDenverWeekdayLong(selected)}
+      dateLabel={
+        view === "month"
+          ? formatDenverMonthLabel(monthStart)
+          : view === "week"
+            ? `${formatDenverMonthDay(weekStart)} – ${formatDenverMonthDay(addDenverDays(weekStart, 6))}`
+            : formatDenverWeekdayLong(selected)
+      }
       prevDate={prev}
       nextDate={next}
       todayDate={todayDate}
