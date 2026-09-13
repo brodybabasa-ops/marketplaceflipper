@@ -640,6 +640,7 @@ async function seedBrodyStory({
     completedAt,
     messages,
     photos,
+    parts,
   }: {
     vehicleId: string;
     shop: { id: string; userId: string; shopCity: string | null; shopZip: string | null; latitude: number; longitude: number };
@@ -655,6 +656,7 @@ async function seedBrodyStory({
     completedAt?: Date;
     messages: { from: "customer" | "shop"; body: string; at: Date; unread?: boolean }[];
     photos?: { url: string; at: Date }[];
+    parts?: boolean;
   }) {
     const request = await prisma.serviceRequest.create({
       data: {
@@ -697,6 +699,9 @@ async function seedBrodyStory({
         },
       },
     });
+    const diagnosticCents = Math.min(12500, price);
+    const partsCents = parts ? Math.round(price * 0.35) : 0;
+    const laborCents = Math.max(0, price - diagnosticCents - partsCents);
     const estimate = await prisma.estimate.create({
       data: {
         jobId: job.id,
@@ -708,8 +713,11 @@ async function seedBrodyStory({
         sentAt: createdAt,
         lineItems: {
           create: [
-            { category: "DIAGNOSTIC", description: "Diagnostic labor", quantity: 1, unitCents: Math.min(12500, price), totalCents: Math.min(12500, price) },
-            { category: "LABOR", description: problem, quantity: 1, unitCents: Math.max(0, price - 12500), totalCents: Math.max(0, price - 12500) },
+            { category: "DIAGNOSTIC", description: "Diagnostic labor", quantity: 1, unitCents: diagnosticCents, totalCents: diagnosticCents },
+            { category: "LABOR", description: problem, quantity: 1, unitCents: laborCents, totalCents: laborCents },
+            ...(partsCents
+              ? [{ category: "PARTS" as const, description: `${problem} parts`, quantity: 1, unitCents: partsCents, totalCents: partsCents }]
+              : []),
           ],
         },
       },
@@ -803,6 +811,7 @@ async function seedBrodyStory({
     preferredDate: saturdaySlot,
     preferredTimeWindow: "saturday",
     createdAt: new Date("2026-08-26T16:00:00.000Z"),
+    parts: true,
     messages: [
       { from: "customer", body: "Need oil, filter, and a look at the air filter before the next ride.", at: new Date("2026-08-26T16:02:00.000Z") },
       { from: "shop", body: "Parts ETA is Aug 30. You're still on the book for Saturday at 10:00 AM.", at: new Date("2026-08-29T18:40:00.000Z") },

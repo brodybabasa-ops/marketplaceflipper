@@ -417,7 +417,7 @@ function StatsRow({ stats, compact }: { stats: BoardStats; compact: boolean }) {
     <section className={cn("grid gap-3", compact ? "grid-cols-1" : "md:grid-cols-2 xl:grid-cols-6")}>
       <Stat icon={<CalendarDays className="h-4 w-4" />} label="Appointments" value={stats.appointments} hint={`${stats.appointmentsDelta >= 0 ? "+" : ""}${stats.appointmentsDelta}% vs last week`} tone="blue" />
       <Stat icon={<Wrench className="h-4 w-4" />} label="In Progress" value={stats.inProgress} hint="On the book now" tone="green" />
-      <Stat icon={<Package className="h-4 w-4" />} label="Waiting on Parts" value={stats.waitingOnParts} hint="Estimate or parts hold" tone="amber" />
+      <Stat icon={<Package className="h-4 w-4" />} label="Waiting on Parts" value={stats.waitingOnParts} hint="Parts on today's jobs" tone="amber" />
       <Stat icon={<AlertTriangle className="h-4 w-4" />} label="Behind Schedule" value={stats.behind} hint="Past the booked window" tone="red" />
       <Stat icon={<DollarSign className="h-4 w-4" />} label="Est. Today Revenue" value={formatUsd(stats.revenueCents)} hint="Approved + sent estimates" tone="green" />
       <OnTimeCard pct={stats.onTimePct} />
@@ -793,9 +793,10 @@ function Dock({ title, href, children }: { title: string; href: string; children
   );
 }
 
-function chipClass(tone: "red" | "amber" | "blue" | "green" | "ok" | "warn" | "info") {
+function chipClass(tone: "red" | "amber" | "blue" | "green" | "ok" | "warn" | "info" | "violet") {
   if (tone === "red" || tone === "warn") return "rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-300";
   if (tone === "amber") return "rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300";
+  if (tone === "violet") return "rounded-full bg-[#7b4fd4]/20 px-2 py-0.5 text-[10px] font-bold text-[#c4b5fd]";
   if (tone === "green" || tone === "ok") return "rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300";
   return "rounded-full bg-[#2f7bff]/15 px-2 py-0.5 text-[10px] font-bold text-[#9cc4ff]";
 }

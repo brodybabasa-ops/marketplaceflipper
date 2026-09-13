@@ -210,7 +210,7 @@ export default async function MechanicDashboardPage() {
                     <td className="max-w-xs truncate">{job.serviceRequest.problemText}</td>
                     <td className="pr-4">
                       <Link href={`/mechanic/jobs/${job.id}#appointment`} className="inline-flex">
-                        <JobStatusLabel status={job.status} />
+                        <JobStatusLabel status={job.status} audience="shop" />
                       </Link>
                     </td>
                   </tr>
@@ -271,7 +271,7 @@ function Queue({
                 ) : null}
               </Link>
               <div className="flex shrink-0 items-center gap-2">
-                <JobStatusLabel status={job.status} />
+                <JobStatusLabel status={job.status} audience="shop" />
                 {job.status === "REQUESTED" ? <AcceptJobButton jobId={job.id} /> : null}
               </div>
             </div>

@@ -1,8 +1,9 @@
-import type { JobStatus } from "@prisma/client";
+import type { EstimateStatus, JobStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { shopPhotoFor, vehiclePhotoFor } from "@/lib/landing";
 import { formatAppointmentDate, formatAppointmentTime } from "@/lib/datetime";
 import { formatBoardDate, formatRelative } from "@/lib/utils";
+import { isSentEstimate, jobWaitingOnParts } from "@/lib/estimates";
 
 export type RepairTab =
   | "all"
@@ -71,7 +72,7 @@ type JobRow = {
   mechanicProfile: { businessName: string; shopCity: string | null; shopState: string | null; slug: string };
   vehicle: { year: number; make: { name: string }; model: { name: string } };
   serviceRequest: { problemText: string };
-  estimates: { totalCents: number }[];
+  estimates: { totalCents: number; status: EstimateStatus; lineItems: { category: string }[] }[];
 };
 
 const defaultSteps = ["Received", "Diagnosing", "Parts Ordered", "In Service", "Complete"];
@@ -84,7 +85,7 @@ export async function getCustomerRepairs(userId: string) {
       mechanicProfile: true,
       vehicle: { include: { make: true, model: true } },
       serviceRequest: true,
-      estimates: { orderBy: { createdAt: "desc" }, take: 1 },
+      estimates: { include: { lineItems: true }, orderBy: { createdAt: "desc" }, take: 8 },
       review: true,
       thread: true,
     },
@@ -191,6 +192,10 @@ function livePresentation(job: JobRow, amount: number) {
   const scheduleAction: RepairAction = job.scheduledAt
     ? { href: `${details}#appointment`, label: "Reschedule", variant: "secondary" }
     : { href: `${details}#appointment`, label: "Set time", variant: "secondary" };
+  const latest = job.estimates[0];
+  const awaiting = isSentEstimate(latest?.status) || job.status === "AWAITING_APPROVAL";
+  const approved = job.estimates.find((item) => item.status === "APPROVED");
+  const waitingParts = jobWaitingOnParts(job.status, approved?.lineItems);
 
   if (job.status === "COMPLETED") {
     return {
@@ -220,7 +225,7 @@ function livePresentation(job: JobRow, amount: number) {
       actions: [{ href: details, label: "View Details", variant: "link" as const }],
     };
   }
-  if (job.status === "AWAITING_APPROVAL") {
+  if (awaiting) {
     return {
       tab: "waiting-approval" as const,
       badge: { label: "Waiting on Approval", tone: "warning" as const },
@@ -232,7 +237,25 @@ function livePresentation(job: JobRow, amount: number) {
       priceLabel: "Estimate",
       price: formatPrice(amount, true),
       actions: [
-        { href: details, label: "View Estimate", variant: "primary" as const },
+        { href: `${details}#estimate`, label: "Approve Estimate", variant: "primary" as const },
+        scheduleAction,
+        { href: messageHref, label: "Message Shop", variant: "secondary" as const },
+      ],
+    };
+  }
+  if (waitingParts) {
+    return {
+      tab: "waiting-parts" as const,
+      badge: { label: "Waiting on Parts", tone: "warning" as const },
+      dateLabel: job.scheduledAt ? "Appointment" : "Parts ordered",
+      dateValue,
+      relativeLabel: relative,
+      steps: defaultSteps,
+      stepIndex: 2,
+      priceLabel: "Estimate",
+      price: formatPrice(amount, true),
+      actions: [
+        { href: details, label: "View Details", variant: "primary" as const },
         scheduleAction,
         { href: messageHref, label: "Message Shop", variant: "secondary" as const },
       ],

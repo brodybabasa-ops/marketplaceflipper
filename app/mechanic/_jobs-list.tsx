@@ -85,7 +85,7 @@ export default async function MechanicJobsList({
                     </Link>
                   </td>
                   <td>
-                    <JobStatusLabel status={job.status} />
+                    <JobStatusLabel status={job.status} audience="shop" />
                   </td>
                   <td className="pr-4">
                     {job.status === "REQUESTED" ? <AcceptJobButton jobId={job.id} /> : null}

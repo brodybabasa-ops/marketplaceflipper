@@ -96,7 +96,7 @@ export default async function AdminAnalyticsPage() {
                     <td className="pr-4">
                       <div className="flex items-center gap-2">
                         <span className="truncate">{job.serviceRequest.problemText}</span>
-                        <JobStatusLabel status={job.status} />
+                        <JobStatusLabel status={job.status} audience="shop" />
                       </div>
                     </td>
                   </tr>

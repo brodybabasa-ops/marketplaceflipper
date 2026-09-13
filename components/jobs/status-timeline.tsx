@@ -2,23 +2,44 @@ import type { JobStatus } from "@prisma/client";
 import { JOB_STATUS_ORDER } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-const LABELS: Record<string, string> = {
-  REQUESTED: "Request sent",
-  ACCEPTED: "Request accepted",
-  SCHEDULED: "Appointment scheduled",
-  EN_ROUTE: "Mechanic on the way",
-  ARRIVED: "Mechanic arrived",
-  DIAGNOSING: "Diagnosis complete",
-  AWAITING_APPROVAL: "Waiting for your approval",
-  IN_PROGRESS: "Repair in progress",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  DISPUTED: "In dispute",
-};
+export type StatusAudience = "customer" | "shop";
 
-export function StatusTimeline({ status }: { status: JobStatus }) {
+function labelFor(status: string, audience: StatusAudience) {
+  switch (status) {
+    case "REQUESTED":
+      return audience === "shop" ? "New request" : "Request sent";
+    case "ACCEPTED":
+      return "Accepted";
+    case "SCHEDULED":
+      return "Appointment scheduled";
+    case "EN_ROUTE":
+      return audience === "shop" ? "En route" : "Mechanic on the way";
+    case "ARRIVED":
+      return audience === "shop" ? "On site" : "Mechanic arrived";
+    case "DIAGNOSING":
+      return "Diagnosing";
+    case "AWAITING_APPROVAL":
+      return audience === "shop" ? "Waiting on the customer" : "Waiting for your approval";
+    case "IN_PROGRESS":
+      return "Repair in progress";
+    case "COMPLETED":
+      return "Completed";
+    case "CANCELLED":
+      return "Cancelled";
+    case "DISPUTED":
+      return "In dispute";
+    default:
+      return status.replaceAll("_", " ").toLowerCase();
+  }
+}
+
+export function jobStatusLabel(status: JobStatus, audience: StatusAudience = "customer") {
+  return labelFor(status, audience);
+}
+
+export function StatusTimeline({ status, audience = "customer" }: { status: JobStatus; audience?: StatusAudience }) {
   if (status === "CANCELLED" || status === "DISPUTED") {
-    return <p className="text-sm font-medium text-danger">{LABELS[status]}</p>;
+    return <p className="text-sm font-medium text-danger">{labelFor(status, audience)}</p>;
   }
   const currentIndex = JOB_STATUS_ORDER.indexOf(status as (typeof JOB_STATUS_ORDER)[number]);
   return (
@@ -37,7 +58,7 @@ export function StatusTimeline({ status }: { status: JobStatus }) {
               {done ? "✓" : current ? "→" : "○"}
             </span>
             <span className={cn(current ? "font-semibold text-navy" : done ? "text-ink" : "text-muted")}>
-              {LABELS[step]}
+              {labelFor(step, audience)}
             </span>
           </li>
         );
@@ -46,18 +67,26 @@ export function StatusTimeline({ status }: { status: JobStatus }) {
   );
 }
 
-export function JobStatusLabel({ status }: { status: JobStatus }) {
+export function JobStatusLabel({
+  status,
+  audience = "customer",
+}: {
+  status: JobStatus;
+  audience?: StatusAudience;
+}) {
   const tone =
     status === "COMPLETED"
       ? "bg-emerald-50 text-success"
       : status === "CANCELLED" || status === "DISPUTED"
         ? "bg-red-50 text-danger"
-        : status === "AWAITING_APPROVAL" || status === "REQUESTED"
-          ? "bg-[#fff4de] text-warning"
-          : "bg-[#e8f1ff] text-[#2f7bff]";
+        : status === "AWAITING_APPROVAL"
+          ? "bg-[#f3e8ff] text-[#7b4fd4]"
+          : status === "REQUESTED"
+            ? "bg-[#fff4de] text-warning"
+            : "bg-[#e8f1ff] text-[#2f7bff]";
   return (
     <span className={cn("inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold", tone)}>
-      {LABELS[status]}
+      {labelFor(status, audience)}
     </span>
   );
 }

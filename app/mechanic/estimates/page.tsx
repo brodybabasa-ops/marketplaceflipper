@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatCents } from "@/lib/money";
 import { formatBoardDate } from "@/lib/utils";
+import { estimateStatusClass, estimateStatusLabel } from "@/lib/estimates";
 
 export const metadata = { title: "Estimates" };
 
@@ -57,7 +58,9 @@ export default async function MechanicEstimatesPage() {
                   </td>
                   <td className="max-w-xs truncate">{estimate.job.serviceRequest.problemText}</td>
                   <td className="font-semibold">{formatCents(estimate.totalCents)}</td>
-                  <td className="capitalize">{estimate.status.toLowerCase()}</td>
+                  <td className={`font-semibold ${estimateStatusClass(estimate.status)}`}>
+                    {estimateStatusLabel(estimate.status, "shop")}
+                  </td>
                   <td className="pr-4 text-muted">{formatBoardDate(estimate.sentAt ?? estimate.createdAt)}</td>
                 </tr>
               ))

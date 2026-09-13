@@ -75,7 +75,7 @@ export default async function AdminDashboardPage() {
                       {job.customer.firstName} → {job.mechanicProfile.businessName}
                     </td>
                     <td>
-                      <JobStatusLabel status={job.status} />
+                      <JobStatusLabel status={job.status} audience="shop" />
                     </td>
                   </tr>
                 ))}

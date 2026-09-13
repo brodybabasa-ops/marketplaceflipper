@@ -271,7 +271,7 @@ function SchedulerCard({
             {compact ? null : <p className="truncate text-[11px] text-muted">{job.problem}</p>}
             {compact ? null : (
               <div className="mt-1">
-                <JobStatusLabel status={job.status} />
+                  <JobStatusLabel status={job.status} audience="shop" />
               </div>
             )}
           </>

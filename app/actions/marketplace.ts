@@ -287,6 +287,8 @@ export async function estimateDecisionAction(formData: FormData) {
   });
   const estimate = await prisma.estimate.findUniqueOrThrow({ where: { id: String(formData.get("estimateId")) } });
   revalidateJobSurfaces(estimate.jobId);
+  const next = safeInternalPath(formData.get("returnTo")) ?? `/jobs/${estimate.jobId}`;
+  redirect(next);
 }
 
 export async function updateJobStatusAction(formData: FormData) {

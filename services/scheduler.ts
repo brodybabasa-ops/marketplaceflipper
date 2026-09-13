@@ -1,5 +1,6 @@
 import type { JobStatus, SchedulerBlockKind, SchedulerResourceKind, ServiceCategory } from "@prisma/client";
 import { parseBoardLayout, type SchedulerBoardLayout } from "@/lib/board-layout";
+import { jobWaitingOnParts } from "@/lib/estimates";
 import { prisma } from "@/lib/db";
 import {
   denverClockMinutes,
@@ -215,18 +216,14 @@ export function toJobCard(
       latitude: number | null;
       longitude: number | null;
     };
-    estimates: { totalCents: number; lineItems: { category: string }[] }[];
+    estimates: { totalCents: number; status?: string | null; lineItems: { category: string }[] }[];
     thread: { id: string } | null;
   },
   now = new Date(),
 ): SchedulerJobCard {
   const estimate = job.estimates[0];
-  const waitingOnParts =
-    job.status === "AWAITING_APPROVAL" ||
-    Boolean(
-      estimate?.lineItems.some((item) => item.category === "PARTS") &&
-        !["COMPLETED", "CANCELLED"].includes(job.status),
-    );
+  const approved = job.estimates.find((item) => item.status === "APPROVED");
+  const waitingOnParts = jobWaitingOnParts(job.status, approved?.lineItems);
   const endAt = job.scheduledAt
     ? new Date(job.scheduledAt.getTime() + job.durationMinutes * 60 * 1000)
     : null;

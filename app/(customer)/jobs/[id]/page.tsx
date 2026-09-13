@@ -53,8 +53,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               calendarHref={job.scheduledAt ? `/jobs/${job.id}/calendar` : undefined}
             />
           ) : null}
-          {job.estimates.map((estimate) => (
-            <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
+          {job.estimates.map((estimate, index) => (
+            <EstimateCard
+              key={estimate.id}
+              estimate={estimate}
+              canApprove={session.role === "CUSTOMER"}
+              returnTo={`/jobs/${job.id}`}
+              highlight={estimate.status === "SENT" && job.estimates.findIndex((item) => item.status === "SENT") === index}
+            />
           ))}
           <JobPhotos
             jobId={job.id}

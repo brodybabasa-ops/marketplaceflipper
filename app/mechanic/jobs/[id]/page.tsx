@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { StatusTimeline } from "@/components/jobs/status-timeline";
+import { StatusTimeline, jobStatusLabel } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,12 +15,24 @@ import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
 
 export const metadata = { title: "Job" };
 
-export default async function MechanicJobPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MechanicJobPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ estimate?: string }>;
+}) {
   const session = await requireSession("MECHANIC");
   const { id } = await params;
+  const { estimate: highlightId } = await searchParams;
   const job = await getJobForUser(id, session.id, session.role);
   if (!job) notFound();
   const nextStatuses = ALLOWED_JOB_TRANSITIONS[job.status];
+  const latestEstimate = job.estimates[0];
+  const awaitingCustomer = job.status === "AWAITING_APPROVAL";
+  const needsRevision = latestEstimate?.status === "DECLINED" && !awaitingCustomer;
+  const pendingEstimateId = job.estimates.find((item) => item.status === "SENT")?.id;
+  const canSendEstimate = job.status !== "COMPLETED" && job.status !== "CANCELLED" && job.status !== "DISPUTED";
   return (
     <div>
       <PageHeading
@@ -28,11 +40,24 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         subtitle={`${job.customer.firstName} ${job.customer.lastName} · ${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name} · ${job.serviceRequest.zip}`}
       />
 
+      {awaitingCustomer ? (
+        <div className="mb-4 rounded-xl border border-[#7b4fd4]/35 bg-[#7b4fd4]/10 px-4 py-3 text-sm">
+          <p className="font-semibold text-navy">Estimate sent. Waiting on the customer.</p>
+          <p className="mt-1 text-muted">The board shows Waiting on customer until they approve or decline.</p>
+        </div>
+      ) : null}
+      {needsRevision ? (
+        <div className="mb-4 rounded-xl border border-warning/30 bg-[#fff4de] px-4 py-3 text-sm">
+          <p className="font-semibold text-navy">Customer declined this estimate.</p>
+          <p className="mt-1 text-muted">Send a revision below. The job is no longer waiting on approval.</p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Job status</h2>
           <div className="mt-4">
-            <StatusTimeline status={job.status} />
+            <StatusTimeline status={job.status} audience="shop" />
           </div>
           {nextStatuses.length ? (
             <form action={updateJobStatusAction} className="mt-4 flex gap-2">
@@ -40,7 +65,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
               <Select name="status" defaultValue={nextStatuses[0]}>
                 {nextStatuses.map((status) => (
                   <option key={status} value={status}>
-                    {status.replaceAll("_", " ")}
+                    {jobStatusLabel(status, "shop")}
                   </option>
                 ))}
               </Select>
@@ -90,36 +115,47 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
 
       <section className="mt-8 space-y-4">
         {job.estimates.map((estimate) => (
-          <EstimateCard key={estimate.id} estimate={estimate} />
+          <EstimateCard
+            key={estimate.id}
+            estimate={estimate}
+            audience="shop"
+            highlight={estimate.id === highlightId || estimate.id === pendingEstimateId}
+          />
         ))}
-        <Card className="border-0 p-5">
-          <h2 className="font-semibold text-navy">Create estimate or additional work request</h2>
-          <p className="text-sm text-muted">Additional work cannot silently rewrite the original estimate. It creates a new approval record.</p>
-          <form action={createEstimateAction} className="mt-4 space-y-3">
-            <input type="hidden" name="jobId" value={job.id} />
-            <Select name="type" defaultValue="PRIMARY">
-              <option value="PRELIMINARY">Preliminary estimate</option>
-              <option value="PRIMARY">Estimate</option>
-              <option value="CHANGE_ORDER">Additional work request</option>
-            </Select>
-            <Textarea name="reason" placeholder="During inspection we found..." />
-            {[0, 1, 2, 3, 4].map((index) => (
-              <div key={index} className="grid gap-2 md:grid-cols-4">
-                <Select name="itemCategory" defaultValue={index === 0 ? "DIAGNOSTIC" : index === 1 ? "PARTS" : "LABOR"}>
-                  <option>DIAGNOSTIC</option>
-                  <option>PARTS</option>
-                  <option>LABOR</option>
-                  <option>SUPPLIES</option>
-                  <option>OTHER</option>
-                </Select>
-                <Input name="itemDescription" placeholder={index === 0 ? "Diagnostic labor" : "Description"} defaultValue={index === 0 ? "Diagnostic labor" : ""} />
-                <Input name="itemQuantity" defaultValue="1" />
-                <Input name="itemUnit" placeholder={index === 0 ? "95" : "0"} defaultValue={index === 0 ? "95" : ""} />
-              </div>
-            ))}
-            <Button type="submit">Send to customer</Button>
-          </form>
-        </Card>
+        {canSendEstimate ? (
+          <Card className="border-0 p-5">
+            <h2 className="font-semibold text-navy">
+              {needsRevision ? "Send a revised estimate" : "Create estimate or additional work request"}
+            </h2>
+            <p className="text-sm text-muted">
+              Additional work cannot silently rewrite the original estimate. It creates a new approval record.
+            </p>
+            <form action={createEstimateAction} className="mt-4 space-y-3">
+              <input type="hidden" name="jobId" value={job.id} />
+              <Select name="type" defaultValue="PRIMARY">
+                <option value="PRELIMINARY">Preliminary estimate</option>
+                <option value="PRIMARY">Estimate</option>
+                <option value="CHANGE_ORDER">Additional work request</option>
+              </Select>
+              <Textarea name="reason" placeholder="During inspection we found..." />
+              {[0, 1, 2, 3, 4].map((index) => (
+                <div key={index} className="grid gap-2 md:grid-cols-4">
+                  <Select name="itemCategory" defaultValue={index === 0 ? "DIAGNOSTIC" : index === 1 ? "PARTS" : "LABOR"}>
+                    <option>DIAGNOSTIC</option>
+                    <option>PARTS</option>
+                    <option>LABOR</option>
+                    <option>SUPPLIES</option>
+                    <option>OTHER</option>
+                  </Select>
+                  <Input name="itemDescription" placeholder={index === 0 ? "Diagnostic labor" : "Description"} defaultValue={index === 0 ? "Diagnostic labor" : ""} />
+                  <Input name="itemQuantity" defaultValue="1" />
+                  <Input name="itemUnit" placeholder={index === 0 ? "95" : "0"} defaultValue={index === 0 ? "95" : ""} />
+                </div>
+              ))}
+              <Button type="submit">Send to customer</Button>
+            </form>
+          </Card>
+        ) : null}
         <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Repair documentation</h2>
           <form action={saveRepairRecordAction} className="mt-4 space-y-3">

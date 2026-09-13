@@ -4,6 +4,7 @@ import { getDirectoryShops, type DirectoryShop } from "@/services/landing";
 import { FEATURED_SHOP_SLUGS, vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatAppointment, formatRelative } from "@/lib/utils";
+import { jobWaitingOnParts } from "@/lib/estimates";
 
 export type DashboardRepair = {
   id: string;
@@ -80,7 +81,7 @@ export async function getCustomerDashboard(userId: string) {
         mechanicProfile: true,
         vehicle: { include: { make: true, model: true } },
         serviceRequest: true,
-        estimates: { orderBy: { createdAt: "desc" }, take: 1 },
+        estimates: { include: { lineItems: true }, orderBy: { createdAt: "desc" }, take: 8 },
         events: { orderBy: { createdAt: "desc" }, take: 8 },
         thread: true,
       },
@@ -128,10 +129,12 @@ export async function getCustomerDashboard(userId: string) {
   });
   const repairs: DashboardRepair[] = sortedActive.slice(0, 6).map((job) => {
     const estimate = job.estimates[0];
-    const estimateReady = Boolean(estimate && (estimate.status === "SENT" || job.status === "AWAITING_APPROVAL"));
+    const estimateReady = estimate?.status === "SENT";
+    const approved = job.estimates.find((item) => item.status === "APPROVED");
+    const waitingParts = jobWaitingOnParts(job.status, approved?.lineItems);
     const hasAppointment = Boolean(job.scheduledAt);
     const actions: DashboardRepair["actions"] = [];
-    if (estimateReady) actions.push({ href: `/jobs/${job.id}`, label: "View Estimate", variant: "primary" });
+    if (estimateReady) actions.push({ href: `/jobs/${job.id}#estimate`, label: "Approve Estimate", variant: "primary" });
     actions.push({
       href: `/jobs/${job.id}#appointment`,
       label: hasAppointment ? "Reschedule" : "Set time",
@@ -148,7 +151,7 @@ export async function getCustomerDashboard(userId: string) {
       shopCity: job.mechanicProfile.shopCity ?? "",
       photo: vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name),
       status: job.status,
-      badge: repairBadge(job.status, estimate?.status, hasAppointment),
+      badge: repairBadge(job.status, estimate?.status, hasAppointment, waitingParts),
       estimateLabel: estimateReady && estimate ? formatCents(estimate.totalCents) : null,
       appointmentLabel: hasAppointment && job.scheduledAt ? formatAppointment(job.scheduledAt) : "Needs a time",
       updatedLabel: formatRelative(job.updatedAt),
@@ -184,9 +187,15 @@ export async function getCustomerDashboard(userId: string) {
   };
 }
 
-function repairBadge(status: JobStatus, estimateStatus?: EstimateStatus, scheduled?: boolean) {
-  if (status === "AWAITING_APPROVAL" || (status === "REQUESTED" && estimateStatus === "SENT")) {
-    return { label: "Estimate Received", tone: "warning" as const };
+function repairBadge(status: JobStatus, estimateStatus?: EstimateStatus, scheduled?: boolean, waitingParts?: boolean) {
+  if (estimateStatus === "SENT" || status === "AWAITING_APPROVAL") {
+    return { label: "Needs your approval", tone: "warning" as const };
+  }
+  if (estimateStatus === "DECLINED" && status !== "IN_PROGRESS" && status !== "COMPLETED") {
+    return { label: "Estimate declined", tone: "warning" as const };
+  }
+  if (waitingParts) {
+    return { label: "Waiting on Parts", tone: "warning" as const };
   }
   if (status === "SCHEDULED" || ((status === "ACCEPTED" || status === "REQUESTED") && scheduled)) {
     return { label: "Appointment Scheduled", tone: "success" as const };
@@ -247,7 +256,7 @@ function buildActivity({
         title: `Estimate received from ${job.mechanicProfile.businessName}`,
         detail: `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name} · ${formatCents(estimate.totalCents)}`,
         when: formatRelative(at),
-        href: `/jobs/${job.id}`,
+        href: estimate.status === "SENT" ? `/jobs/${job.id}#estimate` : `/jobs/${job.id}`,
         at: at.getTime(),
       });
     }

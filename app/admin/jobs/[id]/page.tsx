@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { StatusTimeline } from "@/components/jobs/status-timeline";
+import { StatusTimeline, jobStatusLabel } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
 import { JobPhotos } from "@/components/jobs/job-photos";
@@ -44,7 +44,7 @@ export default async function AdminJobPage({ params }: { params: Promise<{ id: s
         <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Job status</h2>
           <div className="mt-4">
-            <StatusTimeline status={job.status} />
+            <StatusTimeline status={job.status} audience="shop" />
           </div>
           {nextStatuses.length ? (
             <form action={updateJobStatusAction} className="mt-4 flex gap-2">
@@ -52,7 +52,7 @@ export default async function AdminJobPage({ params }: { params: Promise<{ id: s
               <Select name="status" defaultValue={nextStatuses[0]}>
                 {nextStatuses.map((status) => (
                   <option key={status} value={status}>
-                    {status.replaceAll("_", " ")}
+                    {jobStatusLabel(status, "shop")}
                   </option>
                 ))}
               </Select>
@@ -85,7 +85,7 @@ export default async function AdminJobPage({ params }: { params: Promise<{ id: s
 
       <section className="mt-6 space-y-4">
         {job.estimates.map((estimate) => (
-          <EstimateCard key={estimate.id} estimate={estimate} />
+          <EstimateCard key={estimate.id} estimate={estimate} audience="shop" />
         ))}
         {job.thread ? (
           <ThreadView

@@ -162,6 +162,7 @@ export function colorForBlock(kind: SchedulerBlockKind) {
 }
 
 export function statusChip(status: JobStatus, waitingOnParts: boolean) {
+  if (status === "AWAITING_APPROVAL") return { label: "Waiting on customer", tone: "violet" as const };
   if (waitingOnParts) return { label: "Waiting on Parts", tone: "amber" as const };
   switch (status) {
     case "IN_PROGRESS":
@@ -170,8 +171,6 @@ export function statusChip(status: JobStatus, waitingOnParts: boolean) {
       return { label: "In Progress", tone: "green" as const };
     case "EN_ROUTE":
       return { label: "En Route", tone: "blue" as const };
-    case "AWAITING_APPROVAL":
-      return { label: "Needs Response", tone: "amber" as const };
     case "REQUESTED":
       return { label: "High Priority", tone: "red" as const };
     case "COMPLETED":
@@ -183,7 +182,7 @@ export function statusChip(status: JobStatus, waitingOnParts: boolean) {
 
 export function unscheduledPriority(status: JobStatus) {
   if (status === "REQUESTED") return { label: "High Priority", tone: "red" as const };
-  if (status === "AWAITING_APPROVAL") return { label: "Needs Response", tone: "amber" as const };
+  if (status === "AWAITING_APPROVAL") return { label: "Waiting on customer", tone: "violet" as const };
   return { label: "Standard", tone: "blue" as const };
 }
 
