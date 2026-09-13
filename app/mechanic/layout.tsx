@@ -11,7 +11,7 @@ export default async function MechanicLayout({ children }: { children: React.Rea
   const [profile, unreadNotifications, unreadMessages] = await Promise.all([
     prisma.mechanicProfile.findUnique({
       where: { userId: session.id },
-      select: { businessName: true },
+      select: { businessName: true, shopCity: true, shopState: true },
     }),
     unreadNotificationCount(session.id),
     unreadMessageCount(session.id, session.role),
@@ -22,6 +22,7 @@ export default async function MechanicLayout({ children }: { children: React.Rea
       nav={MECHANIC_NAV}
       product="shop"
       workspace={profile?.businessName ?? "Shop"}
+      locationLabel={profile?.shopCity ? `${profile.shopCity}, ${profile.shopState ?? "UT"}` : undefined}
       unreadNotifications={unreadNotifications}
       unreadMessages={unreadMessages}
     >

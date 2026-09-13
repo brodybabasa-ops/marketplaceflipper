@@ -6,6 +6,7 @@ import { formatAppointment } from "@/lib/utils";
 import { isMarineVehicle } from "@/lib/vehicles";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
 import { notify } from "@/services/notifications";
+import { durationForCategory } from "@/lib/scheduler";
 import { classifyProblem } from "@/services/problem-classifier";
 
 async function resolveAssignedShop(
@@ -112,6 +113,7 @@ export async function createServiceRequest(input: {
       vehicleId: input.vehicleId,
       status: initialStatus,
       scheduledAt,
+      durationMinutes: durationForCategory(category),
       events: {
         create: {
           status: initialStatus,
@@ -164,6 +166,8 @@ export async function createShopRepairOrder(input: {
   description?: string;
   date?: string;
   time?: string;
+  resourceId?: string;
+  durationMinutes?: number;
 }) {
   const mechanic = await prisma.mechanicProfile.findUniqueOrThrow({
     where: { userId: input.mechanicUserId },
@@ -186,6 +190,16 @@ export async function createShopRepairOrder(input: {
       actorId: input.mechanicUserId,
       date: input.date,
       time: input.time,
+      resourceId: input.resourceId,
+      durationMinutes: input.durationMinutes,
+    });
+  } else if (input.resourceId || input.durationMinutes) {
+    await prisma.job.update({
+      where: { id: result.job.id },
+      data: {
+        ...(input.resourceId ? { resourceId: input.resourceId } : {}),
+        ...(input.durationMinutes ? { durationMinutes: input.durationMinutes } : {}),
+      },
     });
   }
   return result;
@@ -269,6 +283,8 @@ export async function scheduleJobAppointment(input: {
   actorId: string;
   date: string;
   time: string;
+  resourceId?: string | null;
+  durationMinutes?: number;
 }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !/^\d{2}:\d{2}$/.test(input.time)) {
     throw new Error("Pick a date and time.");
@@ -291,11 +307,18 @@ export async function scheduleJobAppointment(input: {
   const wasSet = Boolean(job.scheduledAt);
   const note = wasSet ? `Appointment moved to ${label}.` : `Appointment set for ${label}.`;
 
+  const durationMinutes =
+    input.durationMinutes && input.durationMinutes >= 15 && input.durationMinutes <= 12 * 60
+      ? input.durationMinutes
+      : undefined;
+  const resourceId = input.resourceId === "" ? null : input.resourceId;
   const updated = await prisma.job.update({
     where: { id: job.id },
     data: {
       scheduledAt: when,
       status: nextStatus,
+      ...(durationMinutes ? { durationMinutes } : {}),
+      ...(resourceId !== undefined ? { resourceId } : {}),
       events: { create: { status: nextStatus, note } },
     },
   });

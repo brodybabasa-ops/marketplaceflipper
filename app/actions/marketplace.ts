@@ -243,9 +243,12 @@ export async function createShopRepairOrderAction(formData: FormData) {
     description: String(formData.get("description") ?? "") || undefined,
     date: String(formData.get("date") ?? "") || undefined,
     time: String(formData.get("time") ?? "") || undefined,
+    resourceId: String(formData.get("resourceId") ?? "") || undefined,
+    durationMinutes: Number(formData.get("durationMinutes") || 0) || undefined,
   });
   revalidateJobSurfaces(result.job.id);
-  redirect(`/mechanic/jobs/${result.job.id}`);
+  const next = safeInternalPath(formData.get("returnTo"));
+  redirect(next ?? `/mechanic/jobs/${result.job.id}`);
 }
 
 export async function createEstimateAction(formData: FormData) {
@@ -306,6 +309,8 @@ export async function scheduleAppointmentAction(formData: FormData) {
     actorId: session.id,
     date: String(formData.get("date") ?? ""),
     time: String(formData.get("time") ?? ""),
+    resourceId: formData.get("resourceId") ? String(formData.get("resourceId")) : undefined,
+    durationMinutes: Number(formData.get("durationMinutes") || 0) || undefined,
   });
   revalidateJobSurfaces(jobId);
   const next = safeInternalPath(formData.get("returnTo"));

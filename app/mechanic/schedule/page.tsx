@@ -1,24 +1,31 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { PageHeading } from "@/components/layout/themed-board";
-import { WeekScheduler, type SchedulerJob } from "@/components/jobs/week-scheduler";
+import { CommandBoard } from "@/components/scheduler/command-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import {
   addDenverDays,
   addDenverMonths,
   denverMonthGrid,
-  formatAppointmentTime,
   formatDenverDateInput,
   formatDenverMonthLabel,
-  formatDenverTimeInput,
-  mechanicScheduleHref,
+  formatDenverWeekdayLong,
+  startOfDenverDay,
   startOfDenverMonth,
   startOfDenverWeek,
+  startOfNextDenverDay,
 } from "@/lib/datetime";
-import { formatAppointment, formatBoardDate, cn } from "@/lib/utils";
+import { inProgressStatuses } from "@/lib/scheduler";
+import { unreadMessageCount } from "@/services/messages";
+import {
+  ensureSchedulerResources,
+  jobCardInclude,
+  partsFromJobs,
+  remindersFromBoard,
+  toHoldCard,
+  toJobCard,
+  toResourceCard,
+} from "@/services/scheduler";
 
-export const metadata = { title: "Scheduler" };
+export const metadata = { title: "Schedule" };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WEEKDAY = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const;
@@ -26,35 +33,58 @@ const WEEKDAY = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY
 export default async function MechanicSchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; moving?: string; view?: string }>;
+  searchParams: Promise<{
+    week?: string;
+    date?: string;
+    moving?: string;
+    view?: string;
+    panel?: string;
+    resource?: string;
+    type?: string;
+    status?: string;
+    mode?: string;
+    q?: string;
+  }>;
 }) {
   const session = await requireSession("MECHANIC");
-  const { week, moving, view: viewParam } = await searchParams;
-  const view = viewParam === "month" ? "month" : "week";
+  const params = await searchParams;
+  const view = params.view === "week" || params.view === "month" ? params.view : "day";
+  const rawDate = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : params.week;
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({
     where: { userId: session.id },
-    include: { availability: true },
+    include: { availability: true, user: true },
   });
-  const anchor = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? new Date(`${week}T12:00:00.000Z`) : new Date();
-
-  const weekStart = startOfDenverWeek(anchor);
-  const monthStart = startOfDenverMonth(anchor);
+  const resources = await ensureSchedulerResources(profile.id);
+  const anchor = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? new Date(`${rawDate}T12:00:00.000Z`) : new Date();
+  const selected = startOfDenverDay(anchor);
+  const selectedYmd = formatDenverDateInput(selected);
+  const weekStart = startOfDenverWeek(selected);
+  const monthStart = startOfDenverMonth(selected);
   const monthGrid = denverMonthGrid(monthStart);
-  const rangeStart = view === "month" ? monthGrid.gridStart : weekStart;
-  const rangeEnd = view === "month" ? monthGrid.gridEnd : addDenverDays(weekStart, 7);
-  const prev = formatDenverDateInput(view === "month" ? addDenverMonths(monthStart, -1) : addDenverDays(weekStart, -7));
-  const next = formatDenverDateInput(view === "month" ? addDenverMonths(monthStart, 1) : addDenverDays(weekStart, 7));
-  const currentAnchor = formatDenverDateInput(view === "month" ? monthStart : weekStart);
-  const movingId = moving && jobsReady(moving) ? moving : undefined;
+  const dayEnd = startOfNextDenverDay(selected);
+  const rangeStart = view === "month" ? monthGrid.gridStart : view === "week" ? weekStart : selected;
+  const rangeEnd = view === "month" ? monthGrid.gridEnd : view === "week" ? addDenverDays(weekStart, 7) : dayEnd;
+  const prev =
+    view === "month"
+      ? formatDenverDateInput(addDenverMonths(monthStart, -1))
+      : formatDenverDateInput(addDenverDays(selected, view === "week" ? -7 : -1));
+  const next =
+    view === "month"
+      ? formatDenverDateInput(addDenverMonths(monthStart, 1))
+      : formatDenverDateInput(addDenverDays(selected, view === "week" ? 7 : 1));
+  const todayDate = formatDenverDateInput(new Date());
+  const movingId = params.moving && /^[0-9a-f-]{36}$/i.test(params.moving) ? params.moving : undefined;
+  const lastWeekDay = addDenverDays(selected, -7);
+  const lastWeekEnd = addDenverDays(lastWeekDay, 1);
 
-  const [booked, unscheduledRows] = await Promise.all([
+  const [booked, unscheduledRows, lastWeekCount, unread] = await Promise.all([
     prisma.job.findMany({
       where: {
         mechanicProfileId: profile.id,
         scheduledAt: { gte: rangeStart, lt: rangeEnd },
         status: { notIn: ["CANCELLED"] },
       },
-      include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+      include: jobCardInclude,
       orderBy: { scheduledAt: "asc" },
     }),
     prisma.job.findMany({
@@ -63,29 +93,37 @@ export default async function MechanicSchedulePage({
         scheduledAt: null,
         status: { notIn: ["COMPLETED", "CANCELLED"] },
       },
-      include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+      include: jobCardInclude,
       orderBy: { updatedAt: "desc" },
       take: 12,
     }),
+    prisma.job.count({
+      where: {
+        mechanicProfileId: profile.id,
+        scheduledAt: { gte: lastWeekDay, lt: lastWeekEnd },
+        status: { notIn: ["CANCELLED"] },
+      },
+    }),
+    unreadMessageCount(session.id, session.role),
   ]);
 
-  function toCard(job: (typeof booked)[number], bookedSlot: boolean): SchedulerJob {
-    return {
-      id: job.id,
-      href: `/mechanic/jobs/${job.id}#appointment`,
-      customerName: bookedSlot ? job.customer.firstName : `${job.customer.firstName} ${job.customer.lastName}`,
-      problem: job.serviceRequest.problemText,
-      vehicleLabel: `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`,
-      status: job.status,
-      time: job.scheduledAt ? formatDenverTimeInput(job.scheduledAt) : "09:00",
-      timeLabel: job.scheduledAt ? formatAppointmentTime(job.scheduledAt) : null,
-    };
-  }
+  const holds = await prisma.schedulerBlock.findMany({
+    where: { mechanicProfileId: profile.id, startAt: { gte: selected, lt: dayEnd } },
+    orderBy: { startAt: "asc" },
+  });
 
-  const jobs: Record<string, SchedulerJob> = {};
-  for (const job of booked) jobs[job.id] = toCard(job, true);
-  const unscheduledCards = unscheduledRows.map((job) => toCard(job, false));
-  for (const job of unscheduledCards) jobs[job.id] = job;
+  const now = new Date();
+  const jobCards = booked.map((job) => toJobCard(job, now));
+  const unscheduledCards = unscheduledRows.map((job) => toJobCard(job, now));
+  const statsSource = jobCards.filter(
+    (job) => job.scheduledAt && formatDenverDateInput(new Date(job.scheduledAt)) === selectedYmd,
+  );
+
+  const resourceCards = resources.map((resource) => {
+    const count = statsSource.filter((job) => job.resourceId === resource.id).length;
+    const mobileWork = statsSource.some((job) => job.resourceId === resource.id && job.mobile);
+    return toResourceCard(resource, count, mobileWork);
+  });
 
   function hoursForIndex(index: number) {
     const availability = profile.availability.find((slot) => slot.dayOfWeek === WEEKDAY[index]);
@@ -95,103 +133,111 @@ export default async function MechanicSchedulePage({
   const columns =
     view === "month"
       ? monthGrid.days.map((dayStart) => {
-          const dayEnd = addDenverDays(dayStart, 1);
+          const end = addDenverDays(dayStart, 1);
           const ymd = formatDenverDateInput(dayStart);
           const index = new Date(`${ymd}T12:00:00.000Z`).getUTCDay();
-          const dayJobs = booked.filter((job) => job.scheduledAt && job.scheduledAt >= dayStart && job.scheduledAt < dayEnd);
+          const dayJobsForCell = booked.filter((job) => job.scheduledAt && job.scheduledAt >= dayStart && job.scheduledAt < end);
           return {
             label: DAYS[index],
             date: ymd,
             hoursLabel: hoursForIndex(index),
-            jobIds: dayJobs.map((job) => job.id),
+            jobIds: dayJobsForCell.map((job) => job.id),
             inMonth: ymd.slice(0, 7) === formatDenverDateInput(monthStart).slice(0, 7),
           };
         })
       : DAYS.map((label, index) => {
           const dayStart = addDenverDays(weekStart, index);
-          const dayEnd = addDenverDays(weekStart, index + 1);
-          const dayJobs = booked.filter(
-            (job) => job.scheduledAt && job.scheduledAt >= dayStart && job.scheduledAt < dayEnd,
-          );
+          const end = addDenverDays(weekStart, index + 1);
+          const dayJobsForCell = booked.filter((job) => job.scheduledAt && job.scheduledAt >= dayStart && job.scheduledAt < end);
           return {
             label,
             date: formatDenverDateInput(dayStart),
             hoursLabel: hoursForIndex(index),
-            jobIds: dayJobs.map((job) => job.id),
+            jobIds: dayJobsForCell.map((job) => job.id),
             inMonth: true,
           };
         });
 
-  const subtitle =
-    view === "month"
-      ? `${formatDenverMonthLabel(monthStart)} · park a job on any day`
-      : `${formatBoardDate(weekStart)} – ${formatBoardDate(addDenverDays(weekStart, 6))} · drag a job onto a day`;
+  const related = await prisma.job.findMany({
+    where: { mechanicProfileId: profile.id },
+    select: { customerId: true },
+    distinct: ["customerId"],
+  });
+  const ids = related.map((job) => job.customerId);
+  const users = await prisma.user.findMany({
+    where: {
+      role: "CUSTOMER",
+      vehicles: { some: { archivedAt: null } },
+      OR: [...(ids.length ? [{ id: { in: ids } }] : []), { customerProfile: { zip: profile.shopZip ?? "84041" } }],
+    },
+    include: { vehicles: { where: { archivedAt: null }, include: { make: true, model: true }, orderBy: { createdAt: "asc" } } },
+    take: 40,
+  });
+  const customers = users
+    .filter((user) => user.vehicles.length > 0)
+    .map((user) => ({
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      vehicles: user.vehicles.map((vehicle) => ({
+        id: vehicle.id,
+        label: `${vehicle.year} ${vehicle.make.name} ${vehicle.model.name}`,
+      })),
+    }));
+
+  const calendarDays = monthGrid.days.map((dayStart) => {
+    const ymd = formatDenverDateInput(dayStart);
+    const end = addDenverDays(dayStart, 1);
+    return {
+      date: ymd,
+      inMonth: ymd.slice(0, 7) === formatDenverDateInput(monthStart).slice(0, 7),
+      count: booked.filter((job) => job.scheduledAt && job.scheduledAt >= dayStart && job.scheduledAt < end).length,
+    };
+  });
+
+  const appointments = statsSource.length;
+  const delta = lastWeekCount === 0 ? (appointments ? 100 : 0) : Math.round(((appointments - lastWeekCount) / lastWeekCount) * 100);
+  const awaiting = [...jobCards, ...unscheduledCards].filter((job) => job.status === "AWAITING_APPROVAL");
 
   return (
-    <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeading title="Scheduler" subtitle={subtitle} />
-        <div className="flex flex-wrap gap-2">
-          <div className="inline-flex rounded-full border border-line bg-card p-1">
-            <Link
-              href={mechanicScheduleHref({ view: "week", week: formatDenverDateInput(weekStart), moving: movingId })}
-              className={cn(
-                "inline-flex h-8 items-center rounded-full px-3.5 text-sm font-semibold",
-                view === "week" ? "bg-[#2f7bff] text-white" : "text-navy hover:bg-paper",
-              )}
-            >
-              Week
-            </Link>
-            <Link
-              href={mechanicScheduleHref({ view: "month", week: formatDenverDateInput(monthStart), moving: movingId })}
-              className={cn(
-                "inline-flex h-8 items-center rounded-full px-3.5 text-sm font-semibold",
-                view === "month" ? "bg-[#2f7bff] text-white" : "text-navy hover:bg-paper",
-              )}
-            >
-              Month
-            </Link>
-          </div>
-          <Button asChild size="sm" variant="secondary">
-            <Link href={mechanicScheduleHref({ view, week: prev })}>Previous</Link>
-          </Button>
-          <Button asChild size="sm" variant="secondary">
-            <Link
-              href={mechanicScheduleHref({
-                view,
-                week: formatDenverDateInput(view === "month" ? startOfDenverMonth() : startOfDenverWeek()),
-              })}
-            >
-              {view === "month" ? "This month" : "This week"}
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="secondary">
-            <Link href={mechanicScheduleHref({ view, week: next })}>Next</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/mechanic/jobs/new">New repair order</Link>
-          </Button>
-        </div>
-      </div>
-
-      <WeekScheduler
-        jobs={jobs}
-        columns={columns}
-        unscheduled={unscheduledCards}
-        week={currentAnchor}
-        view={view}
-        movingJobId={movingId && jobs[movingId] ? movingId : undefined}
-      />
-      <p className="mt-4 text-xs text-muted">
-        Times are America/Denver. Drop a job on a day to set or move it. Existing times stay; unscheduled jobs land at
-        9:00 AM.
-        {booked.length ? ` ${booked.length} job${booked.length === 1 ? "" : "s"} on the book this ${view}` : ""}
-        {booked[0]?.scheduledAt ? ` · next ${formatAppointment(booked[0].scheduledAt)}` : ""}.
-      </p>
-    </div>
+    <CommandBoard
+      view={view}
+      date={selectedYmd}
+      dateLabel={view === "month" ? formatDenverMonthLabel(monthStart) : view === "week" ? `${formatDenverDateInput(weekStart).slice(5)} – ${formatDenverDateInput(addDenverDays(weekStart, 6)).slice(5)}` : formatDenverWeekdayLong(selected)}
+      prevDate={prev}
+      nextDate={next}
+      todayDate={todayDate}
+      monthLabel={formatDenverMonthLabel(monthStart)}
+      shopName={profile.businessName}
+      shopCity={profile.shopCity ?? ""}
+      shopState={profile.shopState ?? "UT"}
+      origin={{ latitude: profile.latitude, longitude: profile.longitude, label: profile.businessName }}
+      stats={{
+        appointments,
+        appointmentsDelta: delta,
+        inProgress: statsSource.filter((job) => inProgressStatuses().includes(job.status)).length,
+        waitingOnParts: statsSource.filter((job) => job.waitingOnParts).length,
+        behind: statsSource.filter((job) => job.behind).length,
+        revenueCents: statsSource.reduce((sum, job) => sum + job.estimateCents, 0),
+        onTimePct: profile.onTimePercentage,
+      }}
+      resources={resourceCards}
+      jobs={jobCards}
+      holds={holds.map(toHoldCard)}
+      columns={columns}
+      unscheduled={unscheduledCards}
+      reminders={remindersFromBoard({ awaiting, unreadCount: unread, behind: statsSource.filter((job) => job.behind) })}
+      parts={partsFromJobs(statsSource.length ? statsSource : jobCards)}
+      calendarDays={calendarDays}
+      movingJobId={movingId}
+      panel={params.panel}
+      filters={{
+        resource: params.resource,
+        type: params.type,
+        status: params.status,
+        mode: params.mode,
+        q: params.q,
+      }}
+      customers={customers}
+    />
   );
-}
-
-function jobsReady(id: string) {
-  return /^[0-9a-f-]{36}$/i.test(id);
 }

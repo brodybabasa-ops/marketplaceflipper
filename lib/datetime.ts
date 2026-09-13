@@ -110,12 +110,64 @@ export function denverMonthGrid(monthStart: Date) {
   return { start, nextMonth, lastDay, gridStart, gridEnd, days };
 }
 
-export function mechanicScheduleHref(input: { view?: "week" | "month"; week: string; moving?: string }) {
+export type ScheduleView = "day" | "week" | "month";
+
+export function mechanicScheduleHref(input: {
+  view?: ScheduleView;
+  date: string;
+  moving?: string;
+  panel?: string;
+  resource?: string;
+  type?: string;
+  status?: string;
+  mode?: string;
+  q?: string;
+}) {
   const params = new URLSearchParams();
-  if (input.view === "month") params.set("view", "month");
-  params.set("week", input.week);
+  if (input.view && input.view !== "day") params.set("view", input.view);
+  params.set("date", input.date);
   if (input.moving) params.set("moving", input.moving);
+  if (input.panel) params.set("panel", input.panel);
+  if (input.resource) params.set("resource", input.resource);
+  if (input.type) params.set("type", input.type);
+  if (input.status) params.set("status", input.status);
+  if (input.mode) params.set("mode", input.mode);
+  if (input.q) params.set("q", input.q);
   return `/mechanic/schedule?${params.toString()}`;
+}
+
+export function formatDenverWeekdayLong(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: TIMEZONE,
+  }).format(date);
+}
+
+export function denverClockMinutes(date: Date) {
+  const [hour, minute] = formatDenverTimeInput(date).split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+export function minutesToClock(total: number) {
+  const clamped = Math.max(0, Math.min(23 * 60 + 45, total));
+  const hour = Math.floor(clamped / 60);
+  const minute = clamped % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+export function formatHourLabel(hour: number) {
+  if (hour === 0 || hour === 24) return "12 AM";
+  if (hour === 12) return "12 PM";
+  if (hour > 12) return `${hour - 12} PM`;
+  return `${hour} AM`;
+}
+
+export function formatClockRange(start: Date, durationMinutes: number) {
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+  return `${formatAppointmentTime(start)} – ${formatAppointmentTime(end)}`;
 }
 
 export function proposedAppointmentFromPreferred(preferredDate?: string, preferredTimeWindow?: string) {

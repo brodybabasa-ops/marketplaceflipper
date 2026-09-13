@@ -49,7 +49,7 @@ export function WeekScheduler({
   const [overDate, setOverDate] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const moving = movingJobId ? jobs[movingJobId] : null;
-  const returnTo = mechanicScheduleHref({ view, week });
+  const returnTo = mechanicScheduleHref({ view, date: week });
 
   async function dropOnDate(date: string, payload: string) {
     const raw = payload || (activeDrag ? JSON.stringify(activeDrag) : "");
@@ -219,7 +219,7 @@ function DayCell({
             })}
             {hidden ? (
               <Link
-                href={mechanicScheduleHref({ view: "week", week: column.date })}
+                href={mechanicScheduleHref({ view: "week", date: column.date })}
                 className="inline-block text-[11px] font-semibold text-[#7eb0ff]"
               >
                 +{hidden} more
@@ -247,7 +247,7 @@ function SchedulerCard({
   view: "week" | "month";
   moving?: boolean;
 }) {
-  const href = mechanicScheduleHref({ view, week, moving: job.id });
+  const href = mechanicScheduleHref({ view, date: week, moving: job.id });
   return (
     <div
       draggable

@@ -1,9 +1,11 @@
 import { PrismaClient, type DayOfWeek, type JobStatus, type MechanicProfile, type ServiceCategory, type ServiceMode, type VerificationLevel } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_RANKING_WEIGHTS } from "../lib/constants";
-import { nextBookableDenver, nextDenverWeekday } from "../lib/datetime";
+import { nextBookableDenver, nextDenverWeekday, denverDateTimeToUtc, formatDenverDateInput, startOfDenverDay } from "../lib/datetime";
+import { durationForCategory } from "../lib/scheduler";
 import { computeMechanicScore } from "../services/ranking";
 import { classifyProblem } from "../services/problem-classifier";
+import { ensureSchedulerResources } from "../services/scheduler";
 
 const prisma = new PrismaClient();
 
@@ -684,6 +686,7 @@ async function seedBrodyStory({
         totalCents: price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
         scheduledAt,
+        durationMinutes: durationForCategory(category),
         completedAt: doneAt,
         createdAt,
         events: {
@@ -861,8 +864,247 @@ async function seedBrodyStory({
   });
 }
 
+async function seedCommandBoards({
+  mechanicProfiles,
+  customers,
+  vehicles,
+  zips,
+}: {
+  mechanicProfiles: MechanicProfile[];
+  customers: { id: string }[];
+  vehicles: { id: string; customerId: string }[];
+  zips: { zip: string; city: string; latitude: number; longitude: number }[];
+}) {
+  const today = formatDenverDateInput(new Date());
+  const pool = vehicles.filter((vehicle) => vehicle.customerId !== customers[0].id);
+  const plans: Record<string, { title: string; category: ServiceCategory; time: string; duration: number; status: JobStatus; price: number; tech: number; mobile?: boolean; parts?: boolean }[]> = {
+    "mikes-mobile-auto": [
+      { title: "Oil Change", category: "MAINTENANCE", time: "07:00", duration: 60, status: "SCHEDULED", price: 12000, tech: 0 },
+      { title: "Engine Diagnostic", category: "DIAGNOSTICS", time: "09:00", duration: 150, status: "IN_PROGRESS", price: 28000, tech: 0 },
+      { title: "Estimate Review", category: "DIAGNOSTICS", time: "13:00", duration: 60, status: "AWAITING_APPROVAL", price: 18500, tech: 0 },
+      { title: "Customer Pickup", category: "MAINTENANCE", time: "15:00", duration: 30, status: "SCHEDULED", price: 9500, tech: 0 },
+      { title: "Transmission Service", category: "TRANSMISSION", time: "08:00", duration: 180, status: "IN_PROGRESS", price: 34000, tech: 1 },
+      { title: "Front End Repair", category: "SUSPENSION", time: "13:00", duration: 120, status: "SCHEDULED", price: 142000, tech: 1 },
+      { title: "Electrical Issue", category: "ELECTRICAL", time: "14:30", duration: 90, status: "SCHEDULED", price: 22000, tech: 1 },
+      { title: "Brake Inspection", category: "BRAKES", time: "08:00", duration: 90, status: "SCHEDULED", price: 42000, tech: 2 },
+      { title: "Suspension Work", category: "SUSPENSION", time: "10:00", duration: 120, status: "SCHEDULED", price: 21000, tech: 2 },
+      { title: "Tires (4)", category: "TIRES", time: "13:00", duration: 90, status: "SCHEDULED", price: 64000, tech: 2 },
+      { title: "Alignment", category: "STEERING", time: "15:30", duration: 60, status: "SCHEDULED", price: 18000, tech: 2 },
+      { title: "PPI · BMW X5", category: "DIAGNOSTICS", time: "08:00", duration: 150, status: "IN_PROGRESS", price: 22000, tech: 3, mobile: true },
+      { title: "PPI · Boat", category: "DIAGNOSTICS", time: "12:00", duration: 90, status: "SCHEDULED", price: 18500, tech: 3, mobile: true },
+      { title: "Mobile Service", category: "MAINTENANCE", time: "08:30", duration: 150, status: "EN_ROUTE", price: 16500, tech: 4, mobile: true },
+      { title: "Mobile Service", category: "BRAKES", time: "13:00", duration: 120, status: "SCHEDULED", price: 42000, tech: 4, mobile: true },
+      { title: "Mobile Service", category: "MAINTENANCE", time: "16:00", duration: 90, status: "SCHEDULED", price: 14000, tech: 4, mobile: true },
+    ],
+    "freds-marine": [
+      { title: "Engine Diagnostic", category: "DIAGNOSTICS", time: "08:00", duration: 150, status: "IN_PROGRESS", price: 285000, tech: 0 },
+      { title: "Impeller Service", category: "ENGINE", time: "13:00", duration: 120, status: "SCHEDULED", price: 64000, tech: 0 },
+      { title: "Winterize", category: "MAINTENANCE", time: "08:00", duration: 180, status: "SCHEDULED", price: 42000, tech: 1 },
+      { title: "Electrical Issue", category: "ELECTRICAL", time: "13:00", duration: 90, status: "SCHEDULED", price: 22000, tech: 1, parts: true },
+      { title: "No-Start", category: "STARTING", time: "09:00", duration: 120, status: "DIAGNOSING", price: 18500, tech: 2 },
+      { title: "AC Repair", category: "AC_HEATING", time: "13:00", duration: 90, status: "SCHEDULED", price: 31000, tech: 2 },
+    ],
+    "precision-auto-care": [
+      { title: "European Diagnostic", category: "DIAGNOSTICS", time: "08:00", duration: 120, status: "IN_PROGRESS", price: 24000, tech: 0 },
+      { title: "Brake Service", category: "BRAKES", time: "11:00", duration: 90, status: "SCHEDULED", price: 42000, tech: 0 },
+      { title: "Inspection / PPI", category: "DIAGNOSTICS", time: "08:00", duration: 90, status: "SCHEDULED", price: 18000, tech: 1 },
+      { title: "Electrical Issue", category: "ELECTRICAL", time: "13:00", duration: 120, status: "AWAITING_APPROVAL", price: 36000, tech: 1, parts: true },
+      { title: "Oil Service", category: "MAINTENANCE", time: "08:00", duration: 60, status: "SCHEDULED", price: 12000, tech: 2 },
+      { title: "Tires (4)", category: "TIRES", time: "10:00", duration: 90, status: "SCHEDULED", price: 64000, tech: 2 },
+    ],
+  };
+
+  for (const profile of mechanicProfiles) {
+    const resources = await ensureSchedulerResources(profile.id);
+    const techs = resources.filter((item) => item.kind === "TECH");
+    const bays = resources.filter((item) => item.kind === "BAY");
+    const mobiles = resources.filter((item) => item.kind === "MOBILE");
+    for (const tech of techs) {
+      await prisma.schedulerBlock.create({
+        data: {
+          mechanicProfileId: profile.id,
+          resourceId: tech.id,
+          kind: "LUNCH",
+          label: "Lunch",
+          startAt: denverDateTimeToUtc(today, "12:00"),
+          endAt: denverDateTimeToUtc(today, "13:00"),
+        },
+      });
+    }
+    if (techs[0]) {
+      await prisma.schedulerBlock.create({
+        data: {
+          mechanicProfileId: profile.id,
+          resourceId: techs[0].id,
+          kind: "BUFFER",
+          label: "Buffer",
+          startAt: denverDateTimeToUtc(today, "16:00"),
+          endAt: denverDateTimeToUtc(today, "17:00"),
+        },
+      });
+    }
+    for (const mobile of mobiles) {
+      await prisma.schedulerBlock.create({
+        data: {
+          mechanicProfileId: profile.id,
+          resourceId: mobile.id,
+          kind: "TRAVEL",
+          label: "Travel",
+          startAt: denverDateTimeToUtc(today, "11:30"),
+          endAt: denverDateTimeToUtc(today, "12:00"),
+        },
+      });
+    }
+
+    const plan = plans[profile.slug] ?? [];
+    for (let index = 0; index < plan.length; index += 1) {
+      const item = plan[index];
+      const vehicle = pool[(index + profile.slug.length) % pool.length];
+      if (!vehicle) continue;
+      const zip = zips[index % zips.length];
+      const tech = techs[item.tech] ?? techs[0];
+      const resource = item.mobile ? (mobiles[0] ?? tech) : (index % 7 === 0 && bays[0] ? bays[index % bays.length] : tech);
+      const createdAt = denverDateTimeToUtc(today, "07:00");
+      const request = await prisma.serviceRequest.create({
+        data: {
+          customerId: vehicle.customerId,
+          vehicleId: vehicle.id,
+          mechanicProfileId: profile.id,
+          status: item.status === "REQUESTED" ? "OPEN" : "ACCEPTED",
+          problemText: item.title,
+          category: item.category,
+          zip: zip.zip,
+          city: zip.city,
+          state: "UT",
+          latitude: zip.latitude,
+          longitude: zip.longitude,
+          mobilePreferred: Boolean(item.mobile),
+          createdAt,
+        },
+      });
+      const job = await prisma.job.create({
+        data: {
+          serviceRequestId: request.id,
+          customerId: vehicle.customerId,
+          mechanicUserId: profile.userId,
+          mechanicProfileId: profile.id,
+          vehicleId: vehicle.id,
+          status: item.status,
+          totalCents: item.price,
+          scheduledAt: denverDateTimeToUtc(today, item.time),
+          durationMinutes: item.duration,
+          resourceId: resource?.id,
+          createdAt,
+          events: { create: [{ status: "REQUESTED", createdAt }, { status: item.status, createdAt }] },
+        },
+      });
+      const partsCents = item.parts ? Math.round(item.price * 0.4) : 0;
+      await prisma.estimate.create({
+        data: {
+          jobId: job.id,
+          mechanicId: profile.userId,
+          type: "PRIMARY",
+          status: item.status === "AWAITING_APPROVAL" ? "SENT" : "APPROVED",
+          totalCents: item.price,
+          subtotalCents: item.price,
+          sentAt: createdAt,
+          lineItems: {
+            create: [
+              { category: "LABOR", description: item.title, quantity: 1, unitCents: item.price - partsCents, totalCents: item.price - partsCents },
+              ...(partsCents
+                ? [{ category: "PARTS" as const, description: `${item.title} parts kit`, quantity: 1, unitCents: partsCents, totalCents: partsCents }]
+                : []),
+            ],
+          },
+        },
+      });
+      await prisma.messageThread.create({
+        data: {
+          customerId: vehicle.customerId,
+          mechanicId: profile.userId,
+          jobId: job.id,
+          requestId: request.id,
+          lastMessageAt: createdAt,
+          messages: {
+            create: [
+              { senderId: vehicle.customerId, body: item.title, createdAt },
+              { senderId: profile.userId, body: "You're on the book. I'll text when we start.", createdAt },
+            ],
+          },
+        },
+      });
+    }
+
+    for (let i = 0; i < (plans[profile.slug] ? 3 : 0); i += 1) {
+      const vehicle = pool[(i + 9) % pool.length];
+      if (!vehicle) continue;
+      const zip = zips[i % zips.length];
+      const problem = i === 0 ? "No-Start issue" : i === 1 ? "AC Not Working" : "Oil Leak";
+      const category: ServiceCategory = i === 0 ? "STARTING" : i === 1 ? "AC_HEATING" : "ENGINE";
+      const createdAt = new Date(Date.now() - (i + 1) * 3600000);
+      const request = await prisma.serviceRequest.create({
+        data: {
+          customerId: vehicle.customerId,
+          vehicleId: vehicle.id,
+          mechanicProfileId: profile.id,
+          status: "OPEN",
+          problemText: problem,
+          category,
+          zip: zip.zip,
+          city: zip.city,
+          state: "UT",
+          latitude: zip.latitude,
+          longitude: zip.longitude,
+          createdAt,
+        },
+      });
+      const job = await prisma.job.create({
+        data: {
+          serviceRequestId: request.id,
+          customerId: vehicle.customerId,
+          mechanicUserId: profile.userId,
+          mechanicProfileId: profile.id,
+          vehicleId: vehicle.id,
+          status: i === 0 ? "REQUESTED" : i === 1 ? "AWAITING_APPROVAL" : "ACCEPTED",
+          durationMinutes: durationForCategory(category),
+          resourceId: techs[0]?.id,
+          createdAt,
+          events: { create: [{ status: "REQUESTED", createdAt }] },
+        },
+      });
+      await prisma.messageThread.create({
+        data: {
+          customerId: vehicle.customerId,
+          mechanicId: profile.userId,
+          jobId: job.id,
+          requestId: request.id,
+          lastMessageAt: createdAt,
+          messages: { create: [{ senderId: vehicle.customerId, body: problem, createdAt }] },
+        },
+      });
+      if (i === 1) {
+        await prisma.estimate.create({
+          data: {
+            jobId: job.id,
+            mechanicId: profile.userId,
+            type: "PRIMARY",
+            status: "SENT",
+            totalCents: 31000,
+            subtotalCents: 31000,
+            sentAt: createdAt,
+            lineItems: {
+              create: [{ category: "LABOR", description: problem, quantity: 1, unitCents: 31000, totalCents: 31000 }],
+            },
+          },
+        });
+      }
+    }
+  }
+}
+
 async function main() {
   await prisma.$transaction([
+    prisma.schedulerBlock.deleteMany(),
     prisma.message.deleteMany(),
     prisma.messageThread.deleteMany(),
     prisma.estimateApproval.deleteMany(),
@@ -876,6 +1118,7 @@ async function main() {
     prisma.dispute.deleteMany(),
     prisma.notification.deleteMany(),
     prisma.job.deleteMany(),
+    prisma.schedulerResource.deleteMany(),
     prisma.serviceRequest.deleteMany(),
     prisma.savedMechanic.deleteMany(),
     prisma.vehicle.deleteMany(),
@@ -1129,6 +1372,7 @@ async function main() {
         totalCents: problem.price,
         paymentStatus: status === "COMPLETED" ? "PAID" : "UNPAID",
         scheduledAt: status === "REQUESTED" ? undefined : createdAt,
+        durationMinutes: durationForCategory(category),
         completedAt: status === "COMPLETED" ? new Date(createdAt.getTime() + 86400000 * 2) : undefined,
         createdAt,
         events: {
@@ -1226,6 +1470,13 @@ async function main() {
     ski: brodyVehicles[4],
     trailer: brodyVehicles[5],
     shops: Object.fromEntries(mechanicProfiles.map((profile) => [profile.slug, profile])),
+  });
+
+  await seedCommandBoards({
+    mechanicProfiles,
+    customers,
+    vehicles,
+    zips: ZIPS,
   });
 
   for (const profile of mechanicProfiles) {

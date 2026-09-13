@@ -46,6 +46,7 @@ export function WorkspaceShell({
   nav,
   product,
   workspace,
+  locationLabel,
   unreadNotifications = 0,
   unreadMessages = 0,
   children,
@@ -54,6 +55,7 @@ export function WorkspaceShell({
   nav: { href: string; label: string }[];
   product: Product;
   workspace: string;
+  locationLabel?: string;
   unreadNotifications?: number;
   unreadMessages?: number;
   children: React.ReactNode;
@@ -96,6 +98,22 @@ export function WorkspaceShell({
           <Suspense fallback={<div className="h-10 max-w-xl flex-1 rounded-lg border border-white/10 bg-white/5" />}>
             <OpsSearch pathname={pathname} product={product} />
           </Suspense>
+          {product === "shop" ? (
+            <Link
+              href="/mechanic/jobs/new"
+              className="hidden h-10 items-center rounded-lg bg-[#2f7bff] px-3 text-sm font-semibold text-white sm:inline-flex"
+            >
+              + New
+            </Link>
+          ) : null}
+          <Link
+            href={product === "shop" ? "/mechanic/messages" : "/admin/messages"}
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10"
+            aria-label={unreadMessages ? `${unreadMessages} messages` : "Messages"}
+          >
+            <MessageSquare className="h-4 w-4" />
+            {unreadMessages > 0 ? <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#e23d3d]" /> : null}
+          </Link>
           <Link
             href={inbox}
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10"
@@ -114,20 +132,30 @@ export function WorkspaceShell({
               {user.firstName} {user.lastName.charAt(0)}.
             </span>
           </span>
+          {product === "shop" && locationLabel ? (
+            <span className="hidden text-right text-xs leading-4 text-white/55 xl:block">
+              {locationLabel}
+              <span className="block text-white/40">
+                {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" })}
+              </span>
+            </span>
+          ) : null}
           <form action={signOutAction}>
             <button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white">
               Sign out
             </button>
           </form>
         </header>
-        <div className="border-b border-white/10 px-5 py-5">
-          <p className="text-[11px] font-bold tracking-[0.22em] text-[#2f7bff]">{page.eyebrow}</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {page.title} <span className="text-[#2f7bff]">{page.accent}</span>
-          </h1>
-          <p className="mt-1.5 text-sm text-white/55">{page.subtitle}</p>
-        </div>
-        <div className="flex-1 px-5 py-5">{children}</div>
+        {pathname.startsWith("/mechanic/schedule") ? null : (
+          <div className="border-b border-white/10 px-5 py-5">
+            <p className="text-[11px] font-bold tracking-[0.22em] text-[#2f7bff]">{page.eyebrow}</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              {page.title} <span className="text-[#2f7bff]">{page.accent}</span>
+            </h1>
+            <p className="mt-1.5 text-sm text-white/55">{page.subtitle}</p>
+          </div>
+        )}
+        <div className={pathname.startsWith("/mechanic/schedule") ? "flex-1 px-4 py-4" : "flex-1 px-5 py-5"}>{children}</div>
       </div>
     </div>
   );
@@ -137,6 +165,7 @@ function opsSearchFor(pathname: string, product: Product) {
   if (pathname.startsWith("/admin/users")) return { action: "/admin/users", placeholder: "Search users..." };
   if (pathname.startsWith("/admin/vehicles")) return { action: "/admin/vehicles", placeholder: "Search vehicles..." };
   if (pathname.startsWith("/admin/mechanics")) return { action: "/admin/mechanics", placeholder: "Search shops..." };
+  if (pathname.startsWith("/mechanic/schedule")) return { action: "/mechanic/schedule", placeholder: "Search customers, vehicles, jobs, or parts..." };
   if (pathname.startsWith("/mechanic/messages")) return { action: "/mechanic/messages", placeholder: "Search customers or messages..." };
   if (pathname.startsWith("/mechanic/requests")) return { action: "/mechanic/requests", placeholder: "Search requests..." };
   if (product === "shop") return { action: "/mechanic/jobs", placeholder: "Search jobs or customers..." };
@@ -166,7 +195,7 @@ function opsPage(pathname: string, product: Product): PageCopy {
     { prefix: "/mechanic/requests", page: { eyebrow: "REQUESTS", title: "Incoming", accent: "Work.", subtitle: "Customers who asked this shop for help." } },
     { prefix: "/mechanic/jobs/new", page: { eyebrow: "JOBS", title: "New repair", accent: "Order.", subtitle: "Opens a live job, thread, and optional appointment." } },
     { prefix: "/mechanic/jobs", page: { eyebrow: "JOBS", title: "On the", accent: "Board.", subtitle: "Every request, estimate, and repair." } },
-    { prefix: "/mechanic/schedule", page: { eyebrow: "SCHEDULER", title: "The shop", accent: "Book.", subtitle: "Week or month. The same appointment times customers see." } },
+    { prefix: "/mechanic/schedule", page: { eyebrow: "SCHEDULER", title: "Schedule", accent: "", subtitle: "Your day. Your team. Maximum productivity." } },
     { prefix: "/mechanic/estimates", page: { eyebrow: "ESTIMATES", title: "Written", accent: "Quotes.", subtitle: "Sent to the customer on the live job." } },
     { prefix: "/mechanic/reviews", page: { eyebrow: "REVIEWS", title: "Job", accent: "Reviews.", subtitle: "Tied to completed Pocket Mechanic jobs." } },
     { prefix: "/mechanic/profile", page: { eyebrow: "PROFILE", title: "Shop", accent: "Profile.", subtitle: "What customers see before they request service." } },

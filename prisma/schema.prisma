@@ -180,6 +180,20 @@ enum DayOfWeek {
   SATURDAY
 }
 
+enum SchedulerResourceKind {
+  TECH
+  BAY
+  MOBILE
+}
+
+enum SchedulerBlockKind {
+  LUNCH
+  TRAVEL
+  BUFFER
+  BREAK
+  BLOCK
+}
+
 model User {
   id             String        @id @default(uuid()) @db.Uuid
   email          String        @unique
@@ -291,6 +305,8 @@ model MechanicProfile {
   jobs           Job[]
   reviews        Review[]
   savedBy        SavedMechanic[]
+  schedulerResources SchedulerResource[]
+  schedulerBlocks    SchedulerBlock[]
 
   @@index([mechanicScore])
   @@index([shopState, shopCity])
@@ -481,6 +497,8 @@ model Job {
   vehicleId         String        @db.Uuid
   status            JobStatus     @default(REQUESTED)
   scheduledAt       DateTime?
+  durationMinutes   Int           @default(90)
+  resourceId        String?       @db.Uuid
   arrivedAt         DateTime?
   completedAt       DateTime?
   cancelledAt       DateTime?
@@ -497,6 +515,7 @@ model Job {
   mechanicUser    User             @relation("MechanicJobs", fields: [mechanicUserId], references: [id])
   mechanicProfile MechanicProfile  @relation(fields: [mechanicProfileId], references: [id])
   vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  resource        SchedulerResource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
   estimates       Estimate[]
   events          JobEvent[]
   photos          JobPhoto[]
@@ -509,6 +528,44 @@ model Job {
   @@index([customerId, status])
   @@index([mechanicProfileId, status])
   @@index([status])
+  @@index([resourceId, scheduledAt])
+}
+
+model SchedulerResource {
+  id                String                 @id @default(uuid()) @db.Uuid
+  mechanicProfileId String                 @db.Uuid
+  kind              SchedulerResourceKind
+  name              String
+  role              String?
+  statusLabel       String?
+  capacityTotal     Int                    @default(5)
+  sortOrder         Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  mechanic MechanicProfile  @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  jobs     Job[]
+  blocks   SchedulerBlock[]
+
+  @@index([mechanicProfileId, sortOrder])
+}
+
+model SchedulerBlock {
+  id                String             @id @default(uuid()) @db.Uuid
+  mechanicProfileId String             @db.Uuid
+  resourceId        String             @db.Uuid
+  kind              SchedulerBlockKind
+  label             String
+  startAt           DateTime
+  endAt             DateTime
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  mechanic MechanicProfile   @relation(fields: [mechanicProfileId], references: [id], onDelete: Cascade)
+  resource SchedulerResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([mechanicProfileId, startAt])
+  @@index([resourceId, startAt])
 }
 
 model JobEvent {
