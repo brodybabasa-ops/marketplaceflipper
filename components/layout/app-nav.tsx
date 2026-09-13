@@ -37,6 +37,7 @@ export const CUSTOMER_NAV = [
   { href: "/appointments", label: "Appointments" },
   { href: "/estimates", label: "Estimates" },
   { href: "/messages", label: "Messages" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/saved", label: "Saved Shops" },
   { href: "/reviews", label: "Reviews" },
   { href: "/account", label: "Account Settings" },

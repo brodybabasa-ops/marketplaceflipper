@@ -54,14 +54,19 @@ export function MechanicCard({ mechanic, href }: { mechanic: MechanicMatch; href
           </Badge>
         ))}
       </div>
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="number text-xl font-semibold text-navy">{formatCents(mechanic.startingPriceCents, { from: true })}</p>
           <p className="text-sm text-muted">{responseTimeLabel(mechanic.avgResponseMinutes)}</p>
         </div>
-        <Button asChild>
-          <Link href={profileHref}>View Profile</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="secondary">
+            <Link href={profileHref}>View Profile</Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/request?mechanic=${mechanic.id}`}>Request</Link>
+          </Button>
+        </div>
       </div>
       </div>
     </article>

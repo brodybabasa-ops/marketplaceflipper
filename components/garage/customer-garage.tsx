@@ -39,9 +39,9 @@ const SUPPORT = [
 ];
 
 const ACTIONS = [
-  { href: "/vehicles/new", icon: FileText, title: "Import Vehicle", body: "Add by VIN or HIN" },
+  { href: "/vehicles/import", icon: FileText, title: "Import Vehicle", body: "Add by VIN or HIN" },
   { href: "/vehicles/new", icon: PenLine, title: "Manual Entry", body: "Add a vehicle manually" },
-  { href: "/vehicles/new", icon: Camera, title: "Scan Document", body: "Upload registration or title" },
+  { href: "/vehicles/import", icon: Camera, title: "Scan Document", body: "Type the VIN from the document" },
 ];
 
 export function CustomerGarage({
@@ -178,42 +178,51 @@ export function CustomerGarage({
 
 function VehicleTile({ vehicle }: { vehicle: GarageVehicle }) {
   return (
-    <Link href={vehicle.href} className="overflow-hidden rounded-2xl bg-[#0d1f33]">
-      <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={vehicle.photo} alt="" className={cn("h-[128px] w-full object-cover", vehicle.photoClass)} />
-        {vehicle.primary ? (
-          <span className="absolute right-3 top-3 rounded-full bg-[#2f7bff] px-2.5 py-0.5 text-[11px] font-semibold">Primary</span>
-        ) : null}
-      </div>
-      <div className="px-4 pb-4 pt-3">
-        <h3 className="text-[15px] font-bold leading-tight">
-          {vehicle.year} {vehicle.make} {vehicle.model}
-        </h3>
-        {vehicle.trim ? <p className="mt-0.5 text-xs text-white/55">{vehicle.trim}</p> : null}
-        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-white/45">
-          <span>
-            {vehicle.identifierLabel}: {vehicle.identifier}
-          </span>
-          {vehicle.copyable ? <CopyIdentifier value={vehicle.identifier} label={vehicle.identifierLabel} /> : null}
-        </p>
-        <p className="mt-1 text-sm text-white/80">{vehicle.usage}</p>
-        <div className="mt-3 flex items-center justify-between">
-          {vehicle.status === "ok" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#1f8a5b] px-2 py-0.5 text-[11px] font-semibold text-white">
-              <CircleCheck className="h-3 w-3" />
-              {vehicle.statusLabel}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#e8b923] px-2 py-0.5 text-[11px] font-semibold text-[#1a1408]">
-              <AlertTriangle className="h-3 w-3" />
-              {vehicle.statusLabel}
-            </span>
-          )}
-          <ChevronRight className="h-4 w-4 text-[#2f7bff]" />
+    <article className="overflow-hidden rounded-2xl bg-[#0d1f33]">
+      <Link href={vehicle.href} className="block">
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={vehicle.photo} alt="" className={cn("h-[128px] w-full object-cover", vehicle.photoClass)} />
+          {vehicle.primary ? (
+            <span className="absolute right-3 top-3 rounded-full bg-[#2f7bff] px-2.5 py-0.5 text-[11px] font-semibold">Primary</span>
+          ) : null}
         </div>
-      </div>
-    </Link>
+        <div className="px-4 pb-2 pt-3">
+          <h3 className="text-[15px] font-bold leading-tight">
+            {vehicle.year} {vehicle.make} {vehicle.model}
+          </h3>
+          {vehicle.trim ? <p className="mt-0.5 text-xs text-white/55">{vehicle.trim}</p> : null}
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] text-white/45">
+            <span>
+              {vehicle.identifierLabel}: {vehicle.identifier}
+            </span>
+            {vehicle.copyable ? <CopyIdentifier value={vehicle.identifier} label={vehicle.identifierLabel} /> : null}
+          </p>
+          <p className="mt-1 text-sm text-white/80">{vehicle.usage}</p>
+          <div className="mt-3 flex items-center justify-between">
+            {vehicle.status === "ok" ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#1f8a5b] px-2 py-0.5 text-[11px] font-semibold text-white">
+                <CircleCheck className="h-3 w-3" />
+                {vehicle.statusLabel}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#e8b923] px-2 py-0.5 text-[11px] font-semibold text-[#1a1408]">
+                <AlertTriangle className="h-3 w-3" />
+                {vehicle.statusLabel}
+              </span>
+            )}
+            <ChevronRight className="h-4 w-4 text-[#2f7bff]" />
+          </div>
+        </div>
+      </Link>
+      {vehicle.editHref ? (
+        <div className="px-4 pb-3">
+          <Link href={vehicle.editHref} className="text-[12px] font-semibold text-[#7eb0ff]">
+            Edit vehicle
+          </Link>
+        </div>
+      ) : null}
+    </article>
   );
 }
 

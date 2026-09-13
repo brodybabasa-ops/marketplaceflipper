@@ -1,25 +1,56 @@
-import type { JobStatus } from "@prisma/client";
-import { FREDS_MARINE_SLUG } from "@/lib/constants";
+import type { JobStatus, Prisma } from "@prisma/client";
+import { FREDS_MARINE_SLUG, PRECISION_AUTO_SLUG } from "@/lib/constants";
 import { denverDateTimeToUtc, proposedAppointmentFromPreferred } from "@/lib/datetime";
 import { prisma } from "@/lib/db";
 import { formatAppointment } from "@/lib/utils";
+import { isMarineVehicle } from "@/lib/vehicles";
 import { ALLOWED_JOB_TRANSITIONS, refreshMechanicScore } from "@/services/mechanics";
 import { notify } from "@/services/notifications";
 import { classifyProblem } from "@/services/problem-classifier";
 
-async function resolveAssignedShop(mechanicProfileId?: string) {
+async function resolveAssignedShop(
+  mechanicProfileId: string | undefined,
+  vehicle: { make: { name: string }; model: { name: string } },
+) {
   if (mechanicProfileId) {
-    return prisma.mechanicProfile.findUniqueOrThrow({
+    const named = await prisma.mechanicProfile.findUnique({
       where: { id: mechanicProfileId },
       include: { user: true },
     });
+    if (!named) throw new Error("That shop is not available.");
+    if (!named.acceptsNewJobs) throw new Error("That shop is not taking new requests.");
+    return named;
   }
-  const fred = await prisma.mechanicProfile.findUnique({
-    where: { slug: FREDS_MARINE_SLUG },
+  const slug = isMarineVehicle(vehicle.make.name, vehicle.model.name) ? FREDS_MARINE_SLUG : PRECISION_AUTO_SLUG;
+  const preferred = await prisma.mechanicProfile.findUnique({
+    where: { slug },
     include: { user: true },
   });
-  if (!fred) throw new Error("Fred's Marine is not available to take this request.");
-  return fred;
+  if (preferred?.acceptsNewJobs) return preferred;
+  const fallback = await prisma.mechanicProfile.findFirst({
+    where: { acceptsNewJobs: true },
+    include: { user: true },
+    orderBy: { businessName: "asc" },
+  });
+  if (!fallback) throw new Error("No shop is available to take this request.");
+  return fallback;
+}
+
+export function jobSearchWhere(q?: string | null): Prisma.JobWhereInput {
+  const term = q?.trim();
+  if (!term) return {};
+  return {
+    OR: [
+      { serviceRequest: { problemText: { contains: term, mode: "insensitive" } } },
+      { customer: { firstName: { contains: term, mode: "insensitive" } } },
+      { customer: { lastName: { contains: term, mode: "insensitive" } } },
+      { customer: { email: { contains: term, mode: "insensitive" } } },
+      { mechanicProfile: { businessName: { contains: term, mode: "insensitive" } } },
+      { vehicle: { nickname: { contains: term, mode: "insensitive" } } },
+      { vehicle: { make: { name: { contains: term, mode: "insensitive" } } } },
+      { vehicle: { model: { name: { contains: term, mode: "insensitive" } } } },
+    ],
+  };
 }
 
 export async function createServiceRequest(input: {
@@ -37,11 +68,12 @@ export async function createServiceRequest(input: {
   actorId?: string;
 }) {
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id: input.vehicleId, customerId: input.customerId },
+    where: { id: input.vehicleId, customerId: input.customerId, archivedAt: null },
+    include: { make: true, model: true },
   });
   if (!vehicle) throw new Error("Vehicle not found.");
 
-  const mechanic = await resolveAssignedShop(input.mechanicProfileId);
+  const mechanic = await resolveAssignedShop(input.mechanicProfileId, vehicle);
   const zip = await prisma.zipCode.findUnique({ where: { zip: input.zip.slice(0, 5) } });
   const category = classifyProblem(input.problemText);
   const openedByShop = input.source === "shop";
@@ -317,7 +349,7 @@ export async function getJobForUser(jobId: string, userId: string, role: string)
       serviceRequest: true,
       estimates: { include: { lineItems: true, approvals: true }, orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "asc" } },
-      photos: true,
+      photos: { orderBy: { createdAt: "desc" } },
       repairRecord: true,
       review: { include: { response: true } },
       thread: { include: { messages: { include: { sender: true }, orderBy: { createdAt: "asc" } } } },

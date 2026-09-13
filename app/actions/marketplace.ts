@@ -17,7 +17,9 @@ import { createServiceRequest, createShopRepairOrder, getJobForUser, scheduleJob
 import { createEstimate, respondToEstimate } from "@/services/estimates";
 import { markThreadRead } from "@/services/messages";
 import { createReview } from "@/services/reviews";
-import type { JobStatus } from "@prisma/client";
+import { decodeVinToCatalog } from "@/services/vin";
+import { savePublicUpload } from "@/lib/uploads";
+import type { JobStatus, PhotoKind } from "@prisma/client";
 
 async function requireUser() {
   const session = await getSession();
@@ -33,6 +35,8 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/estimates");
   revalidatePath("/vehicles");
   revalidatePath("/history");
+  revalidatePath("/notifications");
+  revalidatePath("/account");
   revalidatePath("/mechanic");
   revalidatePath("/mechanic/requests");
   revalidatePath("/mechanic/jobs");
@@ -40,11 +44,13 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/mechanic/customers");
   revalidatePath("/mechanic/schedule");
   revalidatePath("/mechanic/estimates");
+  revalidatePath("/mechanic/notifications");
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
   revalidatePath("/admin/messages");
   revalidatePath("/admin/vehicles");
   revalidatePath("/admin/analytics");
+  revalidatePath("/admin/notifications");
   if (jobId) {
     revalidatePath(`/jobs/${jobId}`);
     revalidatePath(`/mechanic/jobs/${jobId}`);
@@ -81,6 +87,77 @@ export async function createVehicleAction(formData: FormData) {
   revalidatePath("/request");
   revalidatePath("/admin/vehicles");
   redirect("/vehicles");
+}
+
+export async function updateVehicleAction(formData: FormData) {
+  const session = await requireUser();
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, customerId: session.id },
+  });
+  if (!vehicle) throw new Error("Vehicle not found.");
+  const modelId = String(formData.get("modelId") ?? vehicle.modelId);
+  const model = await prisma.vehicleModel.findUnique({ where: { id: modelId } });
+  if (!model) throw new Error("Pick a make and model.");
+  const parsed = vehicleSchema.safeParse({
+    year: formData.get("year") ?? vehicle.year,
+    makeId: model.makeId,
+    modelId: model.id,
+    trim: formData.get("trim") || undefined,
+    engine: formData.get("engine") || undefined,
+    drivetrain: formData.get("drivetrain") || undefined,
+    mileage: formData.get("mileage") ?? vehicle.mileage,
+    vin: formData.get("vin") || undefined,
+    nickname: formData.get("nickname") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) throw new Error("Check your vehicle details.");
+  await prisma.vehicle.update({
+    where: { id: vehicle.id },
+    data: parsed.data,
+  });
+  revalidatePath("/vehicles");
+  revalidatePath("/home");
+  revalidatePath("/request");
+  revalidatePath("/admin/vehicles");
+  redirect("/vehicles");
+}
+
+export async function archiveVehicleAction(formData: FormData) {
+  const session = await requireUser();
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, customerId: session.id },
+    include: { _count: { select: { jobs: true } } },
+  });
+  if (!vehicle) throw new Error("Vehicle not found.");
+  if (vehicle._count.jobs === 0) {
+    await prisma.vehicle.delete({ where: { id: vehicle.id } });
+  } else {
+    await prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: { archivedAt: vehicle.archivedAt ? null : new Date() },
+    });
+  }
+  revalidatePath("/vehicles");
+  revalidatePath("/home");
+  revalidatePath("/request");
+  revalidatePath("/admin/vehicles");
+  redirect("/vehicles");
+}
+
+export async function decodeVinAction(formData: FormData) {
+  await requireUser();
+  const vin = String(formData.get("vin") ?? "");
+  const decoded = await decodeVinToCatalog(vin);
+  const params = new URLSearchParams();
+  params.set("vin", decoded.vin);
+  if (decoded.year) params.set("year", String(decoded.year));
+  if (decoded.modelId) params.set("modelId", decoded.modelId);
+  if (decoded.makeName) params.set("make", decoded.makeName);
+  if (decoded.modelName) params.set("model", decoded.modelName);
+  if (decoded.error) params.set("error", decoded.error);
+  redirect(`/vehicles/import?${params.toString()}`);
 }
 
 export async function createRequestAction(formData: FormData) {
@@ -152,7 +229,7 @@ export async function createShopRepairOrderAction(formData: FormData) {
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const problemText = String(formData.get("problemText") ?? "").trim();
   const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-  if (!vehicle || problemText.length < 8) {
+  if (!vehicle || vehicle.archivedAt || problemText.length < 8) {
     throw new Error("Pick a customer vehicle and describe the work.");
   }
   const result = await createShopRepairOrder({
@@ -271,6 +348,23 @@ export async function createDisputeAction(formData: FormData) {
   await prisma.job.update({ where: { id: job.id }, data: { status: "DISPUTED" } });
   revalidateJobSurfaces(job.id);
   redirect(`/jobs/${job.id}`);
+}
+
+export async function uploadJobPhotoAction(formData: FormData) {
+  const session = await requireUser();
+  const jobId = String(formData.get("jobId") ?? "");
+  const job = await getJobForUser(jobId, session.id, session.role);
+  if (!job) throw new Error("Job not found.");
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) throw new Error("Choose a photo to upload.");
+  const kindRaw = String(formData.get("kind") ?? "OTHER");
+  const kind = (["BEFORE", "AFTER", "DIAGNOSIS", "PARTS", "OTHER"].includes(kindRaw) ? kindRaw : "OTHER") as PhotoKind;
+  const caption = String(formData.get("caption") ?? "").trim() || undefined;
+  const url = await savePublicUpload(file, `jobs/${job.id}`);
+  await prisma.jobPhoto.create({
+    data: { jobId: job.id, kind, url, caption },
+  });
+  revalidateJobSurfaces(job.id);
 }
 
 export async function saveRepairRecordAction(formData: FormData) {

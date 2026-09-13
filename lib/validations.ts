@@ -90,6 +90,20 @@ export const mechanicOnboardingSchema = z.object({
   mobileFeeCents: z.coerce.number().int().min(0),
 });
 
+export const accountSchema = z.object({
+  firstName: z.string().min(1, "First name is required.").max(60),
+  lastName: z.string().min(1, "Last name is required.").max(60),
+  phone: z.string().max(24).optional(),
+  zip: z.string().min(5, "Enter a ZIP code.").max(10),
+  currentPassword: z.string().optional(),
+  newPassword: z
+    .string()
+    .optional()
+    .refine((value) => !value || (value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value)), {
+      message: "New password needs 8+ characters, a letter, and a number.",
+    }),
+});
+
 export const disputeSchema = z.object({
   jobId: z.string().uuid(),
   category: z.enum([

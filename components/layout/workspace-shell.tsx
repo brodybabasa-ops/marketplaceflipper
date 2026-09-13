@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -46,20 +46,20 @@ export function WorkspaceShell({
   nav,
   product,
   workspace,
+  unreadNotifications = 0,
   children,
 }: {
   user: SessionUser;
   nav: { href: string; label: string }[];
   product: Product;
   workspace: string;
+  unreadNotifications?: number;
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const page = opsPage(pathname, product);
-  const search = product === "shop"
-    ? { action: "/mechanic/jobs", placeholder: "Search jobs or customers..." }
-    : { action: "/admin/jobs", placeholder: "Search users, shops, or jobs..." };
+  const inbox = product === "shop" ? "/mechanic/notifications" : "/admin/notifications";
   return (
     <div data-dashboard data-ops={product} className="flex min-h-screen bg-[#071422] text-white">
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">
@@ -91,17 +91,19 @@ export function WorkspaceShell({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <form action={search.action} className="relative max-w-xl flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-            <input
-              name="q"
-              placeholder={search.placeholder}
-              className="h-10 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/40"
-            />
-          </form>
-          <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10">
+          <Suspense fallback={<div className="h-10 max-w-xl flex-1 rounded-lg border border-white/10 bg-white/5" />}>
+            <OpsSearch pathname={pathname} product={product} />
+          </Suspense>
+          <Link
+            href={inbox}
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10"
+            aria-label={unreadNotifications ? `${unreadNotifications} notifications` : "Notifications"}
+          >
             <Bell className="h-4 w-4" />
-          </span>
+            {unreadNotifications > 0 ? (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#e23d3d]" />
+            ) : null}
+          </Link>
           <span className="hidden items-center gap-2 rounded-lg border border-white/10 py-1 pl-1 pr-3 sm:inline-flex">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[#2f7bff] text-xs font-bold">
               {initials(user.firstName, user.lastName)}
@@ -129,6 +131,33 @@ export function WorkspaceShell({
   );
 }
 
+function opsSearchFor(pathname: string, product: Product) {
+  if (pathname.startsWith("/admin/users")) return { action: "/admin/users", placeholder: "Search users..." };
+  if (pathname.startsWith("/admin/vehicles")) return { action: "/admin/vehicles", placeholder: "Search vehicles..." };
+  if (pathname.startsWith("/admin/mechanics")) return { action: "/admin/mechanics", placeholder: "Search shops..." };
+  if (pathname.startsWith("/mechanic/requests")) return { action: "/mechanic/requests", placeholder: "Search requests..." };
+  if (product === "shop") return { action: "/mechanic/jobs", placeholder: "Search jobs or customers..." };
+  return { action: "/admin/jobs", placeholder: "Search users, shops, or jobs..." };
+}
+
+function OpsSearch({ pathname, product }: { pathname: string; product: Product }) {
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") ?? "";
+  const search = opsSearchFor(pathname, product);
+  return (
+    <form action={search.action} className="relative max-w-xl flex-1">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+      <input
+        name="q"
+        key={`${search.action}-${query}`}
+        defaultValue={query}
+        placeholder={search.placeholder}
+        className="h-10 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/40"
+      />
+    </form>
+  );
+}
+
 function opsPage(pathname: string, product: Product): PageCopy {
   const shop: { prefix: string; page: PageCopy }[] = [
     { prefix: "/mechanic/requests", page: { eyebrow: "REQUESTS", title: "Incoming", accent: "Work.", subtitle: "Customers who asked this shop for help." } },
@@ -143,6 +172,7 @@ function opsPage(pathname: string, product: Product): PageCopy {
     { prefix: "/mechanic/onboarding", page: { eyebrow: "SETUP", title: "Set up the", accent: "Shop.", subtitle: "Customers see this before they request service." } },
     { prefix: "/mechanic/customers", page: { eyebrow: "CUSTOMERS", title: "People you", accent: "Helped.", subtitle: "Customers attached to jobs at this shop." } },
     { prefix: "/mechanic/messages", page: { eyebrow: "MESSAGES", title: "Talk to the", accent: "Customer.", subtitle: "Conversations stay attached to the job." } },
+    { prefix: "/mechanic/notifications", page: { eyebrow: "INBOX", title: "Shop", accent: "Alerts.", subtitle: "Requests, appointments, and estimate replies." } },
     { prefix: "/mechanic", page: { eyebrow: "SHOP COMMAND", title: "Today.", accent: "", subtitle: "Requests, the bay, and what is on the book." } },
   ];
   const admin: { prefix: string; page: PageCopy }[] = [
@@ -155,6 +185,7 @@ function opsPage(pathname: string, product: Product): PageCopy {
     { prefix: "/admin/disputes", page: { eyebrow: "DISPUTES", title: "Open", accent: "Issues.", subtitle: "Problems customers reported on completed work." } },
     { prefix: "/admin/verification", page: { eyebrow: "VERIFICATION", title: "Shop", accent: "Checks.", subtitle: "Approve or reject shop verification." } },
     { prefix: "/admin/analytics", page: { eyebrow: "ANALYTICS", title: "Live", accent: "Totals.", subtitle: "Jobs, estimates, messages, and upcoming work." } },
+    { prefix: "/admin/notifications", page: { eyebrow: "INBOX", title: "Platform", accent: "Alerts.", subtitle: "Jobs and verification that need a look." } },
     { prefix: "/admin/settings", page: { eyebrow: "SETTINGS", title: "Platform", accent: "Config.", subtitle: "Commission, ranking, and adapter status." } },
     { prefix: "/admin", page: { eyebrow: "ADMIN", title: "Operations.", accent: "", subtitle: "Users, shops, jobs, and what needs a decision." } },
   ];
@@ -168,6 +199,7 @@ function navIcon(href: string) {
   if (href.endsWith("/estimates")) return FileText;
   if (href.endsWith("/jobs")) return Wrench;
   if (href.endsWith("/messages")) return MessageSquare;
+  if (href.endsWith("/notifications")) return Bell;
   if (href.endsWith("/vehicles")) return Car;
   if (href.endsWith("/reviews")) return Star;
   if (href.endsWith("/profile")) return User;

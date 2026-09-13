@@ -12,8 +12,9 @@ export const PRICING_DISCLAIMER =
 
 export const DEMO_PASSWORD = "Demo1234!";
 
-/** Live shop for the customer ↔ shop proof-of-concept. Other directory shops stay mockups. */
+/** Live shops customers can actually book. Other directory shops still accept requests onto real Job rows. */
 export const FREDS_MARINE_SLUG = "freds-marine";
+export const PRECISION_AUTO_SLUG = "precision-auto-care";
 
 export const SERVICE_CATEGORIES: {
   value: ServiceCategory;

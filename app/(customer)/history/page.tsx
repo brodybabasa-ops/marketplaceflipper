@@ -9,7 +9,7 @@ export const metadata = { title: "Repair history" };
 export default async function HistoryPage() {
   const session = await requireSession("CUSTOMER");
   const vehicles = await prisma.vehicle.findMany({
-    where: { customerId: session.id },
+    where: { customerId: session.id, archivedAt: null },
     include: {
       make: true,
       model: true,

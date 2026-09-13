@@ -70,7 +70,7 @@ export async function getCustomerDashboard(userId: string) {
   const chrome = await getCustomerChrome(userId);
   const [vehicles, jobs, threads, reviews, photos] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { customerId: userId },
+      where: { customerId: userId, archivedAt: null },
       include: { make: true, model: true },
       orderBy: { createdAt: "asc" },
     }),

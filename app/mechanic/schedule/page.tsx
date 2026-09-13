@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeading } from "@/components/layout/themed-board";
-import { JobStatusLabel } from "@/components/jobs/status-timeline";
+import { WeekScheduler, type SchedulerJob } from "@/components/jobs/week-scheduler";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
-import { addDenverDays, formatAppointmentTime, formatDenverDateInput, startOfDenverWeek } from "@/lib/datetime";
+import { addDenverDays, formatAppointmentTime, formatDenverDateInput, formatDenverTimeInput, startOfDenverWeek } from "@/lib/datetime";
 import { formatAppointment, formatBoardDate } from "@/lib/utils";
 
 export const metadata = { title: "Scheduler" };
@@ -14,10 +14,10 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default async function MechanicSchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; moving?: string }>;
 }) {
   const session = await requireSession("MECHANIC");
-  const { week } = await searchParams;
+  const { week, moving } = await searchParams;
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({
     where: { userId: session.id },
     include: { availability: true },
@@ -29,7 +29,7 @@ export default async function MechanicSchedulePage({
   const prev = formatDenverDateInput(addDenverDays(start, -7));
   const next = formatDenverDateInput(addDenverDays(start, 7));
 
-  const [jobs, unscheduled] = await Promise.all([
+  const [booked, unscheduledRows] = await Promise.all([
     prisma.job.findMany({
       where: {
         mechanicProfileId: profile.id,
@@ -51,17 +51,40 @@ export default async function MechanicSchedulePage({
     }),
   ]);
 
+  function toCard(job: (typeof booked)[number], bookedSlot: boolean): SchedulerJob {
+    return {
+      id: job.id,
+      href: `/mechanic/jobs/${job.id}#appointment`,
+      customerName: bookedSlot ? job.customer.firstName : `${job.customer.firstName} ${job.customer.lastName}`,
+      problem: job.serviceRequest.problemText,
+      vehicleLabel: `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`,
+      status: job.status,
+      time: job.scheduledAt ? formatDenverTimeInput(job.scheduledAt) : "09:00",
+      timeLabel: job.scheduledAt ? formatAppointmentTime(job.scheduledAt) : null,
+    };
+  }
+
+  const jobs: Record<string, SchedulerJob> = {};
+  for (const job of booked) jobs[job.id] = toCard(job, true);
+  const unscheduledCards = unscheduledRows.map((job) => toCard(job, false));
+  for (const job of unscheduledCards) jobs[job.id] = job;
+
   const columns = DAYS.map((label, index) => {
     const dayStart = addDenverDays(start, index);
     const dayEnd = addDenverDays(start, index + 1);
-    const dayJobs = jobs.filter(
+    const dayJobs = booked.filter(
       (job) => job.scheduledAt && job.scheduledAt >= dayStart && job.scheduledAt < dayEnd,
     );
     const availability = profile.availability.find((slot) => {
       const map = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
       return slot.dayOfWeek === map[index];
     });
-    return { label, date: dayStart, jobs: dayJobs, hours: availability };
+    return {
+      label,
+      date: formatDenverDateInput(dayStart),
+      hoursLabel: availability ? `${availability.startTime}–${availability.endTime}` : "Closed",
+      jobIds: dayJobs.map((job) => job.id),
+    };
   });
 
   return (
@@ -69,7 +92,7 @@ export default async function MechanicSchedulePage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeading
           title="Scheduler"
-          subtitle={`${formatBoardDate(start)} – ${formatBoardDate(weekEnd)} · the same times customers see`}
+          subtitle={`${formatBoardDate(start)} – ${formatBoardDate(weekEnd)} · drag a job onto a day`}
         />
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm" variant="secondary">
@@ -87,64 +110,17 @@ export default async function MechanicSchedulePage({
         </div>
       </div>
 
-      {unscheduled.length ? (
-        <section className="mb-5">
-          <h2 className="mb-2 text-sm font-bold text-navy">Needs a time</h2>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {unscheduled.map((job) => (
-              <Link
-                key={job.id}
-                href={`/mechanic/jobs/${job.id}#appointment`}
-                className="rounded-xl border border-line bg-paper p-3 hover:bg-card"
-              >
-                <p className="font-semibold text-navy">
-                  {job.customer.firstName} {job.customer.lastName}
-                </p>
-                <p className="truncate text-sm text-muted">
-                  {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <div className="grid gap-2 md:grid-cols-7">
-        {columns.map((column) => (
-          <section key={column.label} className="min-h-[16rem] rounded-xl border border-line bg-paper p-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">{column.label}</p>
-            <p className="text-sm font-semibold text-navy">{formatDenverDateInput(column.date).slice(5)}</p>
-            <p className="mt-1 text-[11px] text-muted">
-              {column.hours ? `${column.hours.startTime}–${column.hours.endTime}` : "Closed"}
-            </p>
-            <div className="mt-2 space-y-2">
-              {column.jobs.length === 0 ? (
-                <p className="text-[11px] text-muted">Open</p>
-              ) : (
-                column.jobs.map((job) => (
-                  <Link
-                    key={job.id}
-                    href={`/mechanic/jobs/${job.id}#appointment`}
-                    className="block rounded-lg bg-card p-2 hover:bg-[#071422]"
-                  >
-                    <p className="text-xs font-bold text-[#7eb0ff]">
-                      {job.scheduledAt ? formatAppointmentTime(job.scheduledAt) : "—"}
-                    </p>
-                    <p className="truncate text-sm font-semibold text-navy">{job.customer.firstName}</p>
-                    <p className="truncate text-[11px] text-muted">{job.serviceRequest.problemText}</p>
-                    <div className="mt-1">
-                      <JobStatusLabel status={job.status} />
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </section>
-        ))}
-      </div>
+      <WeekScheduler
+        jobs={jobs}
+        columns={columns}
+        unscheduled={unscheduledCards}
+        week={formatDenverDateInput(start)}
+        movingJobId={moving && jobs[moving] ? moving : undefined}
+      />
       <p className="mt-4 text-xs text-muted">
-        Times are America/Denver. {jobs.length} job{jobs.length === 1 ? "" : "s"} on the book this week
-        {jobs[0]?.scheduledAt ? ` · next ${formatAppointment(jobs[0].scheduledAt)}` : ""}.
+        Times are America/Denver. Drop a job on a day to set or move it. Existing times stay; unscheduled jobs land at 9:00 AM.
+        {booked.length ? ` ${booked.length} job${booked.length === 1 ? "" : "s"} on the book this week` : ""}
+        {booked[0]?.scheduledAt ? ` · next ${formatAppointment(booked[0].scheduledAt)}` : ""}.
       </p>
     </div>
   );

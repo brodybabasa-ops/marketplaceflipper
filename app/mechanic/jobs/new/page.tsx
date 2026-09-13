@@ -17,13 +17,13 @@ export default async function NewRepairOrderPage() {
   const users = await prisma.user.findMany({
     where: {
       role: "CUSTOMER",
-      vehicles: { some: {} },
+      vehicles: { some: { archivedAt: null } },
       OR: [
         ...(ids.length ? [{ id: { in: ids } }] : []),
         { customerProfile: { zip: profile.shopZip ?? "84041" } },
       ],
     },
-    include: { vehicles: { include: { make: true, model: true }, orderBy: { createdAt: "asc" } } },
+    include: { vehicles: { where: { archivedAt: null }, include: { make: true, model: true }, orderBy: { createdAt: "asc" } } },
     take: 40,
   });
   const customers = users
