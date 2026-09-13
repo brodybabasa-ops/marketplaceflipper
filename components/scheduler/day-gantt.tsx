@@ -19,6 +19,8 @@ export function DayGantt({
   holds,
   movingJobId,
   origin,
+  showRoute = true,
+  locked = false,
 }: {
   date: string;
   view: ScheduleView;
@@ -27,6 +29,8 @@ export function DayGantt({
   holds: SchedulerHoldCard[];
   movingJobId?: string;
   origin: { latitude: number; longitude: number; label: string };
+  showRoute?: boolean;
+  locked?: boolean;
 }) {
   const [overLane, setOverLane] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -59,7 +63,12 @@ export function DayGantt({
     >
       <div className="relative">
         <div className="grid grid-cols-[220px_1fr] border-b border-white/10">
-          <div className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-white/35">Team</div>
+          <div className="flex items-center justify-between gap-2 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-white/35">Team</p>
+            <Link href="/mechanic/settings?tab=team" className="text-[11px] font-semibold text-[#7eb0ff]">
+              Add tech
+            </Link>
+          </div>
           <div className="relative grid" style={{ gridTemplateColumns: `repeat(${hourSlots.length}, minmax(0, 1fr))` }}>
             {hourSlots.map((hour) => (
               <p key={hour} className="px-1 py-3 text-center text-[11px] font-semibold text-white/45">
@@ -82,12 +91,14 @@ export function DayGantt({
                   data-lane={resource.id}
                   className={cn("relative h-[78px]", overLane === resource.id || moving ? "bg-[#2f7bff]/8" : "bg-transparent")}
                   onDragOver={(event) => {
+                    if (locked) return;
                     event.preventDefault();
                     event.dataTransfer.dropEffect = "move";
                     setOverLane(resource.id);
                   }}
                   onDragLeave={() => setOverLane((current) => (current === resource.id ? null : current))}
                   onDrop={(event) => {
+                    if (locked) return;
                     event.preventDefault();
                     const payload = event.dataTransfer.getData("application/json");
                     let data = activeDrag;
@@ -105,7 +116,7 @@ export function DayGantt({
                       <div key={hour} className="border-r border-white/6" />
                     ))}
                   </div>
-                  {moving ? (
+                  {moving && !locked ? (
                     <div className="absolute inset-0 z-20 grid" style={{ gridTemplateColumns: `repeat(${hourSlots.length}, minmax(0, 1fr))` }}>
                       {hourSlots.map((hour) => (
                         <form key={`${resource.id}-${hour}`} action={scheduleAppointmentAction} className="flex items-end justify-center pb-1">
@@ -138,11 +149,21 @@ export function DayGantt({
                   })}
                   {laneJobs.map((job) => {
                     const style = blockOffset(new Date(job.scheduledAt!), job.durationMinutes);
-                    return <JobBlock key={job.id} job={job} date={date} view={view} moving={movingJobId === job.id} style={style} />;
+                    return (
+                      <JobBlock
+                        key={job.id}
+                        job={job}
+                        date={date}
+                        view={view}
+                        moving={movingJobId === job.id}
+                        style={style}
+                        locked={locked}
+                      />
+                    );
                   })}
                 </div>
               </div>
-              {resource.kind === "MOBILE" && mobileStops.length ? (
+              {showRoute && resource.kind === "MOBILE" && mobileStops.length ? (
                 <div className="grid grid-cols-[220px_1fr] bg-[#071422]/80">
                   <p className="px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-white/40">
                     Route ({mobileStops.length} stop{mobileStops.length === 1 ? "" : "s"})
@@ -208,18 +229,21 @@ function JobBlock({
   view,
   moving,
   style,
+  locked = false,
 }: {
   job: SchedulerJobCard;
   date: string;
   view: ScheduleView;
   moving: boolean;
   style: { left: string; width: string };
+  locked?: boolean;
 }) {
   return (
     <article
-      draggable
+      draggable={!locked}
       data-job-id={job.id}
       onDragStart={(event) => {
+        if (locked) return;
         activeDrag = { jobId: job.id, time: job.time, durationMinutes: job.durationMinutes };
         event.dataTransfer.setData("application/json", JSON.stringify(activeDrag));
         event.dataTransfer.effectAllowed = "move";

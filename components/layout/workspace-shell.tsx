@@ -200,7 +200,7 @@ function opsPage(pathname: string, product: Product): PageCopy {
     { prefix: "/mechanic/reviews", page: { eyebrow: "REVIEWS", title: "Job", accent: "Reviews.", subtitle: "Tied to completed Pocket Mechanic jobs." } },
     { prefix: "/mechanic/profile", page: { eyebrow: "PROFILE", title: "Shop", accent: "Profile.", subtitle: "What customers see before they request service." } },
     { prefix: "/mechanic/earnings", page: { eyebrow: "EARNINGS", title: "Job", accent: "Volume.", subtitle: "Totals from completed work. Payouts plug in later." } },
-    { prefix: "/mechanic/settings", page: { eyebrow: "SETTINGS", title: "Shop", accent: "Settings.", subtitle: "Hours, notifications, and payouts." } },
+    { prefix: "/mechanic/settings", page: { eyebrow: "SETTINGS", title: "Shop", accent: "Settings.", subtitle: "Hours, team lanes, and the scheduler board." } },
     { prefix: "/mechanic/onboarding", page: { eyebrow: "SETUP", title: "Set up the", accent: "Shop.", subtitle: "Customers see this before they request service." } },
     { prefix: "/mechanic/customers", page: { eyebrow: "CUSTOMERS", title: "People you", accent: "Helped.", subtitle: "Customers attached to jobs at this shop." } },
     { prefix: "/mechanic/messages", page: { eyebrow: "MESSAGES", title: "Talk to the", accent: "Customer.", subtitle: "Customer messages land here. Your reply shows on their board." } },

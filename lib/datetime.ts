@@ -122,6 +122,7 @@ export function mechanicScheduleHref(input: {
   status?: string;
   mode?: string;
   q?: string;
+  customize?: boolean;
 }) {
   const params = new URLSearchParams();
   if (input.view && input.view !== "day") params.set("view", input.view);
@@ -133,6 +134,7 @@ export function mechanicScheduleHref(input: {
   if (input.status) params.set("status", input.status);
   if (input.mode) params.set("mode", input.mode);
   if (input.q) params.set("q", input.q);
+  if (input.customize) params.set("customize", "1");
   return `/mechanic/schedule?${params.toString()}`;
 }
 

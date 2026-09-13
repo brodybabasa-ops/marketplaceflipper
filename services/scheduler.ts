@@ -1,4 +1,5 @@
 import type { JobStatus, SchedulerBlockKind, SchedulerResourceKind, ServiceCategory } from "@prisma/client";
+import { parseBoardLayout, type SchedulerBoardLayout } from "@/lib/board-layout";
 import { prisma } from "@/lib/db";
 import {
   denverClockMinutes,
@@ -528,4 +529,117 @@ export function partsFromJobs(jobs: SchedulerJobCard[]): SchedulerPartArrival[] 
       href: job.href,
       onTrack: !job.behind,
     }));
+}
+
+export async function shopBoardLayout(profileId: string) {
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({
+    where: { id: profileId },
+    select: { schedulerLayout: true },
+  });
+  return parseBoardLayout(profile.schedulerLayout);
+}
+
+export async function saveShopBoardLayout(profileId: string, layout: SchedulerBoardLayout) {
+  const parsed = parseBoardLayout(layout);
+  await prisma.mechanicProfile.update({
+    where: { id: profileId },
+    data: { schedulerLayout: parsed },
+  });
+  return parsed;
+}
+
+export async function createShopResource(input: {
+  profileId: string;
+  kind: SchedulerResourceKind;
+  name: string;
+  role?: string;
+  capacityTotal?: number;
+}) {
+  const name = input.name.trim();
+  if (name.length < 2) throw new Error("Give the lane a name.");
+  const kind: SchedulerResourceKind =
+    input.kind === "BAY" || input.kind === "MOBILE" ? input.kind : "TECH";
+  const last = await prisma.schedulerResource.findFirst({
+    where: { mechanicProfileId: input.profileId },
+    orderBy: { sortOrder: "desc" },
+  });
+  const role =
+    input.role?.trim() ||
+    (kind === "BAY" ? "Shop Bay" : kind === "MOBILE" ? "Service Truck" : "Technician");
+  return prisma.schedulerResource.create({
+    data: {
+      mechanicProfileId: input.profileId,
+      kind,
+      name,
+      role,
+      statusLabel: kind === "TECH" ? "Active · On Site" : kind === "BAY" ? "Open" : "Ready",
+      capacityTotal: Math.min(12, Math.max(1, input.capacityTotal ?? (kind === "BAY" ? 1 : 5))),
+      sortOrder: (last?.sortOrder ?? -1) + 1,
+    },
+  });
+}
+
+export async function updateShopResource(input: {
+  profileId: string;
+  id: string;
+  name?: string;
+  role?: string;
+  kind?: SchedulerResourceKind;
+  capacityTotal?: number;
+}) {
+  const resource = await prisma.schedulerResource.findFirst({
+    where: { id: input.id, mechanicProfileId: input.profileId },
+  });
+  if (!resource) throw new Error("That lane is not on this shop.");
+  const name = input.name?.trim();
+  return prisma.schedulerResource.update({
+    where: { id: resource.id },
+    data: {
+      ...(name && name.length >= 2 ? { name } : {}),
+      ...(input.role !== undefined ? { role: input.role.trim() || null } : {}),
+      ...(input.kind === "TECH" || input.kind === "BAY" || input.kind === "MOBILE" ? { kind: input.kind } : {}),
+      ...(input.capacityTotal
+        ? { capacityTotal: Math.min(12, Math.max(1, input.capacityTotal)) }
+        : {}),
+    },
+  });
+}
+
+export async function deleteShopResource(profileId: string, id: string) {
+  const resources = await prisma.schedulerResource.findMany({
+    where: { mechanicProfileId: profileId },
+    orderBy: { sortOrder: "asc" },
+  });
+  const resource = resources.find((item) => item.id === id);
+  if (!resource) throw new Error("That lane is not on this shop.");
+  if (resources.length === 1) throw new Error("Keep at least one lane on the board.");
+  const fallback = resources.find((item) => item.id !== id && item.kind === "TECH") ?? resources.find((item) => item.id !== id);
+  if (!fallback) throw new Error("Keep at least one lane on the board.");
+  await prisma.job.updateMany({
+    where: { mechanicProfileId: profileId, resourceId: id },
+    data: { resourceId: fallback.id },
+  });
+  await prisma.schedulerBlock.updateMany({
+    where: { mechanicProfileId: profileId, resourceId: id },
+    data: { resourceId: fallback.id },
+  });
+  await prisma.schedulerResource.delete({ where: { id } });
+}
+
+export async function reorderShopResources(profileId: string, ids: string[]) {
+  const resources = await prisma.schedulerResource.findMany({
+    where: { mechanicProfileId: profileId },
+    select: { id: true },
+  });
+  const allowed = new Set(resources.map((item) => item.id));
+  const ordered = ids.filter((id) => allowed.has(id));
+  if (ordered.length !== resources.length) throw new Error("That team list is out of date. Refresh and try again.");
+  await prisma.$transaction(
+    ordered.map((id, index) =>
+      prisma.schedulerResource.update({
+        where: { id },
+        data: { sortOrder: index },
+      }),
+    ),
+  );
 }

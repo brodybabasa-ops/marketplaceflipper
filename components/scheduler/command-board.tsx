@@ -20,8 +20,17 @@ import {
 } from "lucide-react";
 import { createShopRepairOrderAction, scheduleAppointmentAction } from "@/app/actions/marketplace";
 import { createSchedulerBlockAction, optimizeScheduleAction, swapScheduleJobsAction } from "@/app/actions/scheduler";
+import {
+  CustomizeBar,
+  HiddenPalette,
+  TrashZone,
+  WidgetChrome,
+  WidgetDropZone,
+  useBoardLayout,
+} from "@/components/scheduler/board-layout";
 import { CalendarViews, type BoardColumn } from "@/components/scheduler/calendar-views";
 import { DayGantt } from "@/components/scheduler/day-gantt";
+import { moveWidget, restoreWidget, type BoardWidgetId, type BoardZone, type SchedulerBoardLayout } from "@/lib/board-layout";
 import { mechanicScheduleHref } from "@/lib/datetime";
 import {
   formatUsd,
@@ -79,6 +88,8 @@ export function CommandBoard({
   panel,
   filters,
   customers,
+  layout: initialLayout,
+  customize = false,
 }: {
   view: ScheduleView;
   date: string;
@@ -104,8 +115,11 @@ export function CommandBoard({
   panel?: string;
   filters: { resource?: string; type?: string; status?: string; mode?: string; q?: string };
   customers: CustomerOption[];
+  layout: SchedulerBoardLayout;
+  customize?: boolean;
 }) {
   const [query, setQuery] = useState(filters.q ?? "");
+  const { layout, persist, pending } = useBoardLayout(initialLayout);
   const moving = movingJobId ? jobs.concat(unscheduled).find((job) => job.id === movingJobId) : undefined;
   const hrefBase = {
     view,
@@ -116,8 +130,9 @@ export function CommandBoard({
     status: filters.status,
     mode: filters.mode,
     q: filters.q,
+    customize: customize || undefined,
   };
-  const returnTo = mechanicScheduleHref({ view, date, moving: movingJobId });
+  const returnTo = mechanicScheduleHref({ view, date, moving: movingJobId, customize });
   const jobMap = useMemo(() => Object.fromEntries(jobs.concat(unscheduled).map((job) => [job.id, job])), [jobs, unscheduled]);
   const visibleJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -133,9 +148,61 @@ export function CommandBoard({
   }, [jobs, filters]);
   const agenda = visibleJobs.filter((job) => job.scheduledAt).sort((a, b) => (a.time > b.time ? 1 : -1));
   const roadStops = agenda.filter((job) => job.mobile && job.latitude != null && job.longitude != null);
+  const showRail = customize || layout.rail.length > 0;
+  const dockCols =
+    layout.dock.length >= 4
+      ? "lg:grid-cols-4"
+      : layout.dock.length === 3
+        ? "lg:grid-cols-3"
+        : layout.dock.length === 2
+          ? "lg:grid-cols-2"
+          : "lg:grid-cols-1";
+
+  function place(id: BoardWidgetId, zone: BoardZone, beforeId?: BoardWidgetId) {
+    persist(moveWidget(layout, id, zone, beforeId ? { before: beforeId } : undefined));
+  }
+
+  function widget(id: BoardWidgetId, zone: BoardZone) {
+    const compact = zone === "rail";
+    const body =
+      id === "stats" ? (
+        <StatsRow stats={stats} compact={compact} />
+      ) : id === "filters" ? (
+        <FiltersForm
+          view={view}
+          date={date}
+          movingJobId={movingJobId}
+          customize={customize}
+          filters={filters}
+          resources={resources}
+          jobs={jobs}
+          query={query}
+          setQuery={setQuery}
+        />
+      ) : id === "calendar" ? (
+        <MiniCalendar monthLabel={monthLabel} days={calendarDays} selected={date} movingJobId={movingJobId} />
+      ) : id === "agenda" ? (
+        <AgendaPanel date={date} agenda={agenda} />
+      ) : id === "map" ? (
+        <MapPanel origin={origin} roadStops={roadStops} shopName={shopName} shopCity={shopCity} shopState={shopState} />
+      ) : id === "unscheduled" ? (
+        <UnscheduledPanel date={date} view={view} unscheduled={unscheduled} />
+      ) : id === "parts" ? (
+        <PartsPanel parts={parts} />
+      ) : id === "reminders" ? (
+        <RemindersPanel reminders={reminders} />
+      ) : (
+        <QuickActionsPanel date={date} view={view} resources={resources} jobs={agenda} movingJobId={movingJobId} returnTo={returnTo} />
+      );
+    return (
+      <WidgetChrome key={id} id={id} zone={zone} customize={customize} onPlace={place}>
+        {body}
+      </WidgetChrome>
+    );
+  }
 
   return (
-    <div data-command-board className="space-y-4">
+    <div data-command-board data-customize={customize ? "1" : "0"} className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white">Schedule</h1>
@@ -177,73 +244,49 @@ export function CommandBoard({
           </Link>
           <form action={optimizeScheduleAction}>
             <input type="hidden" name="date" value={date} />
-            <input type="hidden" name="returnTo" value={mechanicScheduleHref({ view, date })} />
+            <input type="hidden" name="returnTo" value={mechanicScheduleHref({ view, date, customize })} />
             <button type="submit" name="optimizeDay" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1f6feb] px-3 text-sm font-semibold text-white">
               <Sparkles className="h-4 w-4" />
               Optimize Day
             </button>
           </form>
+          <Link
+            href="/mechanic/settings?tab=team"
+            className="inline-flex h-9 items-center rounded-lg border border-white/15 px-3 text-sm font-semibold text-white/80 hover:bg-white/5"
+          >
+            Team
+          </Link>
+          <CustomizeBar
+            active={customize}
+            pending={pending}
+            startHref={mechanicScheduleHref({ ...hrefBase, customize: true })}
+            doneHref={mechanicScheduleHref({ ...hrefBase, customize: false })}
+            resetTo={mechanicScheduleHref({ ...hrefBase, customize: true })}
+          />
         </div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <Stat icon={<CalendarDays className="h-4 w-4" />} label="Appointments" value={stats.appointments} hint={`${stats.appointmentsDelta >= 0 ? "+" : ""}${stats.appointmentsDelta}% vs last week`} tone="blue" />
-        <Stat icon={<Wrench className="h-4 w-4" />} label="In Progress" value={stats.inProgress} hint="On the book now" tone="green" />
-        <Stat icon={<Package className="h-4 w-4" />} label="Waiting on Parts" value={stats.waitingOnParts} hint="Estimate or parts hold" tone="amber" />
-        <Stat icon={<AlertTriangle className="h-4 w-4" />} label="Behind Schedule" value={stats.behind} hint="Past the booked window" tone="red" />
-        <Stat icon={<DollarSign className="h-4 w-4" />} label="Est. Today Revenue" value={formatUsd(stats.revenueCents)} hint="Approved + sent estimates" tone="green" />
-        <OnTimeCard pct={stats.onTimePct} />
-      </section>
+      {customize ? (
+        <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
+          <TrashZone customize onPlace={(id) => place(id, "hidden")} />
+          <HiddenPalette layout={layout} customize onRestore={(id) => persist(restoreWidget(layout, id))} />
+        </div>
+      ) : null}
 
-      <form className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-[#0d1c2e] p-2" action="/mechanic/schedule">
-        {view !== "day" ? <input type="hidden" name="view" value={view} /> : null}
-        <input type="hidden" name="date" value={date} />
-        {movingJobId ? <input type="hidden" name="moving" value={movingJobId} /> : null}
-        <FilterSelect name="resource" defaultValue={filters.resource ?? ""}>
-          <option value="">All Technicians</option>
-          {resources.map((resource) => (
-            <option key={resource.id} value={resource.id}>
-              {resource.name}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect name="type" defaultValue={filters.type ?? ""}>
-          <option value="">All Job Types</option>
-          {Array.from(new Set(jobs.map((job) => job.category))).map((category) => (
-            <option key={category} value={category}>
-              {category.replaceAll("_", " ")}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect name="status" defaultValue={filters.status ?? ""}>
-          <option value="">All Statuses</option>
-          {Array.from(new Set(jobs.map((job) => job.status))).map((status) => (
-            <option key={status} value={status}>
-              {status.replaceAll("_", " ")}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect name="mode" defaultValue={filters.mode ?? ""}>
-          <option value="">Shop + Mobile</option>
-          <option value="shop">Shop</option>
-          <option value="mobile">Mobile</option>
-        </FilterSelect>
-        <label className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-          <input
-            name="q"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search schedule..."
-            className="h-9 w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35"
-          />
-        </label>
-        <button type="submit" className="h-9 rounded-lg bg-white/10 px-3 text-sm font-semibold text-white">
-          Filter
-        </button>
-      </form>
+      {customize || layout.top.length > 0 ? (
+        <WidgetDropZone
+          zone="top"
+          customize={customize}
+          onPlace={place}
+          empty={layout.top.length === 0}
+          emptyLabel="Drop day stats or filters here."
+          className="space-y-3"
+        >
+          {layout.top.map((id) => widget(id, "top"))}
+        </WidgetDropZone>
+      ) : null}
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div className={showRail ? "grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_280px]" : ""}>
         <div className="min-w-0 space-y-4">
           {moving ? (
             <p className="text-sm text-[#7eb0ff]">
@@ -259,89 +302,60 @@ export function CommandBoard({
               holds={holds}
               movingJobId={movingJobId}
               origin={origin}
+              showRoute={layout.showRoute}
+              locked={customize}
             />
           ) : (
             <CalendarViews view={view} date={date} jobs={jobMap} columns={columns} movingJobId={movingJobId} />
           )}
-          <BottomDock
-            date={date}
-            view={view}
-            unscheduled={unscheduled}
-            parts={parts}
-            reminders={reminders}
-            resources={resources}
-            jobs={agenda}
-            movingJobId={movingJobId}
-            returnTo={returnTo}
-          />
         </div>
-        <aside className="space-y-3">
-          <MiniCalendar monthLabel={monthLabel} days={calendarDays} selected={date} movingJobId={movingJobId} />
-          <section className="rounded-2xl border border-white/10 bg-[#0d1c2e] p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-white">Today&apos;s Agenda</h2>
-              <Link href={mechanicScheduleHref({ view: "day", date })} className="text-[11px] font-semibold text-[#7eb0ff]">
-                View All
-              </Link>
-            </div>
-            <div className="mt-3 space-y-2">
-              {agenda.length === 0 ? <p className="text-sm text-white/45">Nothing on the book for this day.</p> : null}
-              {agenda.slice(0, 6).map((job) => {
-                const chip = statusChip(job.status, job.waitingOnParts);
-                return (
-                  <Link key={job.id} href={job.href} className="flex items-start gap-3 rounded-xl px-1 py-1.5 hover:bg-white/5">
-                    <p className="w-14 shrink-0 text-[11px] font-bold text-white/50">{job.timeLabel}</p>
-                    <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: job.color }} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white">{job.title}</p>
-                      <p className="truncate text-[11px] text-white/45">{job.vehicleLabel}</p>
-                    </div>
-                    <span className={chipClass(chip.tone)}>{chip.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-          <section className="rounded-2xl border border-white/10 bg-[#0d1c2e] p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-white">On the Road</h2>
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Live</span>
-            </div>
-            <RoadMap origin={origin} stops={roadStops} shopName={shopName} />
-            <a
-              href={mapsRouteUrl(origin, roadStops.filter((stop) => stop.latitude != null && stop.longitude != null).map((stop) => ({ latitude: stop.latitude!, longitude: stop.longitude! })))}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex text-sm font-semibold text-[#7eb0ff]"
+        {showRail ? (
+          <aside className="space-y-3">
+            <WidgetDropZone
+              zone="rail"
+              customize={customize}
+              onPlace={place}
+              empty={layout.rail.length === 0}
+              emptyLabel="Drop calendar, agenda, or the map here."
+              className="space-y-3"
             >
-              View Route
-            </a>
-            <p className="mt-1 text-[11px] text-white/40">
-              {origin.label}
-              {shopCity ? ` · ${shopCity}, ${shopState}` : ""}
-            </p>
-          </section>
-        </aside>
+              {layout.rail.map((id) => widget(id, "rail"))}
+            </WidgetDropZone>
+          </aside>
+        ) : null}
       </div>
 
+      {customize || layout.dock.length > 0 ? (
+        <WidgetDropZone
+          zone="dock"
+          customize={customize}
+          onPlace={place}
+          empty={layout.dock.length === 0}
+          emptyLabel="Drop unscheduled, parts, reminders, or quick actions here."
+          className={cn("grid gap-3", customize || layout.dock.length ? dockCols : "")}
+        >
+          {layout.dock.map((id) => widget(id, "dock"))}
+        </WidgetDropZone>
+      ) : null}
+
       {panel === "schedule" ? (
-        <Modal title="Schedule Appointment" closeHref={mechanicScheduleHref({ view, date, moving: movingJobId })}>
-          <ScheduleForm date={date} resources={resources} unscheduled={unscheduled} customers={customers} selectedId={movingJobId} returnTo={mechanicScheduleHref({ view, date })} />
+        <Modal title="Schedule Appointment" closeHref={mechanicScheduleHref({ view, date, moving: movingJobId, customize })}>
+          <ScheduleForm date={date} resources={resources} unscheduled={unscheduled} customers={customers} selectedId={movingJobId} returnTo={mechanicScheduleHref({ view, date, customize })} />
         </Modal>
       ) : null}
       {panel === "block" ? (
-        <Modal title="Block Time" closeHref={mechanicScheduleHref({ view, date, moving: movingJobId })}>
+        <Modal title="Block Time" closeHref={mechanicScheduleHref({ view, date, moving: movingJobId, customize })}>
           <BlockForm date={date} resources={resources} kind="BLOCK" label="Blocked" returnTo={returnTo} />
         </Modal>
       ) : null}
       {panel === "break" ? (
-        <Modal title="Add Break" closeHref={mechanicScheduleHref({ view, date, moving: movingJobId })}>
+        <Modal title="Add Break" closeHref={mechanicScheduleHref({ view, date, moving: movingJobId, customize })}>
           <BlockForm date={date} resources={resources} kind="BREAK" label="Break" defaultTime="15:00" duration={30} returnTo={returnTo} />
         </Modal>
       ) : null}
       {panel === "swap" ? (
-        <Modal title="Swap Jobs" closeHref={mechanicScheduleHref({ view, date })}>
-          <SwapForm jobs={jobs.filter((job) => job.scheduledAt)} selectedId={movingJobId} returnTo={mechanicScheduleHref({ view, date })} />
+        <Modal title="Swap Jobs" closeHref={mechanicScheduleHref({ view, date, customize })}>
+          <SwapForm jobs={jobs.filter((job) => job.scheduledAt)} selectedId={movingJobId} returnTo={mechanicScheduleHref({ view, date, customize })} />
         </Modal>
       ) : null}
     </div>
@@ -395,6 +409,163 @@ function OnTimeCard({ pct }: { pct: number }) {
         <p className="text-[11px] text-white/40">Shop on-time rate</p>
       </div>
     </article>
+  );
+}
+
+function StatsRow({ stats, compact }: { stats: BoardStats; compact: boolean }) {
+  return (
+    <section className={cn("grid gap-3", compact ? "grid-cols-1" : "md:grid-cols-2 xl:grid-cols-6")}>
+      <Stat icon={<CalendarDays className="h-4 w-4" />} label="Appointments" value={stats.appointments} hint={`${stats.appointmentsDelta >= 0 ? "+" : ""}${stats.appointmentsDelta}% vs last week`} tone="blue" />
+      <Stat icon={<Wrench className="h-4 w-4" />} label="In Progress" value={stats.inProgress} hint="On the book now" tone="green" />
+      <Stat icon={<Package className="h-4 w-4" />} label="Waiting on Parts" value={stats.waitingOnParts} hint="Estimate or parts hold" tone="amber" />
+      <Stat icon={<AlertTriangle className="h-4 w-4" />} label="Behind Schedule" value={stats.behind} hint="Past the booked window" tone="red" />
+      <Stat icon={<DollarSign className="h-4 w-4" />} label="Est. Today Revenue" value={formatUsd(stats.revenueCents)} hint="Approved + sent estimates" tone="green" />
+      <OnTimeCard pct={stats.onTimePct} />
+    </section>
+  );
+}
+
+function FiltersForm({
+  view,
+  date,
+  movingJobId,
+  customize,
+  filters,
+  resources,
+  jobs,
+  query,
+  setQuery,
+}: {
+  view: ScheduleView;
+  date: string;
+  movingJobId?: string;
+  customize: boolean;
+  filters: { resource?: string; type?: string; status?: string; mode?: string; q?: string };
+  resources: SchedulerResourceCard[];
+  jobs: SchedulerJobCard[];
+  query: string;
+  setQuery: (value: string) => void;
+}) {
+  return (
+    <form className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-[#0d1c2e] p-2" action="/mechanic/schedule">
+      {view !== "day" ? <input type="hidden" name="view" value={view} /> : null}
+      <input type="hidden" name="date" value={date} />
+      {movingJobId ? <input type="hidden" name="moving" value={movingJobId} /> : null}
+      {customize ? <input type="hidden" name="customize" value="1" /> : null}
+      <FilterSelect name="resource" defaultValue={filters.resource ?? ""}>
+        <option value="">All Technicians</option>
+        {resources.map((resource) => (
+          <option key={resource.id} value={resource.id}>
+            {resource.name}
+          </option>
+        ))}
+      </FilterSelect>
+      <FilterSelect name="type" defaultValue={filters.type ?? ""}>
+        <option value="">All Job Types</option>
+        {Array.from(new Set(jobs.map((job) => job.category))).map((category) => (
+          <option key={category} value={category}>
+            {category.replaceAll("_", " ")}
+          </option>
+        ))}
+      </FilterSelect>
+      <FilterSelect name="status" defaultValue={filters.status ?? ""}>
+        <option value="">All Statuses</option>
+        {Array.from(new Set(jobs.map((job) => job.status))).map((status) => (
+          <option key={status} value={status}>
+            {status.replaceAll("_", " ")}
+          </option>
+        ))}
+      </FilterSelect>
+      <FilterSelect name="mode" defaultValue={filters.mode ?? ""}>
+        <option value="">Shop + Mobile</option>
+        <option value="shop">Shop</option>
+        <option value="mobile">Mobile</option>
+      </FilterSelect>
+      <label className="relative min-w-[220px] flex-1">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+        <input
+          name="q"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search schedule..."
+          className="h-9 w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35"
+        />
+      </label>
+      <button type="submit" className="h-9 rounded-lg bg-white/10 px-3 text-sm font-semibold text-white">
+        Filter
+      </button>
+    </form>
+  );
+}
+
+function AgendaPanel({ date, agenda }: { date: string; agenda: SchedulerJobCard[] }) {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-[#0d1c2e] p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-white">Today&apos;s Agenda</h2>
+        <Link href={mechanicScheduleHref({ view: "day", date })} className="text-[11px] font-semibold text-[#7eb0ff]">
+          View All
+        </Link>
+      </div>
+      <div className="mt-3 space-y-2">
+        {agenda.length === 0 ? <p className="text-sm text-white/45">Nothing on the book for this day.</p> : null}
+        {agenda.slice(0, 6).map((job) => {
+          const chip = statusChip(job.status, job.waitingOnParts);
+          return (
+            <Link key={job.id} href={job.href} className="flex items-start gap-3 rounded-xl px-1 py-1.5 hover:bg-white/5">
+              <p className="w-14 shrink-0 text-[11px] font-bold text-white/50">{job.timeLabel}</p>
+              <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: job.color }} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">{job.title}</p>
+                <p className="truncate text-[11px] text-white/45">{job.vehicleLabel}</p>
+              </div>
+              <span className={chipClass(chip.tone)}>{chip.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function MapPanel({
+  origin,
+  roadStops,
+  shopName,
+  shopCity,
+  shopState,
+}: {
+  origin: { latitude: number; longitude: number; label: string };
+  roadStops: SchedulerJobCard[];
+  shopName: string;
+  shopCity: string;
+  shopState: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-[#0d1c2e] p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-white">On the Road</h2>
+        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Live</span>
+      </div>
+      <RoadMap origin={origin} stops={roadStops} shopName={shopName} />
+      <a
+        href={mapsRouteUrl(
+          origin,
+          roadStops
+            .filter((stop) => stop.latitude != null && stop.longitude != null)
+            .map((stop) => ({ latitude: stop.latitude!, longitude: stop.longitude! })),
+        )}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-3 inline-flex text-sm font-semibold text-[#7eb0ff]"
+      >
+        View Route
+      </a>
+      <p className="mt-1 text-[11px] text-white/40">
+        {origin.label}
+        {shopCity ? ` · ${shopCity}, ${shopState}` : ""}
+      </p>
+    </section>
   );
 }
 
@@ -487,12 +658,75 @@ function RoadMap({
   );
 }
 
-function BottomDock({
+function UnscheduledPanel({
   date,
   view,
   unscheduled,
-  parts,
-  reminders,
+}: {
+  date: string;
+  view: ScheduleView;
+  unscheduled: SchedulerJobCard[];
+}) {
+  return (
+    <Dock title={`Unscheduled Requests (${unscheduled.length})`} href={mechanicScheduleHref({ view, date, panel: "schedule" })}>
+      {unscheduled.slice(0, 3).map((job) => {
+        const chip = unscheduledPriority(job.status);
+        return (
+          <div key={job.id} className="rounded-xl bg-[#071422] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className={chipClass(chip.tone)}>{chip.label}</span>
+              <p className="text-[10px] text-white/40">{job.createdLabel}</p>
+            </div>
+            <p className="mt-1 truncate text-sm font-semibold text-white">{job.title}</p>
+            <p className="truncate text-[11px] text-white/45">{job.vehicleLabel}</p>
+            <Link
+              href={mechanicScheduleHref({ view, date, moving: job.id, panel: "schedule" })}
+              className="mt-2 inline-block text-[11px] font-semibold text-[#7eb0ff]"
+            >
+              Schedule
+            </Link>
+          </div>
+        );
+      })}
+      {unscheduled.length === 0 ? <p className="text-sm text-white/45">The request queue is clear.</p> : null}
+    </Dock>
+  );
+}
+
+function PartsPanel({ parts }: { parts: SchedulerPartArrival[] }) {
+  return (
+    <Dock title="Parts Arriving Today" href="/mechanic/estimates">
+      {parts.length === 0 ? <p className="text-sm text-white/45">No parts holds on today&apos;s jobs.</p> : null}
+      {parts.map((item) => (
+        <Link key={item.id} href={item.href} className="flex items-start justify-between gap-2 rounded-xl bg-[#071422] p-3">
+          <div>
+            <p className="text-sm font-semibold text-white">{item.title}</p>
+            <p className="text-[11px] text-white/45">{item.detail}</p>
+          </div>
+          <span className={chipClass(item.onTrack ? "green" : "amber")}>{item.onTrack ? "On Track" : "Watch"}</span>
+        </Link>
+      ))}
+    </Dock>
+  );
+}
+
+function RemindersPanel({ reminders }: { reminders: SchedulerReminder[] }) {
+  return (
+    <Dock title={`Reminders (${reminders.length})`} href="/mechanic/notifications">
+      {reminders.length === 0 ? <p className="text-sm text-white/45">Nothing waiting on you.</p> : null}
+      {reminders.map((item) => (
+        <Link key={item.id} href={item.href} className="block rounded-xl bg-[#071422] p-3">
+          <p className="text-sm font-semibold text-white">{item.title}</p>
+          <p className="text-[11px] text-white/45">{item.detail}</p>
+        </Link>
+      ))}
+    </Dock>
+  );
+}
+
+function QuickActionsPanel({
+  date,
+  view,
   resources,
   jobs,
   movingJobId,
@@ -500,9 +734,6 @@ function BottomDock({
 }: {
   date: string;
   view: ScheduleView;
-  unscheduled: SchedulerJobCard[];
-  parts: SchedulerPartArrival[];
-  reminders: SchedulerReminder[];
   resources: SchedulerResourceCard[];
   jobs: SchedulerJobCard[];
   movingJobId?: string;
@@ -511,82 +742,37 @@ function BottomDock({
   const firstTech = resources.find((item) => item.kind === "TECH") ?? resources[0];
   const sendHref = jobs[0]?.messageHref ?? "/mechanic/messages";
   return (
-    <div className="grid gap-3 lg:grid-cols-4">
-      <Dock title={`Unscheduled Requests (${unscheduled.length})`} href={mechanicScheduleHref({ view, date, panel: "schedule" })}>
-        {unscheduled.slice(0, 3).map((job) => {
-          const chip = unscheduledPriority(job.status);
-          return (
-            <div key={job.id} className="rounded-xl bg-[#071422] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className={chipClass(chip.tone)}>{chip.label}</span>
-                <p className="text-[10px] text-white/40">{job.createdLabel}</p>
-              </div>
-              <p className="mt-1 truncate text-sm font-semibold text-white">{job.title}</p>
-              <p className="truncate text-[11px] text-white/45">{job.vehicleLabel}</p>
-              <Link
-                href={mechanicScheduleHref({ view, date, moving: job.id, panel: "schedule" })}
-                className="mt-2 inline-block text-[11px] font-semibold text-[#7eb0ff]"
-              >
-                Schedule
-              </Link>
-            </div>
-          );
-        })}
-        {unscheduled.length === 0 ? <p className="text-sm text-white/45">The request queue is clear.</p> : null}
-      </Dock>
-      <Dock title="Parts Arriving Today" href="/mechanic/estimates">
-        {parts.length === 0 ? <p className="text-sm text-white/45">No parts holds on today&apos;s jobs.</p> : null}
-        {parts.map((item) => (
-          <Link key={item.id} href={item.href} className="flex items-start justify-between gap-2 rounded-xl bg-[#071422] p-3">
-            <div>
-              <p className="text-sm font-semibold text-white">{item.title}</p>
-              <p className="text-[11px] text-white/45">{item.detail}</p>
-            </div>
-            <span className={chipClass(item.onTrack ? "green" : "amber")}>{item.onTrack ? "On Track" : "Watch"}</span>
-          </Link>
-        ))}
-      </Dock>
-      <Dock title={`Reminders (${reminders.length})`} href="/mechanic/notifications">
-        {reminders.length === 0 ? <p className="text-sm text-white/45">Nothing waiting on you.</p> : null}
-        {reminders.map((item) => (
-          <Link key={item.id} href={item.href} className="block rounded-xl bg-[#071422] p-3">
-            <p className="text-sm font-semibold text-white">{item.title}</p>
-            <p className="text-[11px] text-white/45">{item.detail}</p>
-          </Link>
-        ))}
-      </Dock>
-      <section className="rounded-2xl border border-white/10 bg-[#0d1c2e] p-4">
-        <h2 className="text-sm font-bold text-white">Quick Actions</h2>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link href={mechanicScheduleHref({ view, date, moving: movingJobId, panel: "block" })} className={quickClass}>
-            <Clock3 className="h-4 w-4" />
-            Block Time
-          </Link>
-          <Link href={mechanicScheduleHref({ view, date, moving: movingJobId, panel: "break" })} className={quickClass}>
-            <Coffee className="h-4 w-4" />
-            Add Break
-          </Link>
-          <Link href={mechanicScheduleHref({ view, date, moving: movingJobId, panel: "swap" })} className={quickClass}>
-            <ArrowLeftRight className="h-4 w-4" />
-            Swap Jobs
-          </Link>
-          <Link href={sendHref} className={quickClass}>
-            <Send className="h-4 w-4" />
-            Send Update
-          </Link>
-        </div>
-        {firstTech ? (
-          <form action={createSchedulerBlockAction} className="sr-only">
-            <input type="hidden" name="resourceId" value={firstTech.id} />
-            <input type="hidden" name="date" value={date} />
-            <input type="hidden" name="time" value="12:00" />
-            <input type="hidden" name="durationMinutes" value="30" />
-            <input type="hidden" name="kind" value="BREAK" />
-            <input type="hidden" name="returnTo" value={returnTo} />
-          </form>
-        ) : null}
-      </section>
-    </div>
+    <section className="rounded-2xl border border-white/10 bg-[#0d1c2e] p-4">
+      <h2 className="text-sm font-bold text-white">Quick Actions</h2>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Link href={mechanicScheduleHref({ view, date, moving: movingJobId, panel: "block" })} className={quickClass}>
+          <Clock3 className="h-4 w-4" />
+          Block Time
+        </Link>
+        <Link href={mechanicScheduleHref({ view, date, moving: movingJobId, panel: "break" })} className={quickClass}>
+          <Coffee className="h-4 w-4" />
+          Add Break
+        </Link>
+        <Link href={mechanicScheduleHref({ view, date, moving: movingJobId, panel: "swap" })} className={quickClass}>
+          <ArrowLeftRight className="h-4 w-4" />
+          Swap Jobs
+        </Link>
+        <Link href={sendHref} className={quickClass}>
+          <Send className="h-4 w-4" />
+          Send Update
+        </Link>
+      </div>
+      {firstTech ? (
+        <form action={createSchedulerBlockAction} className="sr-only">
+          <input type="hidden" name="resourceId" value={firstTech.id} />
+          <input type="hidden" name="date" value={date} />
+          <input type="hidden" name="time" value="12:00" />
+          <input type="hidden" name="durationMinutes" value="30" />
+          <input type="hidden" name="kind" value="BREAK" />
+          <input type="hidden" name="returnTo" value={returnTo} />
+        </form>
+      ) : null}
+    </section>
   );
 }
 

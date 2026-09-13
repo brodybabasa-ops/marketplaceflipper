@@ -2,13 +2,19 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { SchedulerBlockKind } from "@prisma/client";
+import { Prisma, type SchedulerBlockKind, type SchedulerResourceKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession, safeInternalPath } from "@/lib/session";
+import { parseBoardLayout } from "@/lib/board-layout";
 import {
   createSchedulerHold,
+  createShopResource,
+  deleteShopResource,
   optimizeShopDay,
+  reorderShopResources,
+  saveShopBoardLayout,
   swapJobTimes,
+  updateShopResource,
 } from "@/services/scheduler";
 
 async function requireMechanic() {
@@ -65,5 +71,78 @@ export async function swapScheduleJobsAction(formData: FormData) {
     jobA: String(formData.get("jobA") ?? ""),
     jobB: String(formData.get("jobB") ?? ""),
   });
+  bounce(formData);
+}
+
+export async function saveSchedulerLayoutAction(input: ReturnType<typeof parseBoardLayout> | FormData) {
+  const session = await requireMechanic();
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  let raw: unknown = input;
+  if (input instanceof FormData) {
+    try {
+      raw = JSON.parse(String(input.get("layout") ?? "{}"));
+    } catch {
+      raw = {};
+    }
+  }
+  await saveShopBoardLayout(profile.id, parseBoardLayout(raw));
+  revalidatePath("/mechanic/schedule");
+  revalidatePath("/mechanic/settings");
+}
+
+export async function resetSchedulerLayoutAction(formData: FormData) {
+  const session = await requireMechanic();
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  await prisma.mechanicProfile.update({
+    where: { id: profile.id },
+    data: { schedulerLayout: Prisma.DbNull },
+  });
+  revalidatePath("/mechanic/schedule");
+  revalidatePath("/mechanic/settings");
+  bounce(formData);
+}
+
+export async function createSchedulerResourceAction(formData: FormData) {
+  const session = await requireMechanic();
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  await createShopResource({
+    profileId: profile.id,
+    kind: String(formData.get("kind") ?? "TECH") as SchedulerResourceKind,
+    name: String(formData.get("name") ?? ""),
+    role: String(formData.get("role") ?? "") || undefined,
+    capacityTotal: Number(formData.get("capacityTotal") || 0) || undefined,
+  });
+  bounce(formData);
+}
+
+export async function updateSchedulerResourceAction(formData: FormData) {
+  const session = await requireMechanic();
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  await updateShopResource({
+    profileId: profile.id,
+    id: String(formData.get("id") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    role: String(formData.get("role") ?? ""),
+    kind: String(formData.get("kind") ?? "TECH") as SchedulerResourceKind,
+    capacityTotal: Number(formData.get("capacityTotal") || 0) || undefined,
+  });
+  bounce(formData);
+}
+
+export async function deleteSchedulerResourceAction(formData: FormData) {
+  const session = await requireMechanic();
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  await deleteShopResource(profile.id, String(formData.get("id") ?? ""));
+  bounce(formData);
+}
+
+export async function reorderSchedulerResourcesAction(formData: FormData) {
+  const session = await requireMechanic();
+  const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  const ids = String(formData.get("ids") ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  await reorderShopResources(profile.id, ids);
   bounce(formData);
 }

@@ -14,6 +14,7 @@ import {
   startOfDenverWeek,
   startOfNextDenverDay,
 } from "@/lib/datetime";
+import { parseBoardLayout } from "@/lib/board-layout";
 import { inProgressStatuses } from "@/lib/scheduler";
 import { unreadMessageCount } from "@/services/messages";
 import {
@@ -45,6 +46,7 @@ export default async function MechanicSchedulePage({
     status?: string;
     mode?: string;
     q?: string;
+    customize?: string;
   }>;
 }) {
   const session = await requireSession("MECHANIC");
@@ -245,6 +247,8 @@ export default async function MechanicSchedulePage({
         q: params.q,
       }}
       customers={customers}
+      layout={parseBoardLayout(profile.schedulerLayout)}
+      customize={params.customize === "1"}
     />
   );
 }

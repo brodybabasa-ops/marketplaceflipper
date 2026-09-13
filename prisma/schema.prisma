@@ -291,6 +291,7 @@ model MechanicProfile {
   avgResponseMinutes  Int   @default(30)
   cancellationRate    Float @default(0)
   mechanicScore       Float @default(0)
+  schedulerLayout     Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
