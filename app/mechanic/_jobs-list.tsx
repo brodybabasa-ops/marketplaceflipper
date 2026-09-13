@@ -6,12 +6,15 @@ import { EmptyState } from "@/components/ui/card";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { formatAppointment } from "@/lib/utils";
+import { jobSearchWhere } from "@/services/jobs";
 
 export default async function MechanicJobsList({
   statuses,
+  q,
 }: {
   title?: string;
   href?: string;
+  q?: string;
   statuses?: (
     | "REQUESTED"
     | "ACCEPTED"
@@ -29,7 +32,11 @@ export default async function MechanicJobsList({
   const session = await requireSession("MECHANIC");
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
   const jobs = await prisma.job.findMany({
-    where: { mechanicProfileId: profile.id, ...(statuses ? { status: { in: statuses } } : {}) },
+    where: {
+      mechanicProfileId: profile.id,
+      ...(statuses ? { status: { in: statuses } } : {}),
+      ...jobSearchWhere(q),
+    },
     include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
     orderBy: { createdAt: "desc" },
   });
@@ -43,7 +50,10 @@ export default async function MechanicJobsList({
         </div>
       ) : null}
       {jobs.length === 0 ? (
-        <EmptyState title="Nothing here yet" body="New customer requests will show up in this list." />
+        <EmptyState
+          title={q ? "No jobs matched that search" : "Nothing here yet"}
+          body={q ? `Nothing matched “${q}”.` : "New customer requests will show up in this list."}
+        />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-paper">
           <table className="w-full min-w-[720px] text-left text-sm">

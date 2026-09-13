@@ -217,14 +217,17 @@ function Results({
                 )}
                 <p className="text-xs text-muted">Earliest Availability</p>
                 <p className="text-sm font-semibold text-navy">{shop.availabilityLabel}</p>
+                <Link href={`/request?mechanic=${shop.id}`} className="text-sm font-semibold text-[#2f7bff]">
+                  Request this shop
+                </Link>
                 <Link href={`/mechanics/${shop.slug}`} className="text-sm font-semibold text-[#2f7bff]">
                   View Availability
                 </Link>
                 <Link
-                  href={`/mechanics/${shop.slug}`}
+                  href={`/request?mechanic=${shop.id}`}
                   className="mt-1 inline-flex h-10 items-center justify-center rounded-xl bg-[#2f7bff] text-sm font-semibold text-white hover:bg-[#2568e8]"
                 >
-                  View Shop →
+                  Request →
                 </Link>
               </div>
             </article>

@@ -39,3 +39,32 @@ export async function notify(input: NotificationInput) {
   if (channel === "EMAIL") await sendEmail(input);
   if (channel === "SMS") await sendSms(input);
 }
+
+export async function listNotifications(userId: string) {
+  return prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: 80,
+  });
+}
+
+export async function unreadNotificationCount(userId: string) {
+  return prisma.notification.count({ where: { userId, readAt: null } });
+}
+
+export async function markNotificationRead(id: string, userId: string) {
+  const existing = await prisma.notification.findFirst({ where: { id, userId } });
+  if (!existing) return null;
+  if (existing.readAt) return existing;
+  return prisma.notification.update({
+    where: { id },
+    data: { readAt: new Date() },
+  });
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  await prisma.notification.updateMany({
+    where: { userId, readAt: null },
+    data: { readAt: new Date() },
+  });
+}

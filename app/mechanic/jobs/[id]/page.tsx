@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { PageHeading } from "@/components/layout/themed-board";
 import { createEstimateAction, saveRepairRecordAction, sendMessageAction, updateJobStatusAction } from "@/app/actions/marketplace";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { JobPhotos } from "@/components/jobs/job-photos";
 import { MarkRead } from "@/components/messages/mark-read";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
@@ -82,6 +83,10 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           canEdit={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
           surface="shop"
         />
+      </div>
+
+      <div className="mt-4">
+        <JobPhotos jobId={job.id} photos={job.photos} canUpload surface="shop" />
       </div>
 
       <section className="mt-8 space-y-4">

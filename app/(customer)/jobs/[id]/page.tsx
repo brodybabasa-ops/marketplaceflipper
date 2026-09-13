@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea, Input } from "@/components/ui/input";
 import { ThemedBoard } from "@/components/layout/themed-board";
 import { createDisputeAction, createReviewAction, sendMessageAction } from "@/app/actions/marketplace";
+import { JobPhotos } from "@/components/jobs/job-photos";
 import { MarkRead } from "@/components/messages/mark-read";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
@@ -56,6 +57,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           {job.estimates.map((estimate) => (
             <EstimateCard key={estimate.id} estimate={estimate} canApprove={session.role === "CUSTOMER"} />
           ))}
+          <JobPhotos
+            jobId={job.id}
+            photos={job.photos}
+            canUpload={session.id === job.customerId || session.id === job.mechanicUserId}
+          />
           {job.repairRecord ? (
             <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
               <h2 className="font-semibold text-navy">Repair completed</h2>

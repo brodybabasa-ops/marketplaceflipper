@@ -40,7 +40,7 @@ export function CustomerHeader({
           <ChevronDown className="h-3.5 w-3.5 text-white/55" />
         </Link>
         <Link
-          href="/messages"
+          href="/notifications"
           className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white"
           aria-label={unreadNotifications ? `${unreadNotifications} notifications` : "Notifications"}
         >

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { StatusTimeline } from "@/components/jobs/status-timeline";
 import { EstimateCard } from "@/components/jobs/estimate-card";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { JobPhotos } from "@/components/jobs/job-photos";
 import { ThreadView } from "@/components/messages/thread-view";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -77,6 +78,9 @@ export default async function AdminJobPage({ params }: { params: Promise<{ id: s
           canEdit={job.status !== "COMPLETED" && job.status !== "CANCELLED"}
           surface="shop"
         />
+      </div>
+      <div className="mt-4">
+        <JobPhotos jobId={job.id} photos={job.photos} canUpload surface="shop" />
       </div>
 
       <section className="mt-6 space-y-4">

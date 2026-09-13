@@ -34,13 +34,13 @@ export function CustomerShell({
   return (
     <div data-dashboard className="flex min-h-screen bg-[#e8eef4] text-navy">
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">
-        <CustomerSidebar unreadMessages={unreadMessages} />
+        <CustomerSidebar unreadMessages={unreadMessages} unreadNotifications={unreadNotifications} />
       </div>
       {menuOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
           <div className="relative h-full w-[240px]">
-        <CustomerSidebar unreadMessages={unreadMessages} onNavigate={() => setMenuOpen(false)} />
+        <CustomerSidebar unreadMessages={unreadMessages} unreadNotifications={unreadNotifications} onNavigate={() => setMenuOpen(false)} />
             <button
               type="button"
               className="absolute right-3 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"

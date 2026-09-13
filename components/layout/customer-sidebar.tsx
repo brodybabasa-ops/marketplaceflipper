@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   Calendar,
   Car,
   ClipboardList,
@@ -25,6 +26,7 @@ const LINKS = [
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/estimates", label: "Estimates", icon: ClipboardList },
   { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/saved", label: "Saved Shops", icon: Heart },
   { href: "/reviews", label: "Reviews", icon: Star },
   { href: "/account", label: "Account Settings", icon: Settings },
@@ -44,7 +46,15 @@ function StoreBadge({ href, store }: { href: string; store: "apple" | "google" }
   );
 }
 
-export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages: number; onNavigate?: () => void }) {
+export function CustomerSidebar({
+  unreadMessages,
+  unreadNotifications = 0,
+  onNavigate,
+}: {
+  unreadMessages: number;
+  unreadNotifications?: number;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   return (
     <aside className="flex h-full w-[240px] shrink-0 flex-col overflow-y-auto bg-[#071422] text-white">
@@ -70,6 +80,11 @@ export function CustomerSidebar({ unreadMessages, onNavigate }: { unreadMessages
               {link.href === "/messages" && unreadMessages > 0 ? (
                 <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#e23d3d] px-1.5 text-[10px] font-bold text-white">
                   {unreadMessages}
+                </span>
+              ) : null}
+              {link.href === "/notifications" && unreadNotifications > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#e23d3d] px-1.5 text-[10px] font-bold text-white">
+                  {unreadNotifications}
                 </span>
               ) : null}
             </Link>

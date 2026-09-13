@@ -36,6 +36,7 @@ const SIDEBAR = [
   { href: "/jobs", label: "My Repairs", icon: Wrench },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/saved", label: "Saved Shops", icon: Heart },
   { href: "/history", label: "Payments", icon: CreditCard },
   { href: "/account", label: "Settings", icon: Settings },
@@ -44,6 +45,7 @@ const SIDEBAR = [
 export function GarageShell({
   user,
   unreadMessages,
+  unreadNotifications = 0,
   children,
 }: {
   user: SessionUser;
@@ -81,8 +83,9 @@ export function GarageShell({
               className="h-9 w-full rounded-full border border-white/15 bg-transparent pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/40"
             />
           </form>
-          <Link href="/messages" className="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white" aria-label="Notifications">
+          <Link href="/notifications" className="relative inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white" aria-label={unreadNotifications ? `${unreadNotifications} notifications` : "Notifications"}>
             <Bell className="h-4 w-4" />
+            {unreadNotifications > 0 ? <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#e23d3d]" /> : null}
           </Link>
           <Link href="/account" className="inline-flex items-center gap-2">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#2f7bff] text-[11px] font-bold">
@@ -95,13 +98,13 @@ export function GarageShell({
       </header>
       <div className="flex min-h-0 flex-1">
         <div className="hidden lg:sticky lg:top-[72px] lg:flex lg:h-[calc(100vh-72px)]">
-          <GarageSidebar unreadMessages={messageCount} />
+          <GarageSidebar unreadMessages={messageCount} unreadNotifications={unreadNotifications} />
         </div>
         {menuOpen ? (
           <div className="fixed inset-0 z-50 lg:hidden">
             <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
             <div className="relative h-full w-[220px] bg-[#071422]">
-              <GarageSidebar unreadMessages={messageCount} onNavigate={() => setMenuOpen(false)} />
+              <GarageSidebar unreadMessages={messageCount} unreadNotifications={unreadNotifications} onNavigate={() => setMenuOpen(false)} />
               <button
                 type="button"
                 className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10"
@@ -119,7 +122,15 @@ export function GarageShell({
   );
 }
 
-function GarageSidebar({ unreadMessages, onNavigate }: { unreadMessages: number; onNavigate?: () => void }) {
+function GarageSidebar({
+  unreadMessages,
+  unreadNotifications = 0,
+  onNavigate,
+}: {
+  unreadMessages: number;
+  unreadNotifications?: number;
+  onNavigate?: () => void;
+}) {
   return (
     <aside className="flex h-full w-[220px] shrink-0 flex-col overflow-y-auto border-r border-white/5 bg-[#071422] text-white">
       <nav className="flex-1 space-y-1 px-3 pt-4">
@@ -141,6 +152,11 @@ function GarageSidebar({ unreadMessages, onNavigate }: { unreadMessages: number;
               {link.href === "/messages" && unreadMessages > 0 ? (
                 <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#e23d3d] px-1.5 text-[10px] font-bold text-white">
                   {unreadMessages}
+                </span>
+              ) : null}
+              {link.href === "/notifications" && unreadNotifications > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#e23d3d] px-1.5 text-[10px] font-bold text-white">
+                  {unreadNotifications}
                 </span>
               ) : null}
             </Link>

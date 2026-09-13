@@ -4,6 +4,7 @@ import { formatAppointmentDate } from "@/lib/datetime";
 import { vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatBoardDate } from "@/lib/utils";
+import { isMarineVehicle } from "@/lib/vehicles";
 
 export type GarageVehicle = {
   id: string | null;
@@ -21,6 +22,7 @@ export type GarageVehicle = {
   status: "ok" | "due";
   statusLabel: string;
   primary?: boolean;
+  editHref?: string;
 };
 
 export type GarageMaintenance = {
@@ -54,7 +56,7 @@ const ACTIVE: JobStatus[] = [
 
 export async function getCustomerGarage(userId: string) {
   const records = await prisma.vehicle.findMany({
-    where: { customerId: userId },
+    where: { customerId: userId, archivedAt: null },
     include: {
       make: true,
       model: true,
@@ -69,7 +71,7 @@ export async function getCustomerGarage(userId: string) {
   const vehicles: GarageVehicle[] = records.map((vehicle, index) => {
     const active = vehicle.jobs.find((job) => ACTIVE.includes(job.status));
     const lastDone = vehicle.jobs.find((job) => job.status === "COMPLETED");
-    const marine = isMarine(vehicle.make.name, vehicle.model.name);
+    const marine = isMarineVehicle(vehicle.make.name, vehicle.model.name);
     const identifier = vehicle.vin?.trim() || "Not on file";
     const { status, statusLabel } = garageStatus(active, lastDone);
 
@@ -89,6 +91,7 @@ export async function getCustomerGarage(userId: string) {
       status,
       statusLabel,
       primary: index === 0,
+      editHref: `/vehicles/${vehicle.id}/edit`,
     };
   });
 
@@ -195,11 +198,6 @@ function garageStatus(
     return { status: "ok" as const, statusLabel: "Ready" };
   }
   return { status: "ok" as const, statusLabel: "Ready" };
-}
-
-function isMarine(make: string, model: string) {
-  const hay = `${make} ${model}`.toLowerCase();
-  return hay.includes("centurion") || hay.includes("yamaha") || hay.includes("boat") || hay.includes("fx cruiser");
 }
 
 function usageLabel(make: string, model: string, mileage: number) {
