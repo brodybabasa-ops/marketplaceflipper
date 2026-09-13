@@ -48,7 +48,7 @@ export function AccountForm({
       </div>
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
       {state.saved ? <p className="text-sm text-success">Saved.</p> : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" name="saveProfile" disabled={pending}>
         {pending ? "Saving..." : "Save profile"}
       </Button>
     </form>

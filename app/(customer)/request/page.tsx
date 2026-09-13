@@ -94,7 +94,7 @@ export default async function RequestPage({
             <input type="checkbox" name="mobilePreferred" defaultChecked className="h-4 w-4" />
             Prefer a mechanic who can come to me
           </label>
-          <Button type="submit">
+          <Button type="submit" name="sendRequest">
             {lockShop && namedShop ? `Send request to ${namedShop.businessName}` : submitShop ? `Send request to ${submitShop.businessName}` : "Request service"}
           </Button>
         </form>

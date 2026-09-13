@@ -62,7 +62,7 @@ export function JobPhotos({
               <Input name="caption" placeholder="Front rotor" />
             </Field>
           </div>
-          <Button type="submit">Upload photo</Button>
+          <Button type="submit" name="uploadPhoto">Upload photo</Button>
         </form>
       ) : null}
     </Card>

@@ -14,10 +14,10 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default async function MechanicSchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; moving?: string }>;
 }) {
   const session = await requireSession("MECHANIC");
-  const { week } = await searchParams;
+  const { week, moving } = await searchParams;
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({
     where: { userId: session.id },
     include: { availability: true },
@@ -66,6 +66,8 @@ export default async function MechanicSchedulePage({
 
   const jobs: Record<string, SchedulerJob> = {};
   for (const job of booked) jobs[job.id] = toCard(job, true);
+  const unscheduledCards = unscheduledRows.map((job) => toCard(job, false));
+  for (const job of unscheduledCards) jobs[job.id] = job;
 
   const columns = DAYS.map((label, index) => {
     const dayStart = addDenverDays(start, index);
@@ -111,7 +113,9 @@ export default async function MechanicSchedulePage({
       <WeekScheduler
         jobs={jobs}
         columns={columns}
-        unscheduled={unscheduledRows.map((job) => toCard(job, false))}
+        unscheduled={unscheduledCards}
+        week={formatDenverDateInput(start)}
+        movingJobId={moving && jobs[moving] ? moving : undefined}
       />
       <p className="mt-4 text-xs text-muted">
         Times are America/Denver. Drop a job on a day to set or move it. Existing times stay; unscheduled jobs land at 9:00 AM.
