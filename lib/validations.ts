@@ -78,6 +78,7 @@ export const messageSchema = z.object({
 
 export const mechanicOnboardingSchema = z.object({
   businessName: z.string().min(2).max(80),
+  tagline: z.string().max(120).optional(),
   bio: z.string().min(20, "Tell customers a little about your work.").max(1200),
   yearsExperience: z.coerce.number().int().min(0).max(60),
   serviceMode: z.enum(["MOBILE", "SHOP", "BOTH"]),
@@ -88,6 +89,7 @@ export const mechanicOnboardingSchema = z.object({
   diagnosticPriceCents: z.coerce.number().int().min(0),
   laborRateCents: z.coerce.number().int().min(0),
   mobileFeeCents: z.coerce.number().int().min(0),
+  acceptsNewJobs: z.boolean(),
 });
 
 export const accountSchema = z.object({

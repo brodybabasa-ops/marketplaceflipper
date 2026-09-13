@@ -5,10 +5,11 @@ import { signInAction, signUpAction, type AuthState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 
-export function SignInForm() {
+export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signInAction, {} as AuthState);
   return (
     <form action={action} className="space-y-4">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       {state.error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-danger">{state.error}</p> : null}
       <Field label="Email">
         <Input name="email" type="email" required placeholder="you@email.com" />

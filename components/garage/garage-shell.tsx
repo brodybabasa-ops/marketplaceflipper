@@ -7,8 +7,8 @@ import {
   Calendar,
   Car,
   ChevronDown,
-  CreditCard,
   Heart,
+  History,
   LayoutDashboard,
   Menu,
   MessageSquare,
@@ -38,7 +38,7 @@ const SIDEBAR = [
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/saved", label: "Saved Shops", icon: Heart },
-  { href: "/history", label: "Payments", icon: CreditCard },
+  { href: "/history", label: "Repair history", icon: History },
   { href: "/account", label: "Settings", icon: Settings },
 ];
 
@@ -75,7 +75,7 @@ export function GarageShell({
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          <form action="/mechanics" className="relative hidden w-[196px] sm:block">
+          <form action="/search" className="relative hidden w-[196px] sm:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/45" />
             <input
               name="q"

@@ -23,8 +23,8 @@ export default async function MechanicSettingsPage() {
         </div>
       </Card>
       <Card className="border-0 p-5 text-sm text-muted">
-        Notification preferences, SMS (Twilio), and Stripe Connect onboarding will plug into this screen.
-        Email and SMS currently use adapter services that log in development until keys are provided.
+        Shop hours above control the book. Email and SMS still log until keys are set. Payments stay on Earnings until
+        Stripe Connect is connected.
       </Card>
     </div>
   );

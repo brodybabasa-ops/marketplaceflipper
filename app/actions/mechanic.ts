@@ -6,11 +6,13 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/guards";
 import { mechanicOnboardingSchema } from "@/lib/validations";
 import { slugify } from "@/lib/utils";
+import { safeInternalPath } from "@/lib/session-token";
 
 export async function saveMechanicProfileAction(formData: FormData) {
   const session = await requireSession("MECHANIC");
   const parsed = mechanicOnboardingSchema.safeParse({
     businessName: formData.get("businessName"),
+    tagline: String(formData.get("tagline") ?? "").trim() || undefined,
     bio: formData.get("bio"),
     yearsExperience: formData.get("yearsExperience"),
     serviceMode: formData.get("serviceMode"),
@@ -21,24 +23,30 @@ export async function saveMechanicProfileAction(formData: FormData) {
     diagnosticPriceCents: Math.round(Number(formData.get("diagnosticPrice") ?? 0) * 100),
     laborRateCents: Math.round(Number(formData.get("laborRate") ?? 0) * 100),
     mobileFeeCents: Math.round(Number(formData.get("mobileFee") ?? 0) * 100),
+    acceptsNewJobs: formData.get("acceptsNewJobs") === "on",
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Check your profile details.");
   const zip = await prisma.zipCode.findUnique({ where: { zip: parsed.data.shopZip.slice(0, 5) } });
-  const slug = slugify(parsed.data.businessName);
+  const existing = await prisma.mechanicProfile.findUniqueOrThrow({ where: { userId: session.id } });
+  const slug = existing.slug || slugify(parsed.data.businessName);
   await prisma.mechanicProfile.update({
     where: { userId: session.id },
     data: {
       ...parsed.data,
       slug,
       startingPriceCents: parsed.data.diagnosticPriceCents,
-      latitude: zip?.latitude ?? 40.7608,
-      longitude: zip?.longitude ?? -111.891,
+      latitude: zip?.latitude ?? existing.latitude,
+      longitude: zip?.longitude ?? existing.longitude,
       profileCompletePct: 100,
       onboardingStep: 13,
     },
   });
+  const next = safeInternalPath(formData.get("next")) ?? "/mechanic";
   revalidatePath("/mechanic");
-  redirect("/mechanic");
+  revalidatePath("/mechanic/profile");
+  revalidatePath("/mechanic/onboarding");
+  revalidatePath(`/mechanics/${slug}`);
+  redirect(next);
 }
 
 export async function submitVerificationAction() {

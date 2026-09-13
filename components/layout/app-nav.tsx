@@ -39,6 +39,7 @@ export const CUSTOMER_NAV = [
   { href: "/messages", label: "Messages" },
   { href: "/notifications", label: "Notifications" },
   { href: "/saved", label: "Saved Shops" },
+  { href: "/history", label: "Repair history" },
   { href: "/reviews", label: "Reviews" },
   { href: "/account", label: "Account Settings" },
 ];

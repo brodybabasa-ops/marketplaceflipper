@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Heart,
   HelpCircle,
+  History,
   LayoutDashboard,
   LifeBuoy,
   MessageSquare,
@@ -28,6 +29,7 @@ const LINKS = [
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/saved", label: "Saved Shops", icon: Heart },
+  { href: "/history", label: "Repair history", icon: History },
   { href: "/reviews", label: "Reviews", icon: Star },
   { href: "/account", label: "Account Settings", icon: Settings },
 ];

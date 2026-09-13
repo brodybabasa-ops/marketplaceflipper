@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { notify } from "@/services/notifications";
 
 export async function markThreadRead(threadId: string, userId: string) {
   await prisma.message.updateMany({
@@ -54,4 +55,30 @@ export async function getThreadForUser(threadId: string, userId: string, role: s
   if (role === "ADMIN") return thread;
   if (thread.customerId !== userId && thread.mechanicId !== userId) return null;
   return thread;
+}
+
+export async function getOrCreateShopThread(customerId: string, mechanicProfileId: string) {
+  const profile = await prisma.mechanicProfile.findUnique({
+    where: { id: mechanicProfileId },
+    include: { user: { select: { firstName: true, lastName: true } } },
+  });
+  if (!profile) return null;
+  const existing = await prisma.messageThread.findFirst({
+    where: { customerId, mechanicId: profile.userId },
+    orderBy: { lastMessageAt: "desc" },
+  });
+  if (existing) return { thread: existing, created: false, profile };
+  const thread = await prisma.messageThread.create({
+    data: {
+      customerId,
+      mechanicId: profile.userId,
+    },
+  });
+  await notify({
+    userId: profile.userId,
+    title: "New message from a customer",
+    body: "Open the conversation to reply.",
+    href: `/mechanic/messages/${thread.id}`,
+  });
+  return { thread, created: true, profile };
 }
