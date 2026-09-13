@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, decryptSession, homeForRole } from "@/lib/session-token";
 
-const PROTECTED = ["/home", "/vehicles", "/jobs", "/messages", "/notifications", "/history", "/account", "/request", "/mechanic", "/admin", "/estimates", "/appointments", "/saved", "/reviews", "/search"];
+const PROTECTED = ["/home", "/vehicles", "/jobs", "/messages", "/notifications", "/history", "/account", "/request", "/requests", "/mechanic", "/admin", "/estimates", "/appointments", "/saved", "/reviews", "/search"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,5 +28,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home/:path*", "/vehicles/:path*", "/jobs/:path*", "/messages/:path*", "/notifications/:path*", "/history/:path*", "/account/:path*", "/request/:path*", "/mechanic/:path*", "/admin/:path*", "/estimates/:path*", "/appointments/:path*", "/saved/:path*", "/reviews/:path*", "/search/:path*"],
+  matcher: ["/home/:path*", "/vehicles/:path*", "/jobs/:path*", "/messages/:path*", "/notifications/:path*", "/history/:path*", "/account/:path*", "/request/:path*", "/requests/:path*", "/mechanic/:path*", "/admin/:path*", "/estimates/:path*", "/appointments/:path*", "/saved/:path*", "/reviews/:path*", "/search/:path*"],
 };

@@ -122,7 +122,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           {job.status === "COMPLETED" && job.paymentStatus !== "PAID" && session.role === "CUSTOMER" && !job.review ? (
             <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
               <h2 className="font-semibold text-navy">Review unlocks after payment</h2>
-              <p className="text-sm text-muted">Pay the invoice above to leave a verified review and lock this repair into history.</p>
+              <p className="text-sm text-muted">Pay the invoice above to leave a verified review. This repair is already saved to the vehicle.</p>
             </Card>
           ) : null}
           {job.review ? <ReviewCard review={{ ...job.review, customer: job.customer }} /> : null}

@@ -28,7 +28,7 @@ async function requireUser() {
   return session;
 }
 
-function revalidateJobSurfaces(jobId?: string) {
+function revalidateJobSurfaces(jobId?: string, requestId?: string) {
   revalidatePath("/jobs");
   revalidatePath("/home");
   revalidatePath("/messages");
@@ -40,6 +40,7 @@ function revalidateJobSurfaces(jobId?: string) {
   revalidatePath("/account");
   revalidatePath("/saved");
   revalidatePath("/search");
+  revalidatePath("/requests");
   revalidatePath("/mechanic");
   revalidatePath("/mechanic/requests");
   revalidatePath("/mechanic/jobs");
@@ -61,6 +62,7 @@ function revalidateJobSurfaces(jobId?: string) {
     revalidatePath(`/mechanic/jobs/${jobId}`);
     revalidatePath(`/admin/jobs/${jobId}`);
   }
+  if (requestId) revalidatePath(`/requests/${requestId}`);
 }
 
 export async function createVehicleAction(formData: FormData) {
@@ -183,7 +185,7 @@ export async function createRequestAction(formData: FormData) {
     customerId: session.id,
     ...parsed.data,
   });
-  revalidateJobSurfaces(result.job?.id);
+  revalidateJobSurfaces(result.job?.id, result.request.id);
   revalidatePath("/request");
   if (result.job) {
     redirect(`/jobs/${result.job.id}`);
@@ -470,7 +472,7 @@ export async function acceptRequestOfferAction(formData: FormData) {
   const session = await requireUser();
   if (session.role !== "MECHANIC") throw new Error("Not authorized.");
   const job = await acceptServiceRequestOffer(String(formData.get("offerId")), session.id);
-  revalidateJobSurfaces(job.id);
+  revalidateJobSurfaces(job.id, job.serviceRequestId);
   revalidatePath("/mechanic/requests");
   redirect(`/mechanic/jobs/${job.id}`);
 }
@@ -478,11 +480,10 @@ export async function acceptRequestOfferAction(formData: FormData) {
 export async function declineRequestOfferAction(formData: FormData) {
   const session = await requireUser();
   if (session.role !== "MECHANIC") throw new Error("Not authorized.");
-  await declineServiceRequestOffer(String(formData.get("offerId")), session.id);
+  const requestId = await declineServiceRequestOffer(String(formData.get("offerId")), session.id);
+  revalidateJobSurfaces(undefined, requestId);
   revalidatePath("/mechanic");
   revalidatePath("/mechanic/requests");
-  revalidatePath("/jobs");
-  revalidatePath("/home");
 }
 
 export async function payInvoiceAction(formData: FormData) {

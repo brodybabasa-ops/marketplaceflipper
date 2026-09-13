@@ -14,6 +14,21 @@ import { issueInvoiceForJob, persistRepairHistory } from "@/services/billing";
 
 const MATCH_LIMIT = 5;
 
+function jobStatusTitle(status: JobStatus) {
+  switch (status) {
+    case "EN_ROUTE":
+      return "Mechanic on the way";
+    case "ARRIVED":
+      return "Mechanic arrived";
+    case "DIAGNOSING":
+      return "Shop is diagnosing";
+    case "IN_PROGRESS":
+      return "Repair in progress";
+    default:
+      return "Repair updated";
+  }
+}
+
 async function resolveAssignedShop(
   mechanicProfileId: string | undefined,
   vehicle: { make: { name: string }; model: { name: string } },
@@ -266,16 +281,11 @@ export async function acceptServiceRequestOffer(offerId: string, mechanicUserId:
     throw new Error("Another shop already took this request.");
   }
 
-  const scheduledAt = proposedAppointmentFromPreferred(
-    offer.request.preferredDate ? formatDenverDateInput(offer.request.preferredDate) : undefined,
-    offer.request.preferredTimeWindow ?? undefined,
-  );
   const job = await openJobFromRequest({
     requestId: offer.requestId,
     mechanicProfileId: offer.mechanicProfileId,
     actorId: mechanicUserId,
-    status: scheduledAt ? "SCHEDULED" : "ACCEPTED",
-    scheduledAt,
+    status: "ACCEPTED",
     note: "Shop accepted the request.",
     openingMessage: offer.request.problemText,
   });
@@ -292,7 +302,9 @@ export async function acceptServiceRequestOffer(offerId: string, mechanicUserId:
   await notify({
     userId: offer.request.customerId,
     title: `${offer.mechanic.businessName} accepted your request`,
-    body: "You can message them, approve an estimate, and track the repair from here.",
+    body: job.repairOrderNumber
+      ? `Repair order ${job.repairOrderNumber} is open. Approve an estimate to lock the appointment.`
+      : "You can message them, approve an estimate, and track the repair from here.",
     href: `/jobs/${job.id}`,
   });
   return job;
@@ -412,6 +424,15 @@ export async function transitionJob(jobId: string, next: JobStatus, actorId: str
       userId: job.customerId,
       title: "Your mechanic accepted the request",
       body: "You can message them and track the job from here.",
+      href: `/jobs/${job.id}`,
+    });
+  }
+
+  if (next === "EN_ROUTE" || next === "ARRIVED" || next === "DIAGNOSING" || next === "IN_PROGRESS") {
+    await notify({
+      userId: job.customerId,
+      title: jobStatusTitle(next),
+      body: "Your shop updated this repair. Open the job to see where it stands.",
       href: `/jobs/${job.id}`,
     });
   }

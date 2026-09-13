@@ -80,25 +80,37 @@ const defaultSteps = ["Received", "Diagnosing", "Parts Ordered", "In Service", "
 const approvalSteps = ["Received", "Diagnosing", "Waiting Approval", "In Service", "Complete"];
 
 export async function getCustomerRepairs(userId: string) {
-  const jobs = await prisma.job.findMany({
-    where: { customerId: userId },
-    include: {
-      mechanicProfile: true,
-      vehicle: { include: { make: true, model: true } },
-      serviceRequest: true,
-      estimates: { include: { lineItems: true }, orderBy: { createdAt: "desc" }, take: 8 },
-      review: true,
-      thread: true,
-    },
-  });
+  const [jobs, matchingRequests] = await Promise.all([
+    prisma.job.findMany({
+      where: { customerId: userId },
+      include: {
+        mechanicProfile: true,
+        vehicle: { include: { make: true, model: true } },
+        serviceRequest: true,
+        estimates: { include: { lineItems: true }, orderBy: { createdAt: "desc" }, take: 8 },
+        review: true,
+        thread: true,
+      },
+    }),
+    prisma.serviceRequest.findMany({
+      where: { customerId: userId, status: { in: ["MATCHED", "OPEN"] }, jobs: { none: {} } },
+      include: {
+        vehicle: { include: { make: true, model: true } },
+        offers: { include: { mechanic: true }, orderBy: { rank: "asc" } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
-  const rows = jobs
+  const matchingRows = matchingRequests.map((request) => toMatchingRow(request));
+  const jobRows = jobs
     .map((job) => toRow(job))
     .sort((a, b) => {
       const jobA = jobs.find((job) => job.id === a.id)!;
       const jobB = jobs.find((job) => job.id === b.id)!;
       return compareJobs(jobA, jobB);
     });
+  const rows = [...matchingRows, ...jobRows];
 
   const counts: Record<RepairTab, number> = {
     all: rows.length,
@@ -132,7 +144,7 @@ export async function getCustomerRepairs(userId: string) {
     completed: counts.completed,
     inProgress: counts["in-progress"] + counts["waiting-approval"] + counts["waiting-parts"],
     spentLabel: formatPrice(
-      jobs.filter((job) => job.status === "COMPLETED").reduce((sum, job) => sum + job.totalCents, 0),
+      jobs.filter((job) => job.status === "COMPLETED" && job.paymentStatus === "PAID").reduce((sum, job) => sum + job.totalCents, 0),
       true,
     ),
   };
@@ -154,6 +166,38 @@ function compareJobs(a: JobRow, b: JobRow) {
     return a.scheduledAt.getTime() - b.scheduledAt.getTime();
   }
   return b.updatedAt.getTime() - a.updatedAt.getTime();
+}
+
+function toMatchingRow(request: {
+  id: string;
+  problemText: string;
+  city: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  vehicle: { year: number; make: { name: string }; model: { name: string } };
+  offers: { mechanic: { slug: string; shopCity: string | null; shopState: string | null } }[];
+}): RepairRow {
+  const lead = request.offers[0]?.mechanic;
+  const shopCity = [lead?.shopCity, lead?.shopState].filter(Boolean).join(", ") || request.city || "";
+  return {
+    id: request.id,
+    tab: "in-progress",
+    vehicleLabel: `${request.vehicle.year} ${request.vehicle.make.name} ${request.vehicle.model.name}`,
+    problem: request.problemText,
+    shopName: request.offers.length ? `${request.offers.length} shops notified` : "Matching shops",
+    shopCity,
+    shopPhoto: shopPhotoFor(lead?.slug ?? "precision-auto-care"),
+    photo: vehiclePhotoFor(request.vehicle.make.name, request.vehicle.model.name),
+    badge: { label: "Waiting on shops", tone: "muted" },
+    dateLabel: "Requested",
+    dateValue: formatBoardDate(request.createdAt),
+    relativeLabel: formatRelative(request.updatedAt),
+    steps: ["Request sent", "Shop responds", "Estimate", "In Service", "Complete"],
+    stepIndex: 0,
+    priceLabel: "Estimate",
+    price: "Pending",
+    actions: [{ href: `/requests/${request.id}`, label: "View Request", variant: "primary" }],
+  };
 }
 
 function toRow(job: JobRow): RepairRow {
