@@ -47,6 +47,7 @@ export function WorkspaceShell({
   product,
   workspace,
   unreadNotifications = 0,
+  unreadMessages = 0,
   children,
 }: {
   user: SessionUser;
@@ -54,6 +55,7 @@ export function WorkspaceShell({
   product: Product;
   workspace: string;
   unreadNotifications?: number;
+  unreadMessages?: number;
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,13 +65,13 @@ export function WorkspaceShell({
   return (
     <div data-dashboard data-ops={product} className="flex min-h-screen bg-[#071422] text-white">
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen">
-        <OpsSidebar user={user} nav={nav} product={product} workspace={workspace} />
+        <OpsSidebar user={user} nav={nav} product={product} workspace={workspace} unreadMessages={unreadMessages} />
       </div>
       {menuOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
           <div className="relative h-full w-[240px]">
-            <OpsSidebar user={user} nav={nav} product={product} workspace={workspace} onNavigate={() => setMenuOpen(false)} />
+            <OpsSidebar user={user} nav={nav} product={product} workspace={workspace} unreadMessages={unreadMessages} onNavigate={() => setMenuOpen(false)} />
             <button
               type="button"
               className="absolute right-3 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"
@@ -135,6 +137,7 @@ function opsSearchFor(pathname: string, product: Product) {
   if (pathname.startsWith("/admin/users")) return { action: "/admin/users", placeholder: "Search users..." };
   if (pathname.startsWith("/admin/vehicles")) return { action: "/admin/vehicles", placeholder: "Search vehicles..." };
   if (pathname.startsWith("/admin/mechanics")) return { action: "/admin/mechanics", placeholder: "Search shops..." };
+  if (pathname.startsWith("/mechanic/messages")) return { action: "/mechanic/messages", placeholder: "Search customers or messages..." };
   if (pathname.startsWith("/mechanic/requests")) return { action: "/mechanic/requests", placeholder: "Search requests..." };
   if (product === "shop") return { action: "/mechanic/jobs", placeholder: "Search jobs or customers..." };
   return { action: "/admin/jobs", placeholder: "Search users, shops, or jobs..." };
@@ -171,7 +174,7 @@ function opsPage(pathname: string, product: Product): PageCopy {
     { prefix: "/mechanic/settings", page: { eyebrow: "SETTINGS", title: "Shop", accent: "Settings.", subtitle: "Hours, notifications, and payouts." } },
     { prefix: "/mechanic/onboarding", page: { eyebrow: "SETUP", title: "Set up the", accent: "Shop.", subtitle: "Customers see this before they request service." } },
     { prefix: "/mechanic/customers", page: { eyebrow: "CUSTOMERS", title: "People you", accent: "Helped.", subtitle: "Customers attached to jobs at this shop." } },
-    { prefix: "/mechanic/messages", page: { eyebrow: "MESSAGES", title: "Talk to the", accent: "Customer.", subtitle: "Conversations stay attached to the job." } },
+    { prefix: "/mechanic/messages", page: { eyebrow: "MESSAGES", title: "Talk to the", accent: "Customer.", subtitle: "Customer messages land here. Your reply shows on their board." } },
     { prefix: "/mechanic/notifications", page: { eyebrow: "INBOX", title: "Shop", accent: "Alerts.", subtitle: "Requests, appointments, and estimate replies." } },
     { prefix: "/mechanic", page: { eyebrow: "SHOP COMMAND", title: "Today.", accent: "", subtitle: "Requests, the bay, and what is on the book." } },
   ];
@@ -220,12 +223,14 @@ function OpsSidebar({
   nav,
   product,
   workspace,
+  unreadMessages = 0,
   onNavigate,
 }: {
   user: SessionUser;
   nav: { href: string; label: string }[];
   product: Product;
   workspace: string;
+  unreadMessages?: number;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -252,7 +257,12 @@ function OpsSidebar({
               )}
             >
               <Icon className="h-4 w-4" />
-              <span>{link.label}</span>
+              <span className="flex-1">{link.label}</span>
+              {link.href.endsWith("/messages") && unreadMessages > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#e23d3d] px-1.5 text-[10px] font-bold text-white">
+                  {unreadMessages}
+                </span>
+              ) : null}
             </Link>
           );
         })}

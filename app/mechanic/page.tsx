@@ -7,7 +7,8 @@ import { prisma } from "@/lib/db";
 import { AcceptJobButton } from "@/components/jobs/accept-job-button";
 import { JobStatusLabel } from "@/components/jobs/status-timeline";
 import { startOfDenverDay, startOfDenverMonth, startOfNextDenverDay } from "@/lib/datetime";
-import { formatAppointment } from "@/lib/utils";
+import { formatAppointment, formatRelative } from "@/lib/utils";
+import { latestIsUnread, listUnreadThreadsForMechanic } from "@/services/messages";
 
 export const metadata = { title: "Shop command" };
 
@@ -25,7 +26,7 @@ export default async function MechanicDashboardPage() {
   const endOfDay = startOfNextDenverDay();
   const startOfMonth = startOfDenverMonth();
 
-  const [incoming, inBay, waiting, today, monthJobs, unscheduled] = await Promise.all([
+  const [incoming, inBay, waiting, today, monthJobs, unscheduled, unreadThreads] = await Promise.all([
     prisma.job.findMany({
       where: { mechanicProfileId: profile.id, status: "REQUESTED" },
       include: jobInclude,
@@ -71,6 +72,7 @@ export default async function MechanicDashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 6,
     }),
+    listUnreadThreadsForMechanic(session.id, 6),
   ]);
 
   return (
@@ -107,6 +109,49 @@ export default async function MechanicDashboardPage() {
           empty="No new requests."
           jobs={incoming}
         />
+        <section className="rounded-xl border border-line bg-paper p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-navy">Unread messages</h2>
+            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/messages">
+              Inbox →
+            </Link>
+          </div>
+          <div className="mt-3 space-y-2">
+            {unreadThreads.length === 0 ? (
+              <p className="py-6 text-sm text-muted">Nothing waiting. Customer messages land here and on Messages.</p>
+            ) : (
+              unreadThreads.map((thread) => {
+                const unread = latestIsUnread(thread.messages[0], session.id);
+                return (
+                  <Link
+                    key={thread.id}
+                    href={`/mechanic/messages/${thread.id}`}
+                    className="block rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-navy">
+                          {thread.customer.firstName} {thread.customer.lastName}
+                        </p>
+                        <p className="truncate text-sm text-muted">{thread.messages[0]?.body ?? "New conversation"}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[11px] text-muted">{formatRelative(thread.lastMessageAt)}</p>
+                        {unread ? (
+                          <span className="mt-1 inline-flex rounded-full bg-[#2f7bff] px-2 py-0.5 text-[10px] font-bold text-white">
+                            New
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </div>
+      <div className="mt-4">
         <Queue
           title="In the bay"
           href="/mechanic/jobs"

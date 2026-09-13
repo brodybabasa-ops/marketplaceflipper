@@ -16,6 +16,7 @@ export function ThreadView({
   messages,
   markRead = true,
   canSend = true,
+  returnTo,
 }: {
   threadId: string;
   selfId: string;
@@ -26,6 +27,7 @@ export function ThreadView({
   messages: { id: string; senderId: string; senderName: string; body: string; createdAt: Date }[];
   markRead?: boolean;
   canSend?: boolean;
+  returnTo?: string;
 }) {
   return (
     <Card className="border-0 p-5">
@@ -43,7 +45,7 @@ export function ThreadView({
       </div>
       <div className="mt-4 max-h-[28rem] space-y-3 overflow-y-auto">
         {messages.length === 0 ? (
-          <p className="text-sm text-muted">No messages yet.</p>
+          <p className="text-sm text-muted">No messages yet. Write one below — the other side sees it on their Messages board.</p>
         ) : (
           messages.map((message) => (
             <div key={message.id} className={message.senderId === selfId ? "text-right" : ""}>
@@ -64,8 +66,11 @@ export function ThreadView({
       {canSend ? (
         <form action={sendMessageAction} className="mt-4 flex gap-2">
           <input type="hidden" name="threadId" value={threadId} />
+          {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <Input name="body" required placeholder="Write a message" />
-          <Button type="submit">Send</Button>
+          <Button type="submit" name="sendMessage">
+            Send
+          </Button>
         </form>
       ) : null}
     </Card>

@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { PageHeading } from "@/components/layout/themed-board";
-import { createEstimateAction, saveRepairRecordAction, sendMessageAction, updateJobStatusAction } from "@/app/actions/marketplace";
+import { createEstimateAction, saveRepairRecordAction, updateJobStatusAction } from "@/app/actions/marketplace";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
 import { JobPhotos } from "@/components/jobs/job-photos";
-import { MarkRead } from "@/components/messages/mark-read";
+import { ThreadView } from "@/components/messages/thread-view";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { ALLOWED_JOB_TRANSITIONS } from "@/services/mechanics";
-import Link from "next/link";
 
 export const metadata = { title: "Job" };
 
@@ -150,27 +149,22 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           </form>
         </Card>
         {job.thread ? (
-          <Card className="border-0 p-5">
-            <MarkRead threadId={job.thread.id} />
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold text-navy">Message customer</h2>
-              <Link href={`/mechanic/messages/${job.thread.id}`} className="text-sm font-semibold text-[#7eb0ff]">
-                Open thread →
-              </Link>
-            </div>
-            <div className="mt-3 space-y-2">
-              {job.thread.messages.map((message) => (
-                <p key={message.id} className="text-sm">
-                  <span className="font-medium">{message.sender.firstName}:</span> {message.body}
-                </p>
-              ))}
-            </div>
-            <form action={sendMessageAction} className="mt-3 flex gap-2">
-              <input type="hidden" name="threadId" value={job.thread.id} />
-              <Input name="body" />
-              <Button type="submit">Send</Button>
-            </form>
-          </Card>
+          <ThreadView
+            threadId={job.thread.id}
+            selfId={session.id}
+            title="Message customer"
+            subtitle={`${job.customer.firstName} ${job.customer.lastName}`}
+            jobHref={`/mechanic/messages/${job.thread.id}`}
+            jobLabel="Open thread"
+            returnTo={`/mechanic/jobs/${job.id}`}
+            messages={job.thread.messages.map((message) => ({
+              id: message.id,
+              senderId: message.senderId,
+              senderName: message.sender.firstName,
+              body: message.body,
+              createdAt: message.createdAt,
+            }))}
+          />
         ) : null}
       </section>
     </div>

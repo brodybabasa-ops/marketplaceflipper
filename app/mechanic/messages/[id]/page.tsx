@@ -28,6 +28,7 @@ export default async function MechanicThreadPage({ params }: { params: Promise<{
         }
         jobHref={thread.jobId ? `/mechanic/jobs/${thread.jobId}` : null}
         jobLabel="Open job"
+        returnTo={`/mechanic/messages/${thread.id}`}
         messages={thread.messages.map((message) => ({
           id: message.id,
           senderId: message.senderId,

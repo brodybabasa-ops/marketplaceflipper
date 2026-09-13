@@ -5,16 +5,15 @@ import { ReviewCard } from "@/components/jobs/review-card";
 import { AppointmentCard } from "@/components/jobs/appointment-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Select, Textarea, Input } from "@/components/ui/input";
+import { Field, Select, Textarea } from "@/components/ui/input";
 import { ThemedBoard } from "@/components/layout/themed-board";
-import { createDisputeAction, createReviewAction, sendMessageAction } from "@/app/actions/marketplace";
+import { createDisputeAction, createReviewAction } from "@/app/actions/marketplace";
 import { JobPhotos } from "@/components/jobs/job-photos";
-import { MarkRead } from "@/components/messages/mark-read";
+import { ThreadView } from "@/components/messages/thread-view";
 import { requireSession } from "@/lib/guards";
 import { getJobForUser } from "@/services/jobs";
 import { formatCents } from "@/lib/money";
 import { vehiclePhotoFor } from "@/lib/landing";
-import Link from "next/link";
 
 export const metadata = { title: "Job" };
 
@@ -110,30 +109,22 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="space-y-4">
           {job.thread ? (
-            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
-              <MarkRead threadId={job.thread.id} />
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-semibold text-navy">Messages</h2>
-                <Link href={`/messages/${job.thread.id}`} className="text-sm font-semibold text-[#2f7bff]">
-                  Open thread →
-                </Link>
-              </div>
-              <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">
-                {job.thread.messages.map((message) => (
-                  <div key={message.id} className={message.senderId === session.id ? "text-right" : ""}>
-                    <div className={`inline-block rounded-2xl px-3 py-2 text-sm ${message.senderId === session.id ? "bg-navy text-white" : "bg-paper"}`}>
-                      {message.body}
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted">{message.createdAt.toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-              <form action={sendMessageAction} className="mt-3 flex gap-2">
-                <input type="hidden" name="threadId" value={job.thread.id} />
-                <Input name="body" placeholder="Ask a question" />
-                <Button type="submit">Send</Button>
-              </form>
-            </Card>
+            <ThreadView
+              threadId={job.thread.id}
+              selfId={session.id}
+              title="Messages"
+              subtitle={job.mechanicProfile.businessName}
+              jobHref={session.role === "CUSTOMER" ? `/messages/${job.thread.id}` : `/mechanic/messages/${job.thread.id}`}
+              jobLabel="Open thread"
+              returnTo={`/jobs/${job.id}`}
+              messages={job.thread.messages.map((message) => ({
+                id: message.id,
+                senderId: message.senderId,
+                senderName: message.sender.firstName,
+                body: message.body,
+                createdAt: message.createdAt,
+              }))}
+            />
           ) : null}
           {session.role === "CUSTOMER" ? (
             <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">

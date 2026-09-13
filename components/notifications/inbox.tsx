@@ -29,7 +29,7 @@ export function NotificationsInbox({
         ) : null}
       </div>
       {notifications.length === 0 ? (
-        <EmptyState title="No alerts yet" body="Job updates, estimates, and appointment changes land here." />
+        <EmptyState title="No alerts yet" body="Job updates, estimates, messages, and appointment changes land here." />
       ) : (
         <div className="space-y-2">
           {notifications.map((item) => (

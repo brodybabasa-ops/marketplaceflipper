@@ -33,6 +33,7 @@ export default async function CustomerThreadPage({ params }: { params: Promise<{
         }
         jobHref={thread.jobId ? `/jobs/${thread.jobId}` : null}
         jobLabel="Open repair"
+        returnTo={`/messages/${thread.id}`}
         messages={thread.messages.map((message) => ({
           id: message.id,
           senderId: message.senderId,
