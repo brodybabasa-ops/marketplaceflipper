@@ -69,6 +69,11 @@ export function ShopProfileEditor({
             <ShopButton href={`/mechanics/${profile.slug}`} variant="secondary">
               View Public Profile
             </ShopButton>
+            {(tab === "profile" || tab === "details") ? (
+              <ShopButton type="submit" form="shop-profile-form">
+                Save Changes
+              </ShopButton>
+            ) : null}
           </>
         }
       />
@@ -88,7 +93,7 @@ export function ShopProfileEditor({
       </div>
 
       {tab === "profile" || tab === "details" ? (
-        <form action={saveMechanicProfileAction} className="space-y-4">
+        <form id="shop-profile-form" action={saveMechanicProfileAction} className="space-y-4">
           <input type="hidden" name="next" value="/mechanic/profile" />
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
             <ShopCard className="p-5">

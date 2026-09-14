@@ -115,6 +115,7 @@ export function ShopButton({
   type = "button",
   name,
   value,
+  form,
   className,
 }: {
   href?: string;
@@ -123,6 +124,7 @@ export function ShopButton({
   type?: "button" | "submit";
   name?: string;
   value?: string;
+  form?: string;
   className?: string;
 }) {
   const styles = {
@@ -145,7 +147,7 @@ export function ShopButton({
     );
   }
   return (
-    <button type={type} name={name} value={value} className={cls}>
+    <button type={type} name={name} value={value} form={form} className={cls}>
       {children}
     </button>
   );

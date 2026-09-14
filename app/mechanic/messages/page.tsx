@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { ShopMessagesBoard } from "@/components/shop-os/messages-view";
 import { requireSession } from "@/lib/guards";
 import { latestIsUnread, listThreadsForUser, unreadMessageCount } from "@/services/messages";
@@ -28,6 +29,9 @@ export default async function MechanicMessagesPage({
     if (tab === "archived") return false;
     return true;
   });
+  if (filtered[0] && !q) {
+    redirect(`/mechanic/messages/${filtered[0].id}${tab !== "all" ? `?tab=${tab}` : ""}`);
+  }
   return (
     <ShopMessagesBoard
       threads={filtered}

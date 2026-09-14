@@ -55,7 +55,17 @@ export function ShopSettingsView({
   const current = SETTINGS_TABS.some((item) => item.id === tab) ? tab : "general";
   return (
     <div className="px-5 py-5 lg:px-6">
-      <ShopPageHeader title="Settings" subtitle="Manage your shop, preferences, and account settings." />
+      <ShopPageHeader
+        title="Settings"
+        subtitle="Manage your shop, preferences, and account settings."
+        actions={
+          current === "general" || current === "pricing" ? (
+            <ShopButton type="submit" form="shop-settings-form">
+              Save Changes
+            </ShopButton>
+          ) : undefined
+        }
+      />
       <div className="grid items-start gap-4 xl:grid-cols-[220px_minmax(0,1fr)]">
         <nav className="rounded-2xl border border-[#e6eef6] bg-white p-2">
           {SETTINGS_TABS.map((item) => {
@@ -77,7 +87,7 @@ export function ShopSettingsView({
         </nav>
         <div className="space-y-4">
           {current === "general" || current === "pricing" ? (
-            <form action={saveMechanicProfileAction} className="space-y-4">
+            <form id="shop-settings-form" action={saveMechanicProfileAction} className="space-y-4">
               <input type="hidden" name="next" value={`/mechanic/settings?tab=${current}`} />
               <div className="grid gap-4 lg:grid-cols-2">
                 <ShopCard className="p-5">

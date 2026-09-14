@@ -134,7 +134,7 @@ export function ShopJobsBoard({
             <ShopEmpty title={q ? "No jobs matched that search" : "Nothing here yet"} body="New customer requests will show up in this list." />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[780px] text-left text-[13px]">
+              <table className="w-full min-w-[920px] text-left text-[13px]">
                 <thead className="bg-[#f8fafc] text-[11px] font-semibold uppercase tracking-wide text-[#8a97a6]">
                   <tr>
                     <th className="px-4 py-2">RO #</th>
@@ -153,7 +153,7 @@ export function ShopJobsBoard({
                     const selectedRow = selectedId === job.id;
                     return (
                       <tr key={job.id} className={selectedRow ? "bg-[#eef4ff]" : "border-t border-[#eef3f8] hover:bg-[#f8fafc]"}>
-                        <td className="px-4 py-3">
+                        <td className="whitespace-nowrap px-4 py-3">
                           <Link href={`/mechanic/jobs?tab=${tab}&job=${job.id}`} className="font-bold text-[#2f7bff]">
                             {shopRoLabel(job.repairOrderNumber, job.id)}
                           </Link>

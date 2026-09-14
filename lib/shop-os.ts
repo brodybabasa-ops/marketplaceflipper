@@ -46,11 +46,8 @@ export function shopDateLabel(now = new Date()) {
 }
 
 export function shopRoLabel(repairOrderNumber?: string | null, fallback?: string) {
-  if (repairOrderNumber) {
-    const short = repairOrderNumber.replace(/^RO-/, "#");
-    return short.startsWith("#") ? short : `#${repairOrderNumber}`;
-  }
-  if (fallback) return `#${fallback.slice(0, 8).toUpperCase()}`;
+  if (repairOrderNumber) return repairOrderNumber;
+  if (fallback) return fallback.slice(0, 8).toUpperCase();
   return "RO";
 }
 
