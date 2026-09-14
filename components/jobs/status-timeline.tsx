@@ -37,16 +37,29 @@ export function jobStatusLabel(status: JobStatus, audience: StatusAudience = "cu
   return labelFor(status, audience);
 }
 
-export function StatusTimeline({ status, audience = "customer" }: { status: JobStatus; audience?: StatusAudience }) {
+export function StatusTimeline({
+  status,
+  audience = "customer",
+  estimateApproved = false,
+}: {
+  status: JobStatus;
+  audience?: StatusAudience;
+  estimateApproved?: boolean;
+}) {
   if (status === "CANCELLED" || status === "DISPUTED") {
     return <p className="text-sm font-medium text-danger">{labelFor(status, audience)}</p>;
   }
   const currentIndex = JOB_STATUS_ORDER.indexOf(status as (typeof JOB_STATUS_ORDER)[number]);
+  const waiting = status === "AWAITING_APPROVAL";
   return (
     <ol className="space-y-2">
       {JOB_STATUS_ORDER.map((step, index) => {
-        const done = index < currentIndex || status === "COMPLETED";
         const current = step === status;
+        const done =
+          !current &&
+          (status === "COMPLETED" ||
+            index < currentIndex ||
+            (step === "AWAITING_APPROVAL" && estimateApproved && !waiting));
         return (
           <li key={step} className="flex items-center gap-3 text-sm">
             <span

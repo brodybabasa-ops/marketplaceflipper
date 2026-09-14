@@ -37,7 +37,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
             <h2 className="font-semibold text-navy">Status</h2>
             <div className="mt-4">
-              <StatusTimeline status={job.status} />
+              <StatusTimeline
+                status={job.status}
+                estimateApproved={job.estimates.some((estimate) => estimate.status === "APPROVED")}
+              />
             </div>
           </Card>
           {session.role === "CUSTOMER" || session.role === "MECHANIC" || session.role === "ADMIN" ? (

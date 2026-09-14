@@ -44,7 +44,11 @@ export default async function AdminJobPage({ params }: { params: Promise<{ id: s
         <Card className="border-0 p-5">
           <h2 className="font-semibold text-navy">Job status</h2>
           <div className="mt-4">
-            <StatusTimeline status={job.status} audience="shop" />
+            <StatusTimeline
+              status={job.status}
+              audience="shop"
+              estimateApproved={job.estimates.some((estimate) => estimate.status === "APPROVED")}
+            />
           </div>
           {nextStatuses.length ? (
             <form action={updateJobStatusAction} className="mt-4 flex gap-2">
