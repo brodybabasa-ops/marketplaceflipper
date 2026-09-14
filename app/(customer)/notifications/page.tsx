@@ -1,24 +1,12 @@
-import { NotificationsInbox } from "@/components/notifications/inbox";
-import { ThemedBoard } from "@/components/layout/themed-board";
+import { CustomerNotificationsView } from "@/components/customer-app/notifications-view";
 import { requireSession } from "@/lib/guards";
 import { listNotifications } from "@/services/notifications";
 
 export const metadata = { title: "Notifications" };
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const session = await requireSession();
   const notifications = await listNotifications(session.id);
-  return (
-    <ThemedBoard
-      eyebrow="INBOX"
-      title="Your"
-      accent="Alerts."
-      subtitle="Job updates, estimates, and appointment changes."
-      script="Stay in the Loop."
-      image="/landing/dashboard-hero.png"
-      wide={false}
-    >
-      <NotificationsInbox notifications={notifications} />
-    </ThemedBoard>
-  );
+  const { tab } = await searchParams;
+  return <CustomerNotificationsView notifications={notifications} tab={tab ?? "all"} />;
 }

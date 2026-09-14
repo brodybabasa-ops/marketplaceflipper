@@ -79,3 +79,49 @@ export async function updateAccountAction(_prev: AccountState, formData: FormDat
   revalidatePath("/request");
   return { saved: true };
 }
+
+export async function updateLocationAction(formData: FormData) {
+  const session = await getSession();
+  if (!session) redirect("/sign-in");
+  const raw = String(formData.get("location") ?? "").trim();
+  if (!raw) redirect("/account");
+  const digits = raw.replace(/\D/g, "");
+  let zip = digits.length >= 5 ? await prisma.zipCode.findUnique({ where: { zip: digits.slice(0, 5) } }) : null;
+  if (!zip) {
+    const city = raw.split(",")[0]?.trim();
+    zip = city
+      ? await prisma.zipCode.findFirst({
+          where: {
+            OR: [
+              { city: { equals: city, mode: "insensitive" } },
+              { city: { contains: city, mode: "insensitive" } },
+            ],
+          },
+        })
+      : null;
+  }
+  if (!zip) redirect("/account");
+  await prisma.customerProfile.upsert({
+    where: { userId: session.id },
+    update: {
+      zip: zip.zip,
+      city: zip.city,
+      state: zip.stateCode,
+      latitude: zip.latitude,
+      longitude: zip.longitude,
+    },
+    create: {
+      userId: session.id,
+      zip: zip.zip,
+      city: zip.city,
+      state: zip.stateCode,
+      latitude: zip.latitude,
+      longitude: zip.longitude,
+    },
+  });
+  revalidatePath("/home");
+  revalidatePath("/account");
+  revalidatePath("/mechanics");
+  revalidatePath("/vehicles");
+  revalidatePath("/saved");
+}

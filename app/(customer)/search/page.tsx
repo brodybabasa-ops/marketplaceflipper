@@ -17,6 +17,7 @@ export default async function CustomerSearchPage({
 
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="SEARCH"
       title="Find it in"
       accent="One place."

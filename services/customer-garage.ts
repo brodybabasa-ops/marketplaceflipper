@@ -4,25 +4,35 @@ import { formatAppointmentDate } from "@/lib/datetime";
 import { vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatBoardDate } from "@/lib/utils";
-import { isMarineVehicle } from "@/lib/vehicles";
+import { usesHours, vehicleKind, type VehicleKind } from "@/lib/vehicles";
+
+export type GarageBadgeTone = "danger" | "warning" | "info" | "success" | "muted";
 
 export type GarageVehicle = {
-  id: string | null;
+  id: string;
   href: string;
+  editHref: string;
+  requestHref: string;
   year: number;
   make: string;
   model: string;
   trim: string;
+  subtitle: string;
   identifierLabel: "VIN" | "HIN";
   identifier: string;
-  copyable?: boolean;
   usage: string;
   photo: string;
+  kind: VehicleKind;
+  badges: { label: string; tone: GarageBadgeTone }[];
+  lastServiceLabel: string;
+  lastServiceValue: string;
+  nextServiceLabel: string;
+  nextServiceValue: string;
   photoClass?: string;
-  status: "ok" | "due";
-  statusLabel: string;
   primary?: boolean;
-  editHref?: string;
+  copyable?: boolean;
+  status?: "ok" | "due";
+  statusLabel?: string;
 };
 
 export type GarageMaintenance = {
@@ -68,30 +78,38 @@ export async function getCustomerGarage(userId: string) {
     orderBy: { createdAt: "asc" },
   });
 
-  const vehicles: GarageVehicle[] = records.map((vehicle, index) => {
-    const active = vehicle.jobs.find((job) => ACTIVE.includes(job.status));
+  const vehicles: GarageVehicle[] = records.map((vehicle) => {
+    const activeJobs = vehicle.jobs.filter((job) => ACTIVE.includes(job.status));
     const lastDone = vehicle.jobs.find((job) => job.status === "COMPLETED");
-    const marine = isMarineVehicle(vehicle.make.name, vehicle.model.name);
+    const upcoming = vehicle.jobs
+      .filter((job) => job.scheduledAt && job.status !== "CANCELLED" && job.status !== "COMPLETED")
+      .sort((a, b) => a.scheduledAt!.getTime() - b.scheduledAt!.getTime())[0];
+    const kind = vehicleKind(vehicle.make.name, vehicle.model.name);
+    const hours = usesHours(vehicle.make.name, vehicle.model.name);
     const identifier = vehicle.vin?.trim() || "Not on file";
-    const { status, statusLabel } = garageStatus(active, lastDone);
+    const badges = garageBadges(activeJobs.length, upcoming, lastDone?.completedAt ?? lastDone?.updatedAt ?? null, hours);
+    const next = nextService(vehicle.mileage, hours, kind, upcoming?.scheduledAt ?? null, lastDone?.completedAt ?? null);
 
     return {
       id: vehicle.id,
-      href: active ? `/jobs/${active.id}` : `/request?vehicle=${vehicle.id}`,
+      href: `/vehicles/${vehicle.id}/edit`,
+      editHref: `/vehicles/${vehicle.id}/edit`,
+      requestHref: `/request?vehicle=${vehicle.id}`,
       year: vehicle.year,
       make: vehicle.make.name,
       model: vehicle.model.name,
-      trim: [vehicle.trim, vehicle.engine].filter(Boolean).join(" · "),
-      identifierLabel: marine ? "HIN" : "VIN",
+      trim: vehicle.trim ?? "",
+      subtitle: [vehicle.make.name, vehicle.model.name, vehicle.trim || vehicle.engine].filter(Boolean).join(" · "),
+      identifierLabel: hours && kind === "marine" ? "HIN" : "VIN",
       identifier,
-      copyable: Boolean(vehicle.vin),
-      usage: usageLabel(vehicle.make.name, vehicle.model.name, vehicle.mileage),
+      usage: hours ? `${vehicle.mileage.toLocaleString()} hrs` : `${vehicle.mileage.toLocaleString()} mi`,
       photo: vehiclePhotoFor(vehicle.make.name, vehicle.model.name),
-      photoClass: vehicle.make.name === "Ford" ? "object-[78%_center]" : undefined,
-      status,
-      statusLabel,
-      primary: index === 0,
-      editHref: `/vehicles/${vehicle.id}/edit`,
+      kind,
+      badges,
+      lastServiceLabel: "Last Service",
+      lastServiceValue: lastDone ? formatBoardDate(lastDone.completedAt ?? lastDone.updatedAt) : "—",
+      nextServiceLabel: next.label,
+      nextServiceValue: next.value,
     };
   });
 
@@ -118,45 +136,7 @@ export async function getCustomerGarage(userId: string) {
           },
         ];
       }
-      const active = vehicle.jobs.find((job) => ACTIVE.includes(job.status));
-      if (active) {
-        return [
-          {
-            href: `/jobs/${active.id}#appointment`,
-            vehicleLabel,
-            service: active.serviceRequest.problemText,
-            due: "Needs a time",
-            dueTone: "urgent" as const,
-            date: active.mechanicProfile.businessName,
-            photo,
-          },
-        ];
-      }
-      const done = vehicle.jobs.find((job) => job.status === "COMPLETED");
-      if (done) {
-        return [
-          {
-            href: `/jobs/${done.id}`,
-            vehicleLabel,
-            service: done.repairRecord?.title ?? done.serviceRequest.problemText,
-            due: "Complete",
-            dueTone: "normal" as const,
-            date: formatBoardDate(done.completedAt ?? done.updatedAt),
-            photo,
-          },
-        ];
-      }
-      return [
-        {
-          href: `/request?vehicle=${vehicle.id}`,
-          vehicleLabel,
-          service: "No service on the book",
-          due: "Request",
-          dueTone: "normal" as const,
-          date: "—",
-          photo,
-        },
-      ];
+      return [];
     })
     .slice(0, 8);
 
@@ -169,44 +149,64 @@ export async function getCustomerGarage(userId: string) {
     openRecalls: 0,
   };
 
-  return { vehicles, maintenance, insights };
+  const counts = {
+    all: vehicles.length,
+    auto: vehicles.filter((item) => item.kind === "auto").length,
+    marine: vehicles.filter((item) => item.kind === "marine").length,
+    powersports: vehicles.filter((item) => item.kind === "powersports").length,
+    rv: vehicles.filter((item) => item.kind === "rv").length,
+  };
+
+  return { vehicles, maintenance, insights, counts };
 }
 
-function garageStatus(
-  active?: { status: JobStatus; scheduledAt: Date | null },
-  lastDone?: { completedAt: Date | null },
+function garageBadges(
+  activeCount: number,
+  upcoming: { scheduledAt: Date | null } | undefined,
+  lastDoneAt: Date | null,
+  hours: boolean,
 ) {
-  if (active?.status === "IN_PROGRESS" || active?.status === "DIAGNOSING" || active?.status === "EN_ROUTE" || active?.status === "ARRIVED") {
-    return { status: "due" as const, statusLabel: "In service" };
+  const badges: { label: string; tone: GarageBadgeTone }[] = [];
+  if (activeCount > 0) {
+    badges.push({
+      label: `${activeCount} Active Repair${activeCount === 1 ? "" : "s"}`,
+      tone: "danger",
+    });
   }
-  if (active?.status === "AWAITING_APPROVAL") {
-    return { status: "due" as const, statusLabel: "Needs approval" };
+  if (upcoming?.scheduledAt) {
+    badges.push({ label: "1 Upcoming Service", tone: "info" });
   }
-  if (active?.status === "DISPUTED") {
-    return { status: "due" as const, statusLabel: "In dispute" };
+  const stale = lastDoneAt ? Date.now() - lastDoneAt.getTime() > 1000 * 60 * 60 * 24 * 120 : !lastDoneAt;
+  if (stale && !upcoming) {
+    badges.push({ label: hours ? "Service Due" : "Service Due Soon", tone: "warning" });
   }
-  if (active?.scheduledAt || active?.status === "SCHEDULED") {
-    return { status: "ok" as const, statusLabel: "Appointment booked" };
+  if (!badges.length) {
+    badges.push({ label: "All Good", tone: "success" });
+    badges.push({ label: "No Service Due", tone: "muted" });
+  } else if (!stale && upcoming) {
+    badges.push({ label: "All Good", tone: "success" });
   }
-  if (active?.status === "REQUESTED") {
-    return { status: "due" as const, statusLabel: "Request sent" };
-  }
-  if (active) {
-    return { status: "due" as const, statusLabel: "Needs a time" };
-  }
-  if (lastDone) {
-    return { status: "ok" as const, statusLabel: "Ready" };
-  }
-  return { status: "ok" as const, statusLabel: "Ready" };
+  return badges.slice(0, 2);
 }
 
-function usageLabel(make: string, model: string, mileage: number) {
-  const hay = `${make} ${model}`.toLowerCase();
-  const hours =
-    hay.includes("centurion") ||
-    hay.includes("yamaha") ||
-    hay.includes("ktm") ||
-    hay.includes("fx cruiser") ||
-    hay.includes("boat");
-  return hours ? `${mileage.toLocaleString()} hrs` : `${mileage.toLocaleString()} mi`;
+function nextService(
+  mileage: number,
+  hours: boolean,
+  kind: VehicleKind,
+  scheduledAt: Date | null,
+  lastDoneAt: Date | null,
+) {
+  if (scheduledAt) {
+    return { label: "Next Service", value: formatAppointmentDate(scheduledAt) };
+  }
+  if (hours) {
+    const next = Math.ceil((mileage + 1) / 50) * 50;
+    return { label: "Next Service", value: `At ${next} Hours` };
+  }
+  if (kind === "rv") {
+    return { label: "Next Service", value: lastDoneAt ? "In 6 Months" : "No Service Due" };
+  }
+  const nextMiles = Math.ceil((mileage + 1) / 5000) * 5000;
+  const remaining = Math.max(0, nextMiles - mileage);
+  return { label: "Next Service", value: remaining === 0 ? "Due now" : `In ${remaining.toLocaleString()} miles` };
 }

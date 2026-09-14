@@ -13,6 +13,7 @@ export default async function NewVehiclePage() {
   const makes = await prisma.vehicleMake.findMany({ include: { models: { orderBy: { name: "asc" } } }, orderBy: { name: "asc" } });
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="ADD A VEHICLE"
       title="Add a"
       accent="Machine."

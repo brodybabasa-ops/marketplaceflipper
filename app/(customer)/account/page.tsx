@@ -1,12 +1,9 @@
-import { AccountForm } from "@/components/account/account-form";
-import { Card } from "@/components/ui/card";
-import { ThemedBoard } from "@/components/layout/themed-board";
+import { CustomerSettingsView } from "@/components/customer-app/settings-view";
 import { requireSession } from "@/lib/guards";
-import { signOutAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
+import { LANDING_LOCATION } from "@/lib/landing";
 
-export const metadata = { title: "Profile" };
+export const metadata = { title: "Settings" };
 
 export default async function AccountPage() {
   const session = await requireSession();
@@ -14,31 +11,16 @@ export default async function AccountPage() {
     prisma.user.findUniqueOrThrow({ where: { id: session.id } }),
     prisma.customerProfile.findUnique({ where: { userId: session.id } }),
   ]);
+  const location = profile?.city && profile.state ? `${profile.city}, ${profile.state}` : LANDING_LOCATION;
   return (
-    <ThemedBoard
-      eyebrow="ACCOUNT"
-      title="Your"
-      accent="Profile."
-      subtitle="The basics we use to keep jobs, messages, and shops attached to you."
-      script="Keep It Running."
-      image="/landing/dashboard-hero.png"
-      wide={false}
-    >
-      <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
-        <p className="mb-4 text-sm capitalize text-muted">{session.role.toLowerCase()}</p>
-        <AccountForm
-          firstName={user.firstName}
-          lastName={user.lastName}
-          email={user.email}
-          phone={user.phone ?? ""}
-          zip={profile?.zip ?? "84041"}
-        />
-        <form action={signOutAction} className="mt-6">
-          <Button type="submit" variant="secondary">
-            Sign out
-          </Button>
-        </form>
-      </Card>
-    </ThemedBoard>
+    <CustomerSettingsView
+      firstName={user.firstName}
+      lastName={user.lastName}
+      email={user.email}
+      phone={user.phone ?? ""}
+      zip={profile?.zip ?? "84041"}
+      location={location}
+      avatarUrl={user.avatarUrl}
+    />
   );
 }

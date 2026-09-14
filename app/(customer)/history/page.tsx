@@ -1,65 +1,24 @@
-import { EmptyState } from "@/components/ui/card";
-import { ThemedBoard } from "@/components/layout/themed-board";
-import { formatCents } from "@/lib/money";
+import { CustomerHistoryView } from "@/components/customer-app/history-view";
 import { requireSession } from "@/lib/guards";
-import { prisma } from "@/lib/db";
+import { getCustomerHistory } from "@/services/customer-history";
 
 export const metadata = { title: "Repair history" };
 
-export default async function HistoryPage() {
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string; q?: string; sort?: string }>;
+}) {
   const session = await requireSession("CUSTOMER");
-  const vehicles = await prisma.vehicle.findMany({
-    where: { customerId: session.id, archivedAt: null },
-    include: {
-      make: true,
-      model: true,
-      repairRecords: { include: { job: { include: { mechanicProfile: true } } }, orderBy: { createdAt: "desc" } },
-    },
-  });
+  const params = await searchParams;
+  const data = await getCustomerHistory(session.id);
   return (
-    <ThemedBoard
-      eyebrow="REPAIR HISTORY"
-      title="What got"
-      accent="Fixed."
-      subtitle="A permanent record on the vehicle, not a paper invoice in the glovebox."
-      script="Keep It Running."
-      image="/landing/repairs-lifestyle.png"
-    >
-      <div className="space-y-8">
-        {vehicles.length === 0 ? (
-          <EmptyState title="No vehicles yet" body="Add a vehicle to start building history." />
-        ) : (
-          vehicles.map((vehicle) => (
-            <section key={vehicle.id}>
-              <h2 className="text-xl font-semibold text-navy">
-                {vehicle.year} {vehicle.make.name} {vehicle.model.name}
-              </h2>
-              <div className="mt-3 space-y-3">
-                {vehicle.repairRecords.length === 0 ? (
-                  <p className="text-sm text-muted">No documented repairs yet.</p>
-                ) : (
-                  vehicle.repairRecords.map((record) => (
-                    <article key={record.id} className="rounded-2xl border border-line bg-[#f7f9fc] p-4">
-                      <p className="text-sm text-muted">
-                        {record.createdAt.toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "America/Denver" })}
-                      </p>
-                      <p className="font-semibold text-navy">{record.title}</p>
-                      <p className="text-sm text-muted">{record.job.mechanicProfile.businessName}</p>
-                      <p className="number mt-1 font-semibold">{formatCents(record.job.totalCents)}</p>
-                      {record.job.repairOrderNumber ? (
-                        <p className="text-xs text-muted">{record.job.repairOrderNumber}</p>
-                      ) : null}
-                      <a href={`/jobs/${record.jobId}`} className="mt-2 inline-block text-sm font-semibold text-[#2f7bff]">
-                        View job
-                      </a>
-                    </article>
-                  ))
-                )}
-              </div>
-            </section>
-          ))
-        )}
-      </div>
-    </ThemedBoard>
+    <CustomerHistoryView
+      rows={data.rows}
+      counts={data.counts}
+      kind={params.kind ?? "all"}
+      q={params.q ?? ""}
+      sort={params.sort ?? "newest"}
+    />
   );
 }

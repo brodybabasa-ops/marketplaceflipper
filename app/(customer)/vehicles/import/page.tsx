@@ -19,6 +19,7 @@ export default async function ImportVehiclePage({
   });
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="IMPORT A VEHICLE"
       title="Add by"
       accent="VIN."

@@ -1,21 +1,20 @@
 import { requireSession } from "@/lib/guards";
 import { getCustomerDashboard } from "@/services/customer-dashboard";
-import { CustomerDashboard } from "@/components/home/customer-dashboard";
+import { CustomerHomeView } from "@/components/customer-app/home-view";
 
-export const metadata = { title: "Dashboard" };
+export const metadata = { title: "Home" };
 
 export default async function CustomerHomePage() {
   const session = await requireSession("CUSTOMER");
   const data = await getCustomerDashboard(session.id);
   return (
-    <CustomerDashboard
-      firstName={session.firstName}
+    <CustomerHomeView
       vehicles={data.vehicles}
-      repairs={data.repairs}
       shops={data.shops}
-      origin={data.origin}
-      activity={data.activity}
-      messages={data.messages}
+      savedShopIds={data.savedShopIds}
+      reviews={data.reviews}
+      location={data.locationLabel}
+      zip={data.zip}
     />
   );
 }

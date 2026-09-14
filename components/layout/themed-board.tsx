@@ -11,6 +11,7 @@ export function ThemedBoard({
   image = "/landing/hero-truck.png",
   objectPosition = "object-[78%_center]",
   children,
+  tone = "marketing",
 }: {
   eyebrow?: string;
   title: React.ReactNode;
@@ -21,7 +22,26 @@ export function ThemedBoard({
   objectPosition?: string;
   children: React.ReactNode;
   wide?: boolean;
+  tone?: "marketing" | "app";
 }) {
+  if (tone === "app") {
+    return (
+      <div className="px-4 pb-4 pt-2">
+        {eyebrow ? <p className="text-[11px] font-bold tracking-[0.2em] text-[#2f7bff]">{eyebrow}</p> : null}
+        <h1 className="mt-1 text-[28px] font-extrabold leading-tight text-white">
+          {title}
+          {accent ? (
+            <>
+              {" "}
+              <span className="text-[#2f7bff]">{accent}</span>
+            </>
+          ) : null}
+        </h1>
+        {subtitle ? <p className="mt-1 text-sm text-white/55">{subtitle}</p> : null}
+        <div className="mt-5 rounded-[22px] bg-white p-4 text-navy">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className="flex min-h-full flex-col bg-[#e8eef4] text-navy">
       <section className="relative overflow-hidden bg-[#071422] pb-16 pt-24">

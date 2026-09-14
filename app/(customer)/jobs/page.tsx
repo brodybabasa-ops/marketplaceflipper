@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/guards";
 import { getCustomerRepairs, type RepairTab } from "@/services/customer-repairs";
-import { CustomerRepairs } from "@/components/repairs/customer-repairs";
+import { CustomerRepairsView } from "@/components/customer-app/repairs-view";
 
 export const metadata = { title: "My Repairs" };
 
@@ -11,13 +11,5 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const { tab } = await searchParams;
   const data = await getCustomerRepairs(session.id);
   const activeTab: RepairTab = TABS.includes(tab as RepairTab) ? (tab as RepairTab) : "all";
-  return (
-    <CustomerRepairs
-      rows={data.rows}
-      counts={data.counts}
-      appointment={data.appointment}
-      history={data.history}
-      activeTab={activeTab}
-    />
-  );
+  return <CustomerRepairsView rows={data.rows} counts={data.counts} activeTab={activeTab} />;
 }

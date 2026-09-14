@@ -26,6 +26,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const vehicleLabel = `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`;
   return (
     <ThemedBoard
+      tone="app"
       eyebrow={job.mechanicProfile.businessName.toUpperCase()}
       title={job.serviceRequest.problemText}
       subtitle={`${vehicleLabel}${job.repairOrderNumber ? ` · ${job.repairOrderNumber}` : ""}`}

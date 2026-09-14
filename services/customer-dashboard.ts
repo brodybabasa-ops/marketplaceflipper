@@ -1,6 +1,6 @@
 import type { EstimateStatus, JobStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { getDirectoryShops, type DirectoryShop } from "@/services/landing";
+import { getDirectoryShops, getLandingShowcase, type DirectoryShop } from "@/services/landing";
 import { FEATURED_SHOP_SLUGS, vehiclePhotoFor } from "@/lib/landing";
 import { formatCents } from "@/lib/money";
 import { formatAppointment, formatRelative } from "@/lib/utils";
@@ -47,7 +47,8 @@ export type DashboardVehicle = {
 };
 
 export async function getCustomerChrome(userId: string) {
-  const [profile, unreadMessages, unreadNotifications] = await Promise.all([
+  const [user, profile, unreadMessages, unreadNotifications, savedIds] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { avatarUrl: true, phone: true, email: true } }),
     prisma.customerProfile.findUnique({ where: { userId } }),
     prisma.message.count({
       where: {
@@ -57,6 +58,7 @@ export async function getCustomerChrome(userId: string) {
       },
     }),
     prisma.notification.count({ where: { userId, readAt: null } }),
+    prisma.savedMechanic.findMany({ where: { customerId: userId }, select: { mechanicProfileId: true } }),
   ]);
   const location = profile?.city && profile.state ? `${profile.city}, ${profile.state}` : null;
   return {
@@ -64,6 +66,10 @@ export async function getCustomerChrome(userId: string) {
     zip: profile?.zip ?? null,
     unreadMessages,
     unreadNotifications,
+    avatarUrl: user?.avatarUrl ?? null,
+    phone: user?.phone ?? null,
+    email: user?.email ?? null,
+    savedShopIds: savedIds.map((item) => item.mechanicProfileId),
   };
 }
 
@@ -196,20 +202,25 @@ export async function getCustomerDashboard(userId: string) {
     when: formatRelative(thread.lastMessageAt),
   }));
 
+  const showcase = await getLandingShowcase();
+
   return {
     locationLabel: chrome.location ?? (zip ? `${zip.city}, ${zip.stateCode}` : "Utah"),
+    zip: chrome.zip ?? zip?.zip ?? "84041",
     vehicles: dashboardVehicles.map((vehicle): DashboardVehicle => ({
       id: vehicle.id,
-      label: `${vehicle.make.name} ${vehicle.model.name}`,
+      label: `${vehicle.year} ${vehicle.make.name} ${vehicle.model.name}`,
       year: vehicle.year,
       photo: vehiclePhotoFor(vehicle.make.name, vehicle.model.name),
     })),
     repairs,
     shops: preferFeatured(shops).slice(0, 3),
+    savedShopIds: chrome.savedShopIds,
     origin: zip ? { latitude: zip.latitude, longitude: zip.longitude, city: zip.city } : null,
     activity,
     messages,
     unreadMessages: chrome.unreadMessages,
+    reviews: showcase.reviews,
   };
 }
 

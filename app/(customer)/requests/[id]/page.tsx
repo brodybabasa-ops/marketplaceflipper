@@ -17,6 +17,7 @@ export default async function CustomerRequestPage({ params }: { params: Promise<
   const acceptedJob = request.jobs.find((job) => job.status !== "CANCELLED");
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="SERVICE REQUEST"
       title={request.problemText}
       subtitle={vehicleLabel}

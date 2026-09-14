@@ -129,6 +129,8 @@ export async function postThreadMessage(input: {
   senderId: string;
   senderRole: string;
   body: string;
+  attachmentUrl?: string;
+  kind?: "TEXT" | "PHOTO" | "ATTACHMENT" | "SYSTEM";
 }) {
   const body = input.body.trim();
   if (!body) throw new Error("Message cannot be empty.");
@@ -147,7 +149,13 @@ export async function postThreadMessage(input: {
   }
 
   const message = await prisma.message.create({
-    data: { threadId: thread.id, senderId: input.senderId, body },
+    data: {
+      threadId: thread.id,
+      senderId: input.senderId,
+      body,
+      attachmentUrl: input.attachmentUrl,
+      kind: input.kind ?? "TEXT",
+    },
   });
   await prisma.messageThread.update({
     where: { id: thread.id },

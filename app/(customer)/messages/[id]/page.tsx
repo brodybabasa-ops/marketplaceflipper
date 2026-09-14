@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { ThreadView } from "@/components/messages/thread-view";
-import { ThemedBoard } from "@/components/layout/themed-board";
+import { CustomerThreadView } from "@/components/customer-app/thread-view";
 import { requireSession } from "@/lib/guards";
 import { getThreadForUser } from "@/services/messages";
 
@@ -13,35 +12,26 @@ export default async function CustomerThreadPage({ params }: { params: Promise<{
   if (!thread) notFound();
   const shop = thread.mechanic.mechanicProfile?.businessName ?? `${thread.mechanic.firstName} ${thread.mechanic.lastName}`;
   return (
-    <ThemedBoard
-      eyebrow="MESSAGES"
-      title="Talk to"
-      accent={shop}
-      subtitle={thread.job ? thread.job.serviceRequest.problemText : "Conversation with the shop."}
-      script="Stay in the Loop."
-      image="/landing/lifestyle.png"
-      wide={false}
-    >
-      <ThreadView
-        threadId={thread.id}
-        selfId={session.id}
-        title={shop}
-        subtitle={
-          thread.job
-            ? `${thread.job.vehicle.year} ${thread.job.vehicle.make.name} ${thread.job.vehicle.model.name}`
-            : undefined
-        }
-        jobHref={thread.jobId ? `/jobs/${thread.jobId}` : null}
-        jobLabel="Open repair"
-        returnTo={`/messages/${thread.id}`}
-        messages={thread.messages.map((message) => ({
-          id: message.id,
-          senderId: message.senderId,
-          senderName: message.sender.firstName,
-          body: message.body,
-          createdAt: message.createdAt,
-        }))}
-      />
-    </ThemedBoard>
+    <CustomerThreadView
+      threadId={thread.id}
+      selfId={session.id}
+      shopName={shop}
+      shopSlug={thread.mechanic.mechanicProfile?.slug}
+      verified={(thread.mechanic.mechanicProfile?.verificationLevel ?? "UNVERIFIED") !== "UNVERIFIED"}
+      subtitle={
+        thread.job
+          ? `${thread.job.vehicle.year} ${thread.job.vehicle.make.name} ${thread.job.vehicle.model.name}`
+          : "Typically replies in a few minutes"
+      }
+      messages={thread.messages.map((message) => ({
+        id: message.id,
+        senderId: message.senderId,
+        senderName: message.sender.firstName,
+        body: message.body,
+        createdAt: message.createdAt,
+        attachmentUrl: message.attachmentUrl,
+        kind: message.kind,
+      }))}
+    />
   );
 }

@@ -82,6 +82,10 @@ body:has([data-dashboard]) .app-footer {
   display: none;
 }
 
+[data-dashboard] [data-landing] > section {
+  padding-top: 0.75rem;
+}
+
 [data-ops] {
   --navy: #f4f7fb;
   --ink: #e8eef4;

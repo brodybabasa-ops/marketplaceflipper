@@ -22,6 +22,7 @@ export default async function EstimatesPage() {
   });
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="ESTIMATES"
       title="Written"
       accent="Estimates."

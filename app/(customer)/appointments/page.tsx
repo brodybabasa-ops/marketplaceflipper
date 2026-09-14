@@ -1,112 +1,56 @@
 import type { JobStatus } from "@prisma/client";
-import { ThemedBoard, BoardLink } from "@/components/layout/themed-board";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
-import { formatAppointment } from "@/lib/utils";
-import { JobStatusLabel } from "@/components/jobs/status-timeline";
+import { formatAppointmentDate, formatAppointmentTime } from "@/lib/datetime";
+import { vehiclePhotoFor } from "@/lib/landing";
+import { CustomerAppointmentsView, type AppointmentRow } from "@/components/customer-app/appointments-view";
 
 export const metadata = { title: "Appointments" };
 
-const OPEN_STATUSES: JobStatus[] = [
-  "REQUESTED",
-  "ACCEPTED",
-  "SCHEDULED",
-  "EN_ROUTE",
-  "ARRIVED",
-  "DIAGNOSING",
-  "AWAITING_APPROVAL",
-  "IN_PROGRESS",
-  "DISPUTED",
-];
-
-export default async function AppointmentsPage() {
+export default async function AppointmentsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const session = await requireSession("CUSTOMER");
+  const { tab } = await searchParams;
   const jobs = await prisma.job.findMany({
-    where: {
-      customerId: session.id,
-      status: { notIn: ["CANCELLED"] },
-    },
+    where: { customerId: session.id },
     include: { mechanicProfile: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
     orderBy: [{ scheduledAt: "asc" }, { updatedAt: "desc" }],
   });
 
   const now = Date.now();
-  const upcoming = jobs
-    .filter((job) => job.scheduledAt && job.scheduledAt.getTime() >= now && job.status !== "COMPLETED")
-    .sort((a, b) => a.scheduledAt!.getTime() - b.scheduledAt!.getTime());
-  const needsTime = jobs.filter(
-    (job) => !job.scheduledAt && OPEN_STATUSES.includes(job.status),
-  );
-  const past = jobs
-    .filter((job) => job.scheduledAt && (job.scheduledAt.getTime() < now || job.status === "COMPLETED"))
-    .sort((a, b) => (b.scheduledAt?.getTime() ?? 0) - (a.scheduledAt?.getTime() ?? 0));
+  const rows: AppointmentRow[] = jobs.map((job) => {
+    const upcoming = Boolean(job.scheduledAt && job.scheduledAt.getTime() >= now && job.status !== "COMPLETED" && job.status !== "CANCELLED");
+    const canceled = job.status === "CANCELLED";
+    const group = canceled ? "canceled" : upcoming ? "upcoming" : "past";
+    return {
+      id: job.id,
+      href: `/jobs/${job.id}#appointment`,
+      calendarHref: job.scheduledAt ? `/jobs/${job.id}/calendar` : null,
+      vehicleLabel: `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`,
+      problem: job.serviceRequest.problemText,
+      shopName: job.mechanicProfile.businessName,
+      shopCity: [job.mechanicProfile.shopCity, job.mechanicProfile.shopState].filter(Boolean).join(", "),
+      photo: vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name),
+      dateLine: job.scheduledAt ? formatAppointmentDate(job.scheduledAt) : "Needs a time",
+      timeLine: job.scheduledAt ? formatAppointmentTime(job.scheduledAt) : "",
+      status: badge(job.status, Boolean(job.scheduledAt)).label,
+      tone: badge(job.status, Boolean(job.scheduledAt)).tone,
+      group,
+    };
+  });
 
-  return (
-    <ThemedBoard
-      eyebrow="APPOINTMENTS"
-      title="On the"
-      accent="Book."
-      subtitle="The same times shops put on the job. Change one here and it updates My Repairs, the shop book, and the calendar file."
-      script="Less Time Waiting."
-      image="/landing/dashboard-hero.png"
-    >
-      <Section title="Upcoming" empty="Nothing on the book yet." jobs={upcoming} />
-      <Section
-        title="Needs a time"
-        empty="Every open job has a time."
-        jobs={needsTime}
-        fallback="Pick a time on the job"
-      />
-      <Section title="Past" empty="No past appointments." jobs={past} />
-    </ThemedBoard>
-  );
+  const sorted = [
+    ...rows.filter((row) => row.group === "upcoming"),
+    ...rows.filter((row) => row.group === "past"),
+    ...rows.filter((row) => row.group === "canceled"),
+  ];
+
+  return <CustomerAppointmentsView rows={sorted} tab={tab ?? "upcoming"} />;
 }
 
-function Section({
-  title,
-  empty,
-  jobs,
-  fallback,
-}: {
-  title: string;
-  empty: string;
-  fallback?: string;
-  jobs: {
-    id: string;
-    scheduledAt: Date | null;
-    status: JobStatus;
-    mechanicProfile: { businessName: string };
-    vehicle: { year: number; make: { name: string }; model: { name: string } };
-    serviceRequest: { problemText: string; preferredTimeWindow: string | null };
-  }[];
-}) {
-  return (
-    <section className="mb-8">
-      <h2 className="mb-3 text-lg font-semibold text-navy">{title}</h2>
-      <div className="space-y-3">
-        {jobs.length === 0 ? (
-          <p className="text-sm text-muted">{empty}</p>
-        ) : (
-          jobs.map((job) => (
-            <BoardLink key={job.id} href={`/jobs/${job.id}#appointment`}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-navy">{job.mechanicProfile.businessName}</p>
-                  <p className="text-sm text-muted">
-                    {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
-                  </p>
-                  {job.scheduledAt ? (
-                    <p className="mt-1 text-sm font-semibold">{formatAppointment(job.scheduledAt)}</p>
-                  ) : (
-                    <p className="mt-1 text-sm font-semibold text-[#2f7bff]">{fallback ?? "Needs a time"}</p>
-                  )}
-                </div>
-                <JobStatusLabel status={job.status} />
-              </div>
-            </BoardLink>
-          ))
-        )}
-      </div>
-    </section>
-  );
+function badge(status: JobStatus, scheduled: boolean) {
+  if (status === "CANCELLED") return { label: "Canceled", tone: "muted" as const };
+  if (status === "COMPLETED") return { label: "Completed", tone: "success" as const };
+  if (status === "AWAITING_APPROVAL") return { label: "Pending", tone: "warning" as const };
+  if (status === "SCHEDULED" || scheduled) return { label: "Confirmed", tone: "success" as const };
+  return { label: "Scheduled", tone: "info" as const };
 }

@@ -1,58 +1,55 @@
-import { EmptyState } from "@/components/ui/card";
-import { ThemedBoard, BoardLink } from "@/components/layout/themed-board";
+import { CustomerMessagesView, type MessageThreadRow } from "@/components/customer-app/messages-view";
 import { requireSession } from "@/lib/guards";
 import { latestIsUnread, listThreadsForUser } from "@/services/messages";
-import { formatRelative } from "@/lib/utils";
+import { prisma } from "@/lib/db";
 
 export const metadata = { title: "Messages" };
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; q?: string }>;
+}) {
   const session = await requireSession();
-  const threads = await listThreadsForUser(session.id, session.role);
-  return (
-    <ThemedBoard
-      eyebrow="MESSAGES"
-      title="Talk to the"
-      accent="Shop."
-      subtitle="Conversations stay attached to the job, not a random phone number."
-      script="Stay in the Loop."
-      image="/landing/lifestyle.png"
-      wide={false}
-    >
-      <div className="space-y-3">
-        {threads.length === 0 ? (
-          <EmptyState title="No conversations yet" body="Start from a job or mechanic profile so the context stays with the work." />
-        ) : (
-          threads.map((thread) => {
-            const title =
-              session.id === thread.customerId
-                ? thread.mechanic.mechanicProfile?.businessName ?? `${thread.mechanic.firstName} ${thread.mechanic.lastName}`
-                : `${thread.customer.firstName} ${thread.customer.lastName}`;
-            const unread = latestIsUnread(thread.messages[0], session.id);
-            return (
-              <BoardLink key={thread.id} href={`/messages/${thread.id}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-navy">{title}</p>
-                    <p className="truncate text-sm text-muted">{thread.messages[0]?.body ?? "No messages yet"}</p>
-                    {thread.job ? (
-                      <p className="mt-1 text-xs text-muted">{thread.job.serviceRequest.problemText}</p>
-                    ) : null}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[11px] text-muted">{formatRelative(thread.lastMessageAt)}</p>
-                    {unread ? (
-                      <span className="mt-1 inline-flex rounded-full bg-[#2f7bff] px-2 py-0.5 text-[10px] font-bold text-white">
-                        New
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </BoardLink>
-            );
-          })
-        )}
-      </div>
-    </ThemedBoard>
-  );
+  const params = await searchParams;
+  const threads = await listThreadsForUser(session.id, session.role, params.q);
+  const unreadRows = await prisma.message.findMany({
+    where: {
+      readAt: null,
+      senderId: { not: session.id },
+      thread: { customerId: session.id },
+    },
+    select: { threadId: true },
+  });
+  const unreadMap = new Map<string, number>();
+  for (const row of unreadRows) {
+    unreadMap.set(row.threadId, (unreadMap.get(row.threadId) ?? 0) + 1);
+  }
+
+  const rows: MessageThreadRow[] = threads.map((thread) => {
+    const title =
+      session.id === thread.customerId
+        ? thread.mechanic.mechanicProfile?.businessName ?? `${thread.mechanic.firstName} ${thread.mechanic.lastName}`
+        : `${thread.customer.firstName} ${thread.customer.lastName}`;
+    const preview = thread.messages[0]?.body ?? "No messages yet";
+    const problem = thread.job?.serviceRequest.problemText ?? "";
+    const kind: MessageThreadRow["kind"] = problem.toLowerCase().includes("estimate")
+      ? "estimates"
+      : thread.job
+        ? "shops"
+        : "support";
+    return {
+      id: thread.id,
+      href: `/messages/${thread.id}`,
+      shopName: title,
+      shopSlug: thread.mechanic.mechanicProfile?.slug ?? null,
+      verified: (thread.mechanic.mechanicProfile?.verificationLevel ?? "UNVERIFIED") !== "UNVERIFIED",
+      preview,
+      when: thread.lastMessageAt,
+      unread: unreadMap.get(thread.id) ?? (latestIsUnread(thread.messages[0], session.id) ? 1 : 0),
+      kind,
+    };
+  });
+
+  return <CustomerMessagesView threads={rows} tab={params.tab ?? "all"} q={params.q ?? ""} />;
 }

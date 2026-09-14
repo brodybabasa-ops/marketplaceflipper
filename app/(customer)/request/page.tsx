@@ -52,6 +52,7 @@ export default async function RequestPage({
 
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="REQUEST SERVICE"
       title="What needs"
       accent="Fixed?"

@@ -25,6 +25,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
 
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="MY GARAGE"
       title="Edit"
       accent="Machine."

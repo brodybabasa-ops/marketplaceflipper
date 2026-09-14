@@ -20,6 +20,7 @@ export default async function CustomerReviewsPage() {
   });
   return (
     <ThemedBoard
+      tone="app"
       eyebrow="REVIEWS"
       title="What you"
       accent="Said."

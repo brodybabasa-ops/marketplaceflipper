@@ -195,16 +195,25 @@ export async function createRequestAction(formData: FormData) {
 
 export async function sendMessageAction(formData: FormData) {
   const session = await requireUser();
-  const parsed = messageSchema.safeParse({
-    threadId: formData.get("threadId"),
-    body: formData.get("body"),
-  });
+  const threadId = String(formData.get("threadId") ?? "");
+  const text = String(formData.get("body") ?? "").trim();
+  const file = formData.get("attachment");
+  let attachmentUrl: string | undefined;
+  let kind: "TEXT" | "PHOTO" | "ATTACHMENT" = "TEXT";
+  if (file instanceof File && file.size > 0) {
+    attachmentUrl = await savePublicUpload(file, `messages/${threadId}`, { pdf: true });
+    kind = file.type.startsWith("image/") ? "PHOTO" : "ATTACHMENT";
+  }
+  const body = text || (attachmentUrl ? (kind === "PHOTO" ? "Sent a photo" : "Sent an attachment") : "");
+  const parsed = messageSchema.safeParse({ threadId, body });
   if (!parsed.success) throw new Error("Message cannot be empty.");
   const result = await postThreadMessage({
     threadId: parsed.data.threadId,
     senderId: session.id,
     senderRole: session.role,
     body: parsed.data.body,
+    attachmentUrl,
+    kind,
   });
   revalidateJobSurfaces(result.thread.jobId ?? undefined);
   revalidatePath(`/messages/${result.thread.id}`);
@@ -464,6 +473,7 @@ export async function toggleSavedShopAction(formData: FormData) {
   }
   revalidatePath("/saved");
   revalidatePath("/search");
+  revalidatePath("/mechanics");
   revalidatePath(`/mechanics/${profile.slug}`);
   redirect(returnTo);
 }

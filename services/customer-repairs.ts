@@ -23,6 +23,7 @@ export type RepairAction = {
 
 export type RepairRow = {
   id: string;
+  href: string;
   tab: RepairTab;
   vehicleLabel: string;
   problem: string;
@@ -34,8 +35,10 @@ export type RepairRow = {
   dateLabel: string;
   dateValue: string;
   relativeLabel: string | null;
+  startedLabel: string | null;
   steps: string[];
   stepIndex: number;
+  showTracker: boolean;
   priceLabel: string;
   price: string;
   actions: RepairAction[];
@@ -76,8 +79,8 @@ type JobRow = {
   estimates: { totalCents: number; status: EstimateStatus; lineItems: { category: string }[] }[];
 };
 
-const defaultSteps = ["Received", "Diagnosing", "Parts Ordered", "In Service", "Complete"];
-const approvalSteps = ["Received", "Diagnosing", "Waiting Approval", "In Service", "Complete"];
+const defaultSteps = ["Received", "Diagnosing", "Estimate", "Repair", "Complete"];
+const partsSteps = ["Received", "Diagnosing", "Parts", "Repair", "Complete"];
 
 export async function getCustomerRepairs(userId: string) {
   const [jobs, matchingRequests] = await Promise.all([
@@ -179,8 +182,10 @@ function toMatchingRow(request: {
 }): RepairRow {
   const lead = request.offers[0]?.mechanic;
   const shopCity = [lead?.shopCity, lead?.shopState].filter(Boolean).join(", ") || request.city || "";
+  const href = `/requests/${request.id}`;
   return {
     id: request.id,
+    href,
     tab: "in-progress",
     vehicleLabel: `${request.vehicle.year} ${request.vehicle.make.name} ${request.vehicle.model.name}`,
     problem: request.problemText,
@@ -192,11 +197,13 @@ function toMatchingRow(request: {
     dateLabel: "Requested",
     dateValue: formatBoardDate(request.createdAt),
     relativeLabel: formatRelative(request.updatedAt),
-    steps: ["Request sent", "Shop responds", "Estimate", "In Service", "Complete"],
+    startedLabel: `Requested: ${formatBoardDate(request.createdAt)}`,
+    steps: defaultSteps,
     stepIndex: 0,
+    showTracker: true,
     priceLabel: "Estimate",
     price: "Pending",
-    actions: [{ href: `/requests/${request.id}`, label: "View Request", variant: "primary" }],
+    actions: [{ href, label: "View Request", variant: "primary" }],
   };
 }
 
@@ -208,6 +215,7 @@ function toRow(job: JobRow): RepairRow {
 
   return {
     id: job.id,
+    href: `/jobs/${job.id}`,
     tab: presentation.tab,
     vehicleLabel,
     problem: job.serviceRequest.problemText,
@@ -219,8 +227,10 @@ function toRow(job: JobRow): RepairRow {
     dateLabel: presentation.dateLabel,
     dateValue: presentation.dateValue,
     relativeLabel: presentation.relativeLabel,
+    startedLabel: presentation.startedLabel,
     steps: presentation.steps,
     stepIndex: presentation.stepIndex,
+    showTracker: presentation.showTracker,
     priceLabel: presentation.priceLabel,
     price: presentation.price,
     actions: presentation.actions,
@@ -250,8 +260,10 @@ function livePresentation(job: JobRow, amount: number) {
       dateLabel: "Completed",
       dateValue: formatBoardDate(job.completedAt ?? stamp),
       relativeLabel: relative,
+      startedLabel: `Completed: ${formatBoardDate(job.completedAt ?? stamp)}`,
       steps: defaultSteps,
       stepIndex: 4,
+      showTracker: false,
       priceLabel: unpaid ? "Amount due" : "Total",
       price: formatPrice(amount, true),
       actions: completedActions(details, hasReview, unpaid),
@@ -264,8 +276,10 @@ function livePresentation(job: JobRow, amount: number) {
       dateLabel: "Cancelled",
       dateValue,
       relativeLabel: relative,
+      startedLabel: `Cancelled: ${dateValue}`,
       steps: defaultSteps,
       stepIndex: 0,
+      showTracker: false,
       priceLabel: "Total",
       price: formatPrice(amount, true),
       actions: [{ href: details, label: "View Details", variant: "link" as const }],
@@ -278,8 +292,10 @@ function livePresentation(job: JobRow, amount: number) {
       dateLabel: job.scheduledAt ? "Appointment" : "Estimate Received",
       dateValue,
       relativeLabel: relative,
-      steps: approvalSteps,
+      startedLabel: job.scheduledAt ? `Appointment: ${dateValue}` : `Started: ${formatBoardDate(job.createdAt)}`,
+      steps: defaultSteps,
       stepIndex: 2,
+      showTracker: true,
       priceLabel: "Estimate",
       price: formatPrice(amount, true),
       actions: [
@@ -296,8 +312,10 @@ function livePresentation(job: JobRow, amount: number) {
       dateLabel: job.scheduledAt ? "Appointment" : "Parts ordered",
       dateValue,
       relativeLabel: relative,
-      steps: defaultSteps,
+      startedLabel: `Started: ${formatBoardDate(job.createdAt)} · Est. Completion: ${dateValue}`,
+      steps: partsSteps,
       stepIndex: 2,
+      showTracker: true,
       priceLabel: "Estimate",
       price: formatPrice(amount, true),
       actions: [
@@ -314,8 +332,10 @@ function livePresentation(job: JobRow, amount: number) {
       dateLabel: "Opened",
       dateValue,
       relativeLabel: relative,
+      startedLabel: `Opened: ${dateValue}`,
       steps: defaultSteps,
       stepIndex: 3,
+      showTracker: true,
       priceLabel: amount ? "Total" : "Estimate",
       price: amount ? formatPrice(amount, true) : "Pending",
       actions: [{ href: details, label: "View Details", variant: "primary" as const }],
@@ -323,14 +343,19 @@ function livePresentation(job: JobRow, amount: number) {
   }
 
   const badge = badgeForActive(job.status, Boolean(job.scheduledAt));
+  const scheduledOnly = job.status === "SCHEDULED" || ((job.status === "ACCEPTED" || job.status === "REQUESTED") && Boolean(job.scheduledAt));
   return {
     tab: "in-progress" as const,
     badge,
     dateLabel: job.scheduledAt ? "Appointment" : dateLabelFor(job.status),
     dateValue,
     relativeLabel: relative,
+    startedLabel: scheduledOnly
+      ? `Appointment: ${dateValue}`
+      : `Started: ${formatBoardDate(job.createdAt)}`,
     steps: defaultSteps,
     stepIndex: stepIndexFor(job.status),
+    showTracker: !scheduledOnly || job.status === "DIAGNOSING" || job.status === "IN_PROGRESS",
     priceLabel: amount ? "Estimated Total" : "Estimate",
     price: amount ? formatPrice(amount, true) : "Pending",
     actions: [
