@@ -5,6 +5,7 @@ import { CustomerMap } from "@/components/customer-app/map";
 import { FindShopCard } from "@/components/customer-app/shop-card";
 import { shopMatchesType } from "@/lib/shop-kind";
 import { cn } from "@/lib/utils";
+import { AutoSubmitSelect } from "@/components/customer-app/auto-submit-select";
 import type { DirectoryShop } from "@/services/landing";
 
 const TYPES = [
@@ -97,7 +98,7 @@ export function CustomerFindView({
         {query.zip ? <input type="hidden" name="zip" value={query.zip} /> : null}
         {type !== "all" ? <input type="hidden" name="type" value={type} /> : null}
         {view === "map" ? <input type="hidden" name="view" value="map" /> : null}
-        <DarkSelect name="category" defaultValue={query.category ?? ""}>
+        <AutoSubmitSelect name="category" defaultValue={query.category ?? ""} className="h-9 w-full rounded-full border border-white/10 bg-[#0c1d30] px-2 text-[11px] font-semibold text-white outline-none">
           <option value="">Service</option>
           <option value="DIAGNOSTICS">Diagnostics</option>
           <option value="MAINTENANCE">Maintenance</option>
@@ -105,25 +106,24 @@ export function CustomerFindView({
           <option value="BRAKES">Brakes</option>
           <option value="ENGINE">Engine</option>
           <option value="ELECTRICAL">Electrical</option>
-        </DarkSelect>
-        <DarkSelect name="distance" defaultValue={query.distance ?? "50"}>
+        </AutoSubmitSelect>
+        <AutoSubmitSelect name="distance" defaultValue={query.distance ?? "50"} className="h-9 w-full rounded-full border border-white/10 bg-[#0c1d30] px-2 text-[11px] font-semibold text-white outline-none">
           <option value="10">10 mi</option>
           <option value="25">25 mi</option>
           <option value="50">Distance</option>
           <option value="100">100 mi</option>
-        </DarkSelect>
-        <DarkSelect name="rating" defaultValue={query.rating ?? ""}>
+        </AutoSubmitSelect>
+        <AutoSubmitSelect name="rating" defaultValue={query.rating ?? ""} className="h-9 w-full rounded-full border border-white/10 bg-[#0c1d30] px-2 text-[11px] font-semibold text-white outline-none">
           <option value="">Rating</option>
           <option value="4">4.0+</option>
           <option value="4.5">4.5+</option>
           <option value="4.8">4.8+</option>
-        </DarkSelect>
-        <DarkSelect name="sort" defaultValue={query.sort ?? "closest"}>
+        </AutoSubmitSelect>
+        <AutoSubmitSelect name="sort" defaultValue={query.sort ?? "closest"} className="h-9 w-full rounded-full border border-white/10 bg-[#0c1d30] px-2 text-[11px] font-semibold text-white outline-none">
           <option value="closest">Sort</option>
-          <option value="closest">Closest</option>
           <option value="rating">Top rated</option>
           <option value="recommended">Recommended</option>
-        </DarkSelect>
+        </AutoSubmitSelect>
       </form>
 
       <div className="mt-3 flex items-center justify-between gap-3">
@@ -183,15 +183,3 @@ export function CustomerFindView({
   );
 }
 
-function DarkSelect({ name, defaultValue, children }: { name: string; defaultValue?: string; children: React.ReactNode }) {
-  return (
-    <select
-      name={name}
-      defaultValue={defaultValue}
-      onChange={(event) => event.currentTarget.form?.requestSubmit()}
-      className="h-9 w-full rounded-full border border-white/10 bg-[#0c1d30] px-2 text-[11px] font-semibold text-white outline-none"
-    >
-      {children}
-    </select>
-  );
-}

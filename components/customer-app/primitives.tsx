@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -118,7 +120,7 @@ export function StatusBadge({
     muted: "bg-white/10 text-white/65",
     danger: "bg-[#e23d3d]/15 text-[#ff8b8b]",
   }[tone];
-  return <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold", styles)}>{label}</span>;
+  return <span className={cn("inline-flex shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-bold", styles)}>{label}</span>;
 }
 
 export function ProgressTrack({
