@@ -1,23 +1,13 @@
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/layout/themed-board";
+import { ShopDashboard } from "@/components/shop-os/dashboard-view";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
-import { AcceptJobButton } from "@/components/jobs/accept-job-button";
-import { OfferResponseButtons } from "@/components/jobs/offer-response-buttons";
-import { JobStatusLabel } from "@/components/jobs/status-timeline";
-import { startOfDenverDay, startOfDenverMonth, startOfNextDenverDay } from "@/lib/datetime";
-import { formatAppointment, formatRelative } from "@/lib/utils";
-import { latestIsUnread, listUnreadThreadsForMechanic } from "@/services/messages";
+import { addDenverDays, formatDenverDateInput, startOfDenverDay, startOfDenverMonth, startOfNextDenverDay } from "@/lib/datetime";
+import { jobWaitingOnParts } from "@/lib/estimates";
+import { percentDelta } from "@/lib/shop-os";
+import { unreadMessageCount } from "@/services/messages";
+import { ensureSchedulerResources, jobCardInclude, toHoldCard, toJobCard, toResourceCard } from "@/services/scheduler";
 
-export const metadata = { title: "Shop command" };
-
-const jobInclude = {
-  customer: true,
-  vehicle: { include: { make: true, model: true } },
-  serviceRequest: true,
-} as const;
+export const metadata = { title: "Dashboard" };
 
 export default async function MechanicDashboardPage() {
   const session = await requireSession("MECHANIC");
@@ -26,309 +16,173 @@ export default async function MechanicDashboardPage() {
   const startOfDay = startOfDenverDay();
   const endOfDay = startOfNextDenverDay();
   const startOfMonth = startOfDenverMonth();
+  const yesterdayStart = addDenverDays(startOfDay, -1);
+  const resources = await ensureSchedulerResources(profile.id);
 
-  const [incoming, offers, inBay, waiting, today, monthJobs, unscheduled, unreadThreads] = await Promise.all([
-    prisma.job.findMany({
-      where: { mechanicProfileId: profile.id, status: "REQUESTED" },
-      include: jobInclude,
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
-    prisma.serviceRequestOffer.findMany({
-      where: { mechanicProfileId: profile.id, status: "PENDING" },
-      include: {
-        request: { include: { customer: true, vehicle: { include: { make: true, model: true } } } },
+  const [
+    activeRepairs,
+    yesterdayActive,
+    pendingEstimates,
+    completedMonth,
+    completedYesterday,
+    paidToday,
+    paidYesterday,
+    billedMonth,
+    overdue,
+    partsJobs,
+    unread,
+    disputes,
+    todayRows,
+    holds,
+    recentEvents,
+    recentEstimates,
+  ] = await Promise.all([
+    prisma.job.count({
+      where: {
+        mechanicProfileId: profile.id,
+        status: { in: ["ACCEPTED", "SCHEDULED", "EN_ROUTE", "ARRIVED", "DIAGNOSING", "IN_PROGRESS", "AWAITING_APPROVAL"] },
       },
-      orderBy: { createdAt: "desc" },
-      take: 6,
+    }),
+    prisma.job.count({
+      where: {
+        mechanicProfileId: profile.id,
+        status: { in: ["ACCEPTED", "SCHEDULED", "EN_ROUTE", "ARRIVED", "DIAGNOSING", "IN_PROGRESS", "AWAITING_APPROVAL"] },
+        createdAt: { lt: startOfDay },
+      },
+    }),
+    prisma.estimate.findMany({
+      where: { mechanicId: session.id, status: "SENT" },
+      select: { totalCents: true },
+    }),
+    prisma.job.count({
+      where: { mechanicProfileId: profile.id, status: "COMPLETED", completedAt: { gte: startOfMonth } },
+    }),
+    prisma.job.count({
+      where: { mechanicProfileId: profile.id, status: "COMPLETED", completedAt: { gte: yesterdayStart, lt: startOfDay } },
+    }),
+    prisma.job.aggregate({
+      where: { mechanicProfileId: profile.id, paymentStatus: "PAID", updatedAt: { gte: startOfDay, lt: endOfDay } },
+      _sum: { totalCents: true },
+    }),
+    prisma.job.aggregate({
+      where: { mechanicProfileId: profile.id, paymentStatus: "PAID", updatedAt: { gte: yesterdayStart, lt: startOfDay } },
+      _sum: { totalCents: true },
+    }),
+    prisma.job.findMany({
+      where: { mechanicProfileId: profile.id, status: "COMPLETED", completedAt: { gte: startOfMonth } },
+      select: { durationMinutes: true, repairRecord: { select: { laborHours: true } } },
+    }),
+    prisma.job.count({
+      where: {
+        mechanicProfileId: profile.id,
+        scheduledAt: { lt: startOfDay },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
     }),
     prisma.job.findMany({
       where: {
         mechanicProfileId: profile.id,
-        status: { in: ["ACCEPTED", "SCHEDULED", "EN_ROUTE", "ARRIVED", "DIAGNOSING", "IN_PROGRESS"] },
+        status: { in: ["ACCEPTED", "SCHEDULED", "DIAGNOSING", "IN_PROGRESS"] },
       },
-      include: jobInclude,
-      orderBy: { scheduledAt: "asc" },
-      take: 6,
+      include: { estimates: { include: { lineItems: true }, orderBy: { createdAt: "desc" }, take: 1 } },
     }),
-    prisma.job.findMany({
-      where: { mechanicProfileId: profile.id, status: "AWAITING_APPROVAL" },
-      include: jobInclude,
-      take: 4,
-    }),
+    unreadMessageCount(session.id, session.role),
+    prisma.job.count({ where: { mechanicProfileId: profile.id, status: "DISPUTED" } }),
     prisma.job.findMany({
       where: {
         mechanicProfileId: profile.id,
         scheduledAt: { gte: startOfDay, lt: endOfDay },
         status: { notIn: ["CANCELLED"] },
       },
-      include: jobInclude,
+      include: jobCardInclude,
       orderBy: { scheduledAt: "asc" },
     }),
-    prisma.job.count({
-      where: {
-        mechanicProfileId: profile.id,
-        OR: [{ createdAt: { gte: startOfMonth } }, { scheduledAt: { gte: startOfMonth } }],
-      },
+    prisma.schedulerBlock.findMany({
+      where: { mechanicProfileId: profile.id, startAt: { gte: startOfDay, lt: endOfDay } },
+      orderBy: { startAt: "asc" },
     }),
-    prisma.job.findMany({
-      where: {
-        mechanicProfileId: profile.id,
-        scheduledAt: null,
-        status: { in: ["ACCEPTED", "SCHEDULED", "DIAGNOSING", "IN_PROGRESS", "AWAITING_APPROVAL"] },
-      },
-      include: jobInclude,
-      orderBy: { updatedAt: "desc" },
+    prisma.jobEvent.findMany({
+      where: { job: { mechanicProfileId: profile.id } },
+      include: { job: { include: { customer: true, serviceRequest: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.estimate.findMany({
+      where: { mechanicId: session.id },
+      include: { job: { include: { customer: true, serviceRequest: true } } },
+      orderBy: { createdAt: "desc" },
       take: 6,
     }),
-    listUnreadThreadsForMechanic(session.id, 6),
   ]);
 
-  return (
-    <div>
-      {profile.profileCompletePct < 100 ? (
-        <Card className="border-0 p-4">
-          <p className="font-medium text-navy">Profile {profile.profileCompletePct}% complete</p>
-          <Button asChild size="sm" className="mt-3">
-            <Link href="/mechanic/onboarding">Continue setup</Link>
-          </Button>
-        </Card>
-      ) : null}
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Button asChild size="sm">
-          <Link href="/mechanic/jobs/new">New repair order</Link>
-        </Button>
-        <Button asChild size="sm" variant="secondary">
-          <Link href="/mechanic/schedule">Open scheduler</Link>
-        </Button>
-        <Button asChild size="sm" variant="secondary">
-          <Link href="/mechanic/estimates">Estimates</Link>
-        </Button>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="On the book today" value={today.length} />
-        <StatCard label="Incoming requests" value={incoming.length + offers.length} />
-        <StatCard label="In the bay" value={inBay.length} />
-        <StatCard label="This month" value={monthJobs} />
-      </div>
-      <div className="mt-5 grid items-start gap-4 xl:grid-cols-2">
-        <section className="rounded-xl border border-line bg-paper p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-navy">Incoming</h2>
-            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/requests">
-              View all →
-            </Link>
-          </div>
-          <div className="mt-3 space-y-2">
-            {offers.length === 0 && incoming.length === 0 ? (
-              <p className="py-6 text-sm text-muted">No new requests.</p>
-            ) : (
-              <>
-                {offers.map((offer) => (
-                  <div key={offer.id} className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-navy">
-                        {offer.request.customer.firstName} {offer.request.customer.lastName}
-                      </p>
-                      <p className="truncate text-sm text-muted">
-                        {offer.request.vehicle.year} {offer.request.vehicle.make.name} {offer.request.vehicle.model.name} · {offer.request.problemText}
-                      </p>
-                    </div>
-                    <OfferResponseButtons offerId={offer.id} />
-                  </div>
-                ))}
-                {incoming.map((job) => (
-                  <div
-                    key={job.id}
-                    className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
-                  >
-                    <Link href={`/mechanic/jobs/${job.id}#appointment`} className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-navy">
-                        {job.customer.firstName} {job.customer.lastName}
-                      </p>
-                      <p className="truncate text-sm text-muted">
-                        {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
-                      </p>
-                    </Link>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <JobStatusLabel status={job.status} audience="shop" />
-                      <AcceptJobButton jobId={job.id} />
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </section>
-        <section className="rounded-xl border border-line bg-paper p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-navy">Unread messages</h2>
-            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/messages">
-              Inbox →
-            </Link>
-          </div>
-          <div className="mt-3 space-y-2">
-            {unreadThreads.length === 0 ? (
-              <p className="py-6 text-sm text-muted">Nothing waiting. Customer messages land here and on Messages.</p>
-            ) : (
-              unreadThreads.map((thread) => {
-                const unread = latestIsUnread(thread.messages[0], session.id);
-                return (
-                  <Link
-                    key={thread.id}
-                    href={`/mechanic/messages/${thread.id}`}
-                    className="block rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-navy">
-                          {thread.customer.firstName} {thread.customer.lastName}
-                        </p>
-                        <p className="truncate text-sm text-muted">{thread.messages[0]?.body ?? "New conversation"}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-[11px] text-muted">{formatRelative(thread.lastMessageAt)}</p>
-                        {unread ? (
-                          <span className="mt-1 inline-flex rounded-full bg-[#2f7bff] px-2 py-0.5 text-[10px] font-bold text-white">
-                            New
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        </section>
-      </div>
-      <div className="mt-4">
-        <Queue
-          title="In the bay"
-          href="/mechanic/jobs"
-          empty="Nothing in service."
-          jobs={inBay}
-        />
-      </div>
-      {waiting.length ? (
-        <div className="mt-4">
-          <Queue title="Waiting on customer" href="/mechanic/jobs" empty="" jobs={waiting} />
-        </div>
-      ) : null}
-      {unscheduled.length ? (
-        <div className="mt-4">
-          <Queue title="Needs a time" href="/mechanic/schedule" empty="" jobs={unscheduled} />
-        </div>
-      ) : null}
-      <section className="mt-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-navy">Today&apos;s book</h2>
-          <div className="flex gap-3">
-            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/schedule">
-              Scheduler →
-            </Link>
-            <Link className="text-sm font-semibold text-[#7eb0ff]" href="/mechanic/jobs">
-              All jobs →
-            </Link>
-          </div>
-        </div>
-        {today.length === 0 ? (
-          <p className="text-sm text-muted">Nothing scheduled for today.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-line bg-paper">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-line text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">When</th>
-                  <th className="font-medium">Customer</th>
-                  <th className="font-medium">Machine</th>
-                  <th className="font-medium">Work</th>
-                  <th className="pr-4 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {today.map((job) => (
-                  <tr key={job.id} className="border-b border-line last:border-0">
-                    <td className="px-4 py-3 font-semibold text-navy">
-                      {job.scheduledAt ? formatAppointment(job.scheduledAt) : "Unscheduled"}
-                    </td>
-                    <td>
-                      {job.customer.firstName} {job.customer.lastName}
-                    </td>
-                    <td>
-                      {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
-                    </td>
-                    <td className="max-w-xs truncate">{job.serviceRequest.problemText}</td>
-                    <td className="pr-4">
-                      <Link href={`/mechanic/jobs/${job.id}#appointment`} className="inline-flex">
-                        <JobStatusLabel status={job.status} audience="shop" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
+  const waitingParts = partsJobs.filter((job) => jobWaitingOnParts(job.status, job.estimates[0]?.lineItems)).length;
+  const billedHours = billedMonth.reduce((sum, job) => sum + (job.repairRecord?.laborHours ?? job.durationMinutes / 60), 0);
+  const todayCards = todayRows.map((job) => toJobCard(job, new Date()));
+  const resourceCards = resources.map((resource) => {
+    const count = todayCards.filter((job) => job.resourceId === resource.id).length;
+    return toResourceCard(resource, count, false);
+  });
 
-function Queue({
-  title,
-  href,
-  empty,
-  jobs,
-}: {
-  title: string;
-  href: string;
-  empty: string;
-  jobs: {
-    id: string;
-    status: Parameters<typeof JobStatusLabel>[0]["status"];
-    scheduledAt?: Date | null;
-    customer: { firstName: string; lastName: string };
-    vehicle: { year: number; make: { name: string }; model: { name: string } };
-    serviceRequest: { problemText: string };
-  }[];
-}) {
+  const activeList = await prisma.job.findMany({
+    where: {
+      mechanicProfileId: profile.id,
+      status: { in: ["ACCEPTED", "SCHEDULED", "EN_ROUTE", "ARRIVED", "DIAGNOSING", "IN_PROGRESS", "AWAITING_APPROVAL"] },
+    },
+    include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true, resource: true },
+    orderBy: { updatedAt: "desc" },
+    take: 8,
+  });
+
+  const activity = [
+    ...recentEvents.map((event) => ({
+      id: event.id,
+      title: event.status.replaceAll("_", " "),
+      detail: `${event.job.customer.firstName} ${event.job.customer.lastName} · ${event.job.serviceRequest.problemText}`,
+      href: `/mechanic/jobs?job=${event.jobId}`,
+      at: event.createdAt,
+    })),
+    ...recentEstimates.map((estimate) => ({
+      id: estimate.id,
+      title: `Estimate ${estimate.status.toLowerCase()}`,
+      detail: `${estimate.job.customer.firstName} ${estimate.job.customer.lastName} · ${estimate.job.serviceRequest.problemText}`,
+      href: `/mechanic/estimates?id=${estimate.id}`,
+      at: estimate.createdAt,
+    })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 8);
+
   return (
-    <section className="rounded-xl border border-line bg-paper p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-navy">{title}</h2>
-        <Link className="text-sm font-semibold text-[#7eb0ff]" href={href}>
-          View all →
-        </Link>
-      </div>
-      <div className="mt-3 space-y-2">
-        {jobs.length === 0 ? (
-          <p className="py-6 text-sm text-muted">{empty}</p>
-        ) : (
-          jobs.map((job) => (
-            <div
-              key={job.id}
-              className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-3 hover:bg-[#071422]"
-            >
-              <Link href={`/mechanic/jobs/${job.id}#appointment`} className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-navy">
-                  {job.customer.firstName} {job.customer.lastName}
-                </p>
-                <p className="truncate text-sm text-muted">
-                  {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name} · {job.serviceRequest.problemText}
-                </p>
-                {job.scheduledAt ? (
-                  <p className="text-xs font-semibold text-[#7eb0ff]">{formatAppointment(job.scheduledAt)}</p>
-                ) : null}
-              </Link>
-              <div className="flex shrink-0 items-center gap-2">
-                <JobStatusLabel status={job.status} audience="shop" />
-                {job.status === "REQUESTED" ? <AcceptJobButton jobId={job.id} /> : null}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </section>
+    <ShopDashboard
+      firstName={session.firstName}
+      kpis={{
+        activeRepairs,
+        activeDelta: percentDelta(activeRepairs, yesterdayActive),
+        estimatesPending: pendingEstimates.length,
+        estimatesValue: pendingEstimates.reduce((sum, item) => sum + item.totalCents, 0),
+        jobsCompleted: completedMonth,
+        completedDelta: percentDelta(completedMonth, completedYesterday),
+        revenueToday: paidToday._sum.totalCents ?? 0,
+        revenueDelta: percentDelta(paidToday._sum.totalCents ?? 0, paidYesterday._sum.totalCents ?? 0),
+        billedHours,
+        billedTarget: 160,
+      }}
+      todayJobs={todayCards}
+      todayHolds={holds.map(toHoldCard)}
+      resources={resourceCards}
+      todayDate={formatDenverDateInput(new Date())}
+      attention={{
+        overdue,
+        estimates: pendingEstimates.length,
+        parts: waitingParts,
+        unread,
+        comebacks: disputes,
+      }}
+      activeJobs={activeList.map((job) => ({
+        ...job,
+        resourceName: job.resource?.name,
+      }))}
+      activity={activity}
+    />
   );
 }

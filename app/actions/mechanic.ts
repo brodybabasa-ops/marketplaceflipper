@@ -19,6 +19,7 @@ export async function saveMechanicProfileAction(formData: FormData) {
     shopCity: formData.get("shopCity"),
     shopState: formData.get("shopState"),
     shopZip: formData.get("shopZip"),
+    shopAddress: String(formData.get("shopAddress") ?? "").trim() || undefined,
     serviceRadiusMiles: formData.get("serviceRadiusMiles"),
     diagnosticPriceCents: Math.round(Number(formData.get("diagnosticPrice") ?? 0) * 100),
     laborRateCents: Math.round(Number(formData.get("laborRate") ?? 0) * 100),
@@ -87,3 +88,40 @@ export async function saveAvailabilityAction(formData: FormData) {
   revalidatePath("/mechanic/schedule");
   revalidatePath("/mechanic");
 }
+
+export async function replyToReviewAction(formData: FormData) {
+  const session = await requireSession("MECHANIC");
+  const reviewId = String(formData.get("reviewId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (body.length < 8) throw new Error("Write a short reply.");
+  const review = await prisma.review.findFirst({
+    where: { id: reviewId, mechanic: { userId: session.id } },
+    select: { id: true },
+  });
+  if (!review) throw new Error("Review not found.");
+  await prisma.reviewResponse.upsert({
+    where: { reviewId },
+    update: { body },
+    create: { reviewId, mechanicId: session.id, body },
+  });
+  revalidatePath("/mechanic/reviews");
+  revalidatePath("/reviews");
+}
+
+export async function issueShopInvoiceAction(formData: FormData) {
+  const session = await requireSession("MECHANIC");
+  const jobId = String(formData.get("jobId") ?? "");
+  const job = await prisma.job.findFirst({
+    where: { id: jobId, mechanicUserId: session.id },
+    select: { id: true },
+  });
+  if (!job) throw new Error("Job not found.");
+  const { issueInvoiceForJob } = await import("@/services/billing");
+  await issueInvoiceForJob(jobId);
+  revalidatePath("/mechanic/jobs");
+  revalidatePath(`/mechanic/jobs/${jobId}`);
+  revalidatePath("/mechanic/invoicing");
+  const next = safeInternalPath(formData.get("returnTo"));
+  if (next) redirect(next);
+}
+

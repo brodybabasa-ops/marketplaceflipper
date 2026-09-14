@@ -1,4 +1,5 @@
 import { CommandBoard } from "@/components/scheduler/command-board";
+import { ShopCalendar } from "@/components/shop-os/calendar-view";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import {
@@ -47,11 +48,12 @@ export default async function MechanicSchedulePage({
     mode?: string;
     q?: string;
     customize?: string;
+    classic?: string;
   }>;
 }) {
   const session = await requireSession("MECHANIC");
   const params = await searchParams;
-  const view = params.view === "week" || params.view === "month" ? params.view : "day";
+  const view = params.view === "day" || params.view === "month" ? params.view : "week";
   const rawDate = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : params.week;
   const profile = await prisma.mechanicProfile.findUniqueOrThrow({
     where: { userId: session.id },
@@ -111,7 +113,7 @@ export default async function MechanicSchedulePage({
   ]);
 
   const holds = await prisma.schedulerBlock.findMany({
-    where: { mechanicProfileId: profile.id, startAt: { gte: selected, lt: dayEnd } },
+    where: { mechanicProfileId: profile.id, startAt: { gte: rangeStart, lt: rangeEnd } },
     orderBy: { startAt: "asc" },
   });
 
@@ -201,7 +203,8 @@ export default async function MechanicSchedulePage({
   const delta = lastWeekCount === 0 ? (appointments ? 100 : 0) : Math.round(((appointments - lastWeekCount) / lastWeekCount) * 100);
   const awaiting = [...jobCards, ...unscheduledCards].filter((job) => job.status === "AWAITING_APPROVAL");
 
-  return (
+  if (params.classic === "1") {
+    return (
     <CommandBoard
       view={view}
       date={selectedYmd}
@@ -249,6 +252,45 @@ export default async function MechanicSchedulePage({
       customers={customers}
       layout={parseBoardLayout(profile.schedulerLayout)}
       customize={params.customize === "1"}
+    />
+    );
+  }
+
+  return (
+    <ShopCalendar
+      view={view}
+      date={selectedYmd}
+      dateLabel={
+        view === "month"
+          ? formatDenverMonthLabel(monthStart)
+          : view === "week"
+            ? `${formatDenverMonthDay(weekStart)} – ${formatDenverMonthDay(addDenverDays(weekStart, 6))}`
+            : formatDenverWeekdayLong(selected)
+      }
+      prevDate={prev}
+      nextDate={next}
+      todayDate={todayDate}
+      stats={{
+        appointments,
+        appointmentsDelta: delta,
+        inProgress: statsSource.filter((job) => inProgressStatuses().includes(job.status)).length,
+        waitingOnParts: statsSource.filter((job) => job.waitingOnParts).length,
+        behind: statsSource.filter((job) => job.behind).length,
+        revenueCents: statsSource.reduce((sum, job) => sum + job.estimateCents, 0),
+        onTimePct: profile.onTimePercentage,
+      }}
+      resources={resourceCards}
+      jobs={jobCards}
+      holds={holds.map(toHoldCard)}
+      columns={columns}
+      unscheduled={unscheduledCards}
+      reminders={remindersFromBoard({ awaiting, unreadCount: unread, behind: statsSource.filter((job) => job.behind) })}
+      filters={{
+        resource: params.resource,
+        type: params.type,
+        status: params.status,
+        q: params.q,
+      }}
     />
   );
 }

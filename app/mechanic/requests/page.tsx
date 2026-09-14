@@ -1,7 +1,6 @@
-import MechanicJobsList from "../_jobs-list";
+import { ShopRequestsView } from "@/components/shop-os/list-pages";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
-import { OfferResponseButtons } from "@/components/jobs/offer-response-buttons";
 
 export const metadata = { title: "Requests" };
 
@@ -20,41 +19,32 @@ export default async function RequestsPage({
     },
     orderBy: { createdAt: "desc" },
   });
-  const filtered = q?.trim()
-    ? offers.filter((offer) => {
-        const haystack = `${offer.request.customer.firstName} ${offer.request.customer.lastName} ${offer.request.vehicle.make.name} ${offer.request.vehicle.model.name} ${offer.request.problemText}`.toLowerCase();
-        return haystack.includes(q.trim().toLowerCase());
-      })
+  const jobs = await prisma.job.findMany({
+    where: { mechanicProfileId: profile.id, status: "REQUESTED" },
+    include: { customer: true, vehicle: { include: { make: true, model: true } }, serviceRequest: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const term = q?.trim().toLowerCase();
+  const filteredOffers = term
+    ? offers.filter((offer) =>
+        `${offer.request.customer.firstName} ${offer.request.customer.lastName} ${offer.request.problemText}`.toLowerCase().includes(term),
+      )
     : offers;
   return (
-    <div className="space-y-8">
-      {filtered.length ? (
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-muted">Incoming matches</h2>
-          <div className="space-y-3">
-            {filtered.map((offer) => (
-              <article key={offer.id} className="rounded-xl border border-line bg-paper px-4 py-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-navy">
-                      {offer.request.customer.firstName} {offer.request.customer.lastName}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {offer.request.vehicle.year} {offer.request.vehicle.make.name} {offer.request.vehicle.model.name}
-                    </p>
-                    <p className="mt-1 text-sm">{offer.request.problemText}</p>
-                  </div>
-                  <OfferResponseButtons offerId={offer.id} />
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-muted">Open repair orders</h2>
-        <MechanicJobsList title="Pending requests" href="/mechanic/requests" statuses={["REQUESTED"]} q={q} />
-      </div>
-    </div>
+    <ShopRequestsView
+      offers={filteredOffers.map((offer) => ({
+        id: offer.id,
+        problemText: offer.request.problemText,
+        customer: `${offer.request.customer.firstName} ${offer.request.customer.lastName}`,
+        vehicle: `${offer.request.vehicle.year} ${offer.request.vehicle.make.name} ${offer.request.vehicle.model.name}`,
+      }))}
+      jobs={jobs.map((job) => ({
+        id: job.id,
+        status: job.status,
+        customer: `${job.customer.firstName} ${job.customer.lastName}`,
+        vehicle: `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`,
+        problemText: job.serviceRequest.problemText,
+      }))}
+    />
   );
 }

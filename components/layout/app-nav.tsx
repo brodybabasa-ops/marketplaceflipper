@@ -45,15 +45,19 @@ export const CUSTOMER_NAV = [
 ];
 
 export const MECHANIC_NAV = [
-  { href: "/mechanic", label: "Today" },
-  { href: "/mechanic/schedule", label: "Schedule" },
-  { href: "/mechanic/requests", label: "Requests" },
-  { href: "/mechanic/jobs", label: "Jobs" },
+  { href: "/mechanic", label: "Dashboard" },
+  { href: "/mechanic/schedule", label: "Calendar" },
+  { href: "/mechanic/jobs", label: "Jobs / Repairs" },
   { href: "/mechanic/estimates", label: "Estimates" },
+  { href: "/mechanic/customers", label: "Customers" },
   { href: "/mechanic/messages", label: "Messages" },
+  { href: "/mechanic/vehicles", label: "Vehicles" },
+  { href: "/mechanic/inventory", label: "Inventory" },
+  { href: "/mechanic/invoicing", label: "Invoicing & Payments" },
   { href: "/mechanic/reviews", label: "Reviews" },
-  { href: "/mechanic/profile", label: "Profile" },
+  { href: "/mechanic/reports", label: "Reports" },
   { href: "/mechanic/earnings", label: "Earnings" },
+  { href: "/mechanic/team", label: "Team" },
   { href: "/mechanic/settings", label: "Settings" },
 ];
 

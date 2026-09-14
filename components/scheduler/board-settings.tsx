@@ -32,7 +32,7 @@ export function BoardSettings({ layout, returnTo }: { layout: SchedulerBoardLayo
         <p className="mt-1 text-sm text-white/50">
           Turn panels on or off here. On the scheduler, Customize lets you drag them into place or onto Remove.
         </p>
-        <a href="/mechanic/schedule?customize=1" className="mt-2 inline-block text-sm font-semibold text-[#7eb0ff]">
+        <a href="/mechanic/schedule?classic=1&customize=1" className="mt-2 inline-block text-sm font-semibold text-[#7eb0ff]">
           Open the board and drag widgets
         </a>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">

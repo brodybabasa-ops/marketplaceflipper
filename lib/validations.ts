@@ -86,6 +86,7 @@ export const mechanicOnboardingSchema = z.object({
   shopState: z.string().min(2).max(2),
   shopZip: z.string().min(5).max(10),
   serviceRadiusMiles: z.coerce.number().int().min(5).max(150),
+  shopAddress: z.string().max(160).optional(),
   diagnosticPriceCents: z.coerce.number().int().min(0),
   laborRateCents: z.coerce.number().int().min(0),
   mobileFeeCents: z.coerce.number().int().min(0),

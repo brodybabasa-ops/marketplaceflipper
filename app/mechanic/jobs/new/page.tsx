@@ -1,5 +1,5 @@
 import { ShopRepairOrderForm } from "@/components/jobs/shop-repair-order-form";
-import { PageHeading } from "@/components/layout/themed-board";
+import { ShopCard, ShopPageHeader } from "@/components/shop-os/primitives";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 
@@ -18,10 +18,7 @@ export default async function NewRepairOrderPage() {
     where: {
       role: "CUSTOMER",
       vehicles: { some: { archivedAt: null } },
-      OR: [
-        ...(ids.length ? [{ id: { in: ids } }] : []),
-        { customerProfile: { zip: profile.shopZip ?? "84041" } },
-      ],
+      OR: [...(ids.length ? [{ id: { in: ids } }] : []), { customerProfile: { zip: profile.shopZip ?? "84041" } }],
     },
     include: { vehicles: { where: { archivedAt: null }, include: { make: true, model: true }, orderBy: { createdAt: "asc" } } },
     take: 40,
@@ -38,14 +35,14 @@ export default async function NewRepairOrderPage() {
     }));
 
   return (
-    <div>
-      <PageHeading
+    <div className="px-5 py-5 lg:px-6">
+      <ShopPageHeader
         title="New repair order"
         subtitle="Opens a live job, thread, and optional appointment on the same record the customer sees."
       />
-      <div className="max-w-xl rounded-xl border border-line bg-paper p-5">
+      <ShopCard className="max-w-xl p-5">
         <ShopRepairOrderForm customers={customers} />
-      </div>
+      </ShopCard>
     </div>
   );
 }

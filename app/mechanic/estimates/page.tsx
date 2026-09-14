@@ -1,73 +1,82 @@
-import Link from "next/link";
-import { PageHeading } from "@/components/layout/themed-board";
+import { ShopEstimatesBoard } from "@/components/shop-os/estimates-view";
 import { requireSession } from "@/lib/guards";
 import { prisma } from "@/lib/db";
-import { formatCents } from "@/lib/money";
-import { formatBoardDate } from "@/lib/utils";
-import { estimateStatusClass, estimateStatusLabel } from "@/lib/estimates";
+import { estimateExpired, percentDelta } from "@/lib/shop-os";
+import { addDenverDays, startOfDenverDay } from "@/lib/datetime";
 
 export const metadata = { title: "Estimates" };
 
-export default async function MechanicEstimatesPage() {
+export default async function MechanicEstimatesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; tab?: string; id?: string }>;
+}) {
   const session = await requireSession("MECHANIC");
+  const { q, tab: tabParam, id } = await searchParams;
+  const tab = (["all", "pending", "approved", "declined", "expired"].includes(tabParam ?? "") ? tabParam : "all") as
+    | "all"
+    | "pending"
+    | "approved"
+    | "declined"
+    | "expired";
   const estimates = await prisma.estimate.findMany({
     where: { mechanicId: session.id },
     include: {
+      lineItems: true,
       job: {
         include: {
           customer: true,
           vehicle: { include: { make: true, model: true } },
           serviceRequest: true,
+          thread: true,
         },
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 60,
+    take: 80,
   });
+  const term = q?.trim().toLowerCase();
+  const searched = term
+    ? estimates.filter((estimate) => {
+        const hay = `${estimate.job.customer.firstName} ${estimate.job.customer.lastName} ${estimate.job.vehicle.make.name} ${estimate.job.vehicle.model.name} ${estimate.job.serviceRequest.problemText}`.toLowerCase();
+        return hay.includes(term);
+      })
+    : estimates;
+  const pending = estimates.filter((item) => item.status === "SENT" && !estimateExpired(item.sentAt, item.status));
+  const approved = estimates.filter((item) => item.status === "APPROVED");
+  const declined = estimates.filter((item) => item.status === "DECLINED");
+  const expired = estimates.filter((item) => estimateExpired(item.sentAt, item.status));
+  const visible =
+    tab === "pending" ? pending : tab === "approved" ? approved : tab === "declined" ? declined : tab === "expired" ? expired : searched;
+  const monthAgo = addDenverDays(startOfDenverDay(), -30);
+  const approvedMonth = approved.filter((item) => item.createdAt >= monthAgo);
+  const decidedMonth = estimates.filter((item) => item.createdAt >= monthAgo && (item.status === "APPROVED" || item.status === "DECLINED"));
+  const prevMonthStart = addDenverDays(monthAgo, -30);
+  const decidedPrev = estimates.filter(
+    (item) => item.createdAt >= prevMonthStart && item.createdAt < monthAgo && (item.status === "APPROVED" || item.status === "DECLINED"),
+  );
+  const approvedPrev = estimates.filter((item) => item.createdAt >= prevMonthStart && item.createdAt < monthAgo && item.status === "APPROVED");
+  const rate = decidedMonth.length ? Math.round((approvedMonth.length / decidedMonth.length) * 100) : 0;
+  const prevRate = decidedPrev.length ? Math.round((approvedPrev.length / decidedPrev.length) * 100) : 0;
+
   return (
-    <div>
-      <PageHeading title="Estimates" subtitle="Written quotes on live jobs. Approvals show on the customer job." />
-      <div className="overflow-x-auto rounded-xl border border-line bg-paper">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-line text-muted">
-            <tr>
-              <th className="px-4 py-3 font-medium">Customer</th>
-              <th className="font-medium">Work</th>
-              <th className="font-medium">Amount</th>
-              <th className="font-medium">Status</th>
-              <th className="pr-4 font-medium">Sent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {estimates.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-muted" colSpan={5}>
-                  Send an estimate from a job and it lands here and on the customer Estimates board.
-                </td>
-              </tr>
-            ) : (
-              estimates.map((estimate) => (
-                <tr key={estimate.id} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3">
-                    <Link href={`/mechanic/jobs/${estimate.jobId}`} className="font-semibold text-navy hover:text-[#7eb0ff]">
-                      {estimate.job.customer.firstName} {estimate.job.customer.lastName}
-                    </Link>
-                    <p className="text-xs text-muted">
-                      {estimate.job.vehicle.year} {estimate.job.vehicle.make.name} {estimate.job.vehicle.model.name}
-                    </p>
-                  </td>
-                  <td className="max-w-xs truncate">{estimate.job.serviceRequest.problemText}</td>
-                  <td className="font-semibold">{formatCents(estimate.totalCents)}</td>
-                  <td className={`font-semibold ${estimateStatusClass(estimate.status)}`}>
-                    {estimateStatusLabel(estimate.status, "shop")}
-                  </td>
-                  <td className="pr-4 text-muted">{formatBoardDate(estimate.sentAt ?? estimate.createdAt)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <ShopEstimatesBoard
+      estimates={visible}
+      selectedId={id}
+      tab={tab}
+      q={q}
+      kpis={{
+        pending: pending.length,
+        pendingCents: pending.reduce((sum, item) => sum + item.totalCents, 0),
+        approved: approvedMonth.length,
+        approvedCents: approvedMonth.reduce((sum, item) => sum + item.totalCents, 0),
+        declined: declined.filter((item) => item.createdAt >= monthAgo).length,
+        declinedCents: declined.filter((item) => item.createdAt >= monthAgo).reduce((sum, item) => sum + item.totalCents, 0),
+        expired: expired.length,
+        expiredCents: expired.reduce((sum, item) => sum + item.totalCents, 0),
+        approvalRate: rate,
+        approvalDelta: percentDelta(rate, prevRate),
+      }}
+    />
   );
 }
