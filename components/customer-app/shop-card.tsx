@@ -66,11 +66,11 @@ export function FindShopCard({
 
 export function HomeShopCard({ shop, saved }: { shop: DirectoryShop; saved?: boolean }) {
   return (
-    <AppCard className="w-[220px] shrink-0 p-0">
+    <AppCard className="w-[168px] shrink-0 p-0">
       <div className="relative">
         <Link href={`/mechanics/${shop.slug}`} className="block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={shop.photo} alt="" className="h-[110px] w-full rounded-t-[22px] object-cover" />
+          <img src={shop.photo} alt="" className="h-[96px] w-full rounded-t-[22px] object-cover" />
         </Link>
         <div className="absolute right-2 top-2">
           <SaveHeart id={shop.id} slug={shop.slug} saved={saved} returnTo="/home" className="bg-[#071422]/70" />

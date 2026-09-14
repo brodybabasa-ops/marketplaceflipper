@@ -113,7 +113,7 @@ export async function getCustomerRepairs(userId: string) {
       const jobB = jobs.find((job) => job.id === b.id)!;
       return compareJobs(jobA, jobB);
     });
-  const rows = [...matchingRows, ...jobRows];
+  const rows = [...jobRows, ...matchingRows];
 
   const counts: Record<RepairTab, number> = {
     all: rows.length,

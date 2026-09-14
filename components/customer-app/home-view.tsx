@@ -97,7 +97,7 @@ export function CustomerHomeView({
                 </span>
                 <input
                   name="q"
-                  placeholder="Front end clunks over bumps"
+                  placeholder="Front end clunk"
                   className="h-11 w-full rounded-xl border border-white/10 bg-[#0c1d30] px-3 text-sm text-white outline-none placeholder:text-white/35"
                 />
               </label>
@@ -130,10 +130,10 @@ export function CustomerHomeView({
             const Icon = item.icon;
             const active = item.label === "Auto";
             return (
-              <Link key={item.label} href={item.href} className="flex w-[64px] shrink-0 flex-col items-center gap-1.5">
+              <Link key={item.label} href={item.href} className="flex w-[56px] shrink-0 flex-col items-center gap-1.5">
                 <span
                   className={cn(
-                    "flex h-14 w-14 items-center justify-center rounded-2xl border",
+                    "flex h-12 w-12 items-center justify-center rounded-2xl border",
                     active ? "border-[#2f7bff] bg-[#2f7bff]/15 text-[#7eb0ff]" : "border-white/10 bg-[#0c1d30] text-[#7eb0ff]",
                   )}
                 >
