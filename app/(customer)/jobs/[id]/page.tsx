@@ -1,0 +1,178 @@
+import { notFound } from "next/navigation";
+import { StatusTimeline } from "@/components/jobs/status-timeline";
+import { EstimateCard } from "@/components/jobs/estimate-card";
+import { ReviewCard } from "@/components/jobs/review-card";
+import { AppointmentCard } from "@/components/jobs/appointment-card";
+import { InvoiceCard } from "@/components/jobs/invoice-card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field, Select, Textarea } from "@/components/ui/input";
+import { ThemedBoard } from "@/components/layout/themed-board";
+import { createDisputeAction, createReviewAction } from "@/app/actions/marketplace";
+import { JobPhotos } from "@/components/jobs/job-photos";
+import { ThreadView } from "@/components/messages/thread-view";
+import { requireSession } from "@/lib/guards";
+import { getJobForUser } from "@/services/jobs";
+import { formatCents } from "@/lib/money";
+import { vehiclePhotoFor } from "@/lib/landing";
+
+export const metadata = { title: "Job" };
+
+export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireSession();
+  const { id } = await params;
+  const job = await getJobForUser(id, session.id, session.role);
+  if (!job) notFound();
+  const vehicleLabel = `${job.vehicle.year} ${job.vehicle.make.name} ${job.vehicle.model.name}`;
+  return (
+    <ThemedBoard
+      tone="app"
+      eyebrow={job.mechanicProfile.businessName.toUpperCase()}
+      title={job.serviceRequest.problemText}
+      subtitle={`${vehicleLabel}${job.repairOrderNumber ? ` · ${job.repairOrderNumber}` : ""}`}
+      script="Stay in the Loop."
+      image={vehiclePhotoFor(job.vehicle.make.name, job.vehicle.model.name)}
+    >
+      <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-4">
+          <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+            <h2 className="font-semibold text-navy">Status</h2>
+            <div className="mt-4">
+              <StatusTimeline
+                status={job.status}
+                estimateApproved={job.estimates.some((estimate) => estimate.status === "APPROVED")}
+              />
+            </div>
+          </Card>
+          {session.role === "CUSTOMER" || session.role === "MECHANIC" || session.role === "ADMIN" ? (
+            <AppointmentCard
+              jobId={job.id}
+              scheduledAt={job.scheduledAt}
+              preferredDate={job.serviceRequest.preferredDate}
+              preferredTimeWindow={job.serviceRequest.preferredTimeWindow}
+              canEdit={
+                (session.id === job.customerId || session.id === job.mechanicUserId) &&
+                job.status !== "COMPLETED" &&
+                job.status !== "CANCELLED"
+              }
+              calendarHref={job.scheduledAt ? `/jobs/${job.id}/calendar` : undefined}
+            />
+          ) : null}
+          <InvoiceCard
+            jobId={job.id}
+            invoice={job.invoice}
+            paymentStatus={job.paymentStatus}
+            repairOrderNumber={job.repairOrderNumber}
+            canPay={session.role === "CUSTOMER" && job.status === "COMPLETED"}
+          />
+          {job.estimates.map((estimate, index) => (
+            <EstimateCard
+              key={estimate.id}
+              estimate={estimate}
+              canApprove={session.role === "CUSTOMER"}
+              returnTo={`/jobs/${job.id}`}
+              highlight={estimate.status === "SENT" && job.estimates.findIndex((item) => item.status === "SENT") === index}
+            />
+          ))}
+          <JobPhotos
+            jobId={job.id}
+            photos={job.photos}
+            canUpload={session.id === job.customerId || session.id === job.mechanicUserId}
+          />
+          {job.repairRecord ? (
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+              <h2 className="font-semibold text-navy">Repair saved to vehicle history</h2>
+              <p className="mt-2 text-lg font-semibold">{job.repairRecord.title}</p>
+              <p className="text-sm text-muted">
+                {job.vehicle.year} {job.vehicle.make.name} {job.vehicle.model.name}
+                {job.repairRecord.mileage ? ` · ${job.repairRecord.mileage.toLocaleString()} miles` : ""}
+              </p>
+              {job.repairRecord.partsReplaced ? <p className="mt-2 text-sm">Parts: {job.repairRecord.partsReplaced}</p> : null}
+              {job.repairRecord.laborHours ? <p className="text-sm">Labor: {job.repairRecord.laborHours} hours</p> : null}
+              {job.repairRecord.warrantySummary ? <p className="text-sm">Warranty: {job.repairRecord.warrantySummary}</p> : null}
+              {job.totalCents ? <p className="mt-2 number font-semibold">{formatCents(job.totalCents)}</p> : null}
+            </Card>
+          ) : null}
+          {job.status === "COMPLETED" && job.paymentStatus === "PAID" && !job.review && session.role === "CUSTOMER" ? (
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+              <h2 className="font-semibold text-navy">Leave a verified review</h2>
+              <p className="text-sm text-muted">This review is tied to a paid Pocket Mechanic repair.</p>
+              <form action={createReviewAction} className="mt-4 space-y-3">
+                <input type="hidden" name="jobId" value={job.id} />
+                {["overallRating", "communicationRating", "professionalismRating", "pricingRating", "timelinessRating", "qualityRating"].map((name) => (
+                  <Field key={name} label={name.replace("Rating", "").replace(/([A-Z])/g, " $1")}>
+                    <Select name={name} defaultValue="5">
+                      <option>5</option>
+                      <option>4</option>
+                      <option>3</option>
+                      <option>2</option>
+                      <option>1</option>
+                    </Select>
+                  </Field>
+                ))}
+                <Field label="Would you use this mechanic again?">
+                  <Select name="wouldUseAgain" defaultValue="yes">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </Select>
+                </Field>
+                <Field label="Review">
+                  <Textarea name="body" required placeholder="What happened, and how did it go?" />
+                </Field>
+                <Button type="submit">Submit review</Button>
+              </form>
+            </Card>
+          ) : null}
+          {job.status === "COMPLETED" && job.paymentStatus !== "PAID" && session.role === "CUSTOMER" && !job.review ? (
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+              <h2 className="font-semibold text-navy">Review unlocks after payment</h2>
+              <p className="text-sm text-muted">Pay the invoice above to leave a verified review. This repair is already saved to the vehicle.</p>
+            </Card>
+          ) : null}
+          {job.review ? <ReviewCard review={{ ...job.review, customer: job.customer }} /> : null}
+        </div>
+        <div className="space-y-4">
+          {job.thread ? (
+            <ThreadView
+              threadId={job.thread.id}
+              selfId={session.id}
+              title="Messages"
+              subtitle={job.mechanicProfile.businessName}
+              jobHref={session.role === "CUSTOMER" ? `/messages/${job.thread.id}` : `/mechanic/messages/${job.thread.id}`}
+              jobLabel="Open thread"
+              returnTo={`/jobs/${job.id}`}
+              messages={job.thread.messages.map((message) => ({
+                id: message.id,
+                senderId: message.senderId,
+                senderName: message.sender.firstName,
+                body: message.body,
+                createdAt: message.createdAt,
+              }))}
+            />
+          ) : null}
+          {session.role === "CUSTOMER" ? (
+            <Card className="border-0 bg-[#f7f9fc] p-5 shadow-none">
+              <h2 className="font-semibold text-navy">Report a problem</h2>
+              <form action={createDisputeAction} className="mt-3 space-y-3">
+                <input type="hidden" name="jobId" value={job.id} />
+                <Select name="category" defaultValue="OTHER">
+                  <option value="REPAIR_DIDNT_FIX">Repair didn&apos;t fix issue</option>
+                  <option value="UNEXPECTED_CHARGE">Unexpected charge</option>
+                  <option value="WORKMANSHIP">Workmanship concern</option>
+                  <option value="NO_SHOW">Mechanic didn&apos;t show</option>
+                  <option value="VEHICLE_DAMAGE">Vehicle damage</option>
+                  <option value="COMMUNICATION">Communication issue</option>
+                  <option value="OTHER">Other</option>
+                </Select>
+                <Textarea name="description" required placeholder="What happened?" />
+                <Button type="submit" variant="secondary">
+                  Open dispute
+                </Button>
+              </form>
+            </Card>
+          ) : null}
+        </div>
+      </div>
+    </ThemedBoard>
+  );
+}
