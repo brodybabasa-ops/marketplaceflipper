@@ -12,10 +12,12 @@ export function CustomerMap({
   shops,
   origin,
   compact,
+  mapHref = "?view=map",
 }: {
   shops: DirectoryShop[];
   origin: { latitude: number; longitude: number; city: string } | null;
   compact?: boolean;
+  mapHref?: string;
 }) {
   const [active, setActive] = useState(shops[0]?.slug ?? "");
   const selected = shops.find((shop) => shop.slug === active) ?? shops[0];
@@ -25,8 +27,35 @@ export function CustomerMap({
   );
   const here = origin ? project(origin.latitude, origin.longitude) : null;
 
+  if (compact) {
+    return (
+      <Link
+        href={mapHref}
+        className="relative block h-[72px] w-[118px] overflow-hidden rounded-xl border border-white/10 bg-[#12324a]"
+      >
+        <MapBackdrop />
+        {here ? (
+          <span
+            className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2f7bff] ring-4 ring-[#2f7bff]/30"
+            style={{ top: here.top, left: here.left }}
+          />
+        ) : null}
+        {pins.map((pin) => (
+          <span
+            key={pin.slug}
+            className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7eb0ff]"
+            style={{ left: pin.left, top: pin.top }}
+          />
+        ))}
+        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-[#071422]/85 px-2 py-0.5 text-[10px] font-bold text-white">
+          View Map
+        </span>
+      </Link>
+    );
+  }
+
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-white/10 bg-[#12324a]", compact ? "h-[120px]" : "h-[280px]")}>
+    <div className="relative h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#12324a]">
       <MapBackdrop />
       {here ? (
         <span
@@ -49,18 +78,8 @@ export function CustomerMap({
           </svg>
         </button>
       ))}
-      {compact ? (
-        <Link
-          href="?view=map"
-          className="absolute bottom-2 right-2 rounded-full bg-[#071422]/80 px-3 py-1 text-[11px] font-bold text-white"
-        >
-          View Map
-        </Link>
-      ) : selected ? (
-        <Link
-          href={`/mechanics/${selected.slug}`}
-          className="absolute right-3 top-3 w-40 overflow-hidden rounded-xl bg-[#071422]/90"
-        >
+      {selected ? (
+        <Link href={`/mechanics/${selected.slug}`} className="absolute right-3 top-3 w-40 overflow-hidden rounded-xl bg-[#071422]/90">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={selected.photo} alt="" className="h-14 w-full object-cover" />
           <span className="block p-2">

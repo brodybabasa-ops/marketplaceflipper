@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { PenSquare, Search } from "lucide-react";
-import { AppCard, AppPageHeader, FilterTabs, VerifiedMark } from "@/components/customer-app/primitives";
-import { shopPhotoFor } from "@/lib/landing";
+import { PenSquare, Search, SlidersHorizontal } from "lucide-react";
+import { AppCard, AppPageHeader, FilterTabs, ShopMark, VerifiedMark } from "@/components/customer-app/primitives";
 import { formatThreadTime } from "@/lib/customer-app";
 import { cn } from "@/lib/utils";
 
@@ -56,8 +55,11 @@ export function CustomerMessagesView({
           name="q"
           defaultValue={q}
           placeholder="Search conversations..."
-          className="h-11 w-full rounded-full border border-white/10 bg-[#0c1d30] pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/35"
+          className="h-11 w-full rounded-full border border-white/10 bg-[#0c1d30] pl-10 pr-12 text-sm text-white outline-none placeholder:text-white/35"
         />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/35">
+          <SlidersHorizontal className="h-4 w-4" />
+        </span>
       </form>
       <div className="mt-3">
         <FilterTabs
@@ -79,12 +81,7 @@ export function CustomerMessagesView({
           visible.map((thread) => (
             <AppCard key={thread.id} href={thread.href} className="p-3">
               <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={shopPhotoFor(thread.shopSlug ?? "precision-auto-care")}
-                  alt=""
-                  className="h-12 w-12 rounded-full object-cover"
-                />
+                <ShopMark name={thread.shopName} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="flex items-center gap-1 truncate text-sm font-extrabold text-white">

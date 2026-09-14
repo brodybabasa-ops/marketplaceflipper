@@ -6,6 +6,8 @@ import {
   CalendarCheck,
   Car,
   Caravan,
+  LocateFixed,
+  MapPin,
   MoreHorizontal,
   Plus,
   Sailboat,
@@ -18,6 +20,7 @@ import {
 } from "lucide-react";
 import { AppCard } from "@/components/customer-app/primitives";
 import { HomeShopCard } from "@/components/customer-app/shop-card";
+import { cn } from "@/lib/utils";
 import type { DashboardVehicle } from "@/services/customer-dashboard";
 import type { DirectoryShop, LandingReview } from "@/services/landing";
 
@@ -30,6 +33,12 @@ const CATEGORIES = [
   { label: "Trailers", icon: Container, href: "/mechanics?q=trailer" },
   { label: "Heavy", icon: Tractor, href: "/mechanics?q=heavy" },
   { label: "More", icon: MoreHorizontal, href: "/mechanics" },
+];
+
+const STEPS = [
+  { n: "1", title: "Tell us what's wrong", body: "Vehicle, issue and photos." },
+  { n: "2", title: "Find the right shop", body: "Compare specialists, reviews, pricing and availability." },
+  { n: "3", title: "Get it fixed", body: "Book, approve estimates, message and track the repair." },
 ];
 
 export function CustomerHomeView({
@@ -81,25 +90,32 @@ export function CustomerHomeView({
                 {vehicles.length === 0 ? <option value="">Add a vehicle</option> : null}
               </select>
             </label>
-            <label className="block">
-              <span className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-white/45">
-                <Wrench className="h-3.5 w-3.5 text-[#2f7bff]" /> What&apos;s wrong?
-              </span>
-              <input
-                name="q"
-                placeholder="Front end clunks over bumps"
-                className="h-11 w-full rounded-xl border border-white/10 bg-[#0c1d30] px-3 text-sm text-white outline-none placeholder:text-white/35"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-white/45">Where?</span>
-              <input
-                name="zipDisplay"
-                defaultValue={location}
-                readOnly
-                className="h-11 w-full rounded-xl border border-white/10 bg-[#0c1d30] px-3 text-sm text-white outline-none"
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-white/45">
+                  <Wrench className="h-3.5 w-3.5 text-[#2f7bff]" /> What&apos;s wrong?
+                </span>
+                <input
+                  name="q"
+                  placeholder="Front end clunks over bumps"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-[#0c1d30] px-3 text-sm text-white outline-none placeholder:text-white/35"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-white/45">
+                  <MapPin className="h-3.5 w-3.5 text-[#2f7bff]" /> Where?
+                </span>
+                <span className="relative block">
+                  <input
+                    name="zipDisplay"
+                    defaultValue={location}
+                    readOnly
+                    className="h-11 w-full rounded-xl border border-white/10 bg-[#0c1d30] py-0 pl-3 pr-9 text-sm text-white outline-none"
+                  />
+                  <LocateFixed className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2f7bff]" />
+                </span>
+              </label>
+            </div>
             <button type="submit" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#2f7bff] text-sm font-bold text-white">
               Find the Right Shop
               <ArrowRight className="h-4 w-4" />
@@ -109,17 +125,21 @@ export function CustomerHomeView({
       </section>
 
       <div className="px-4">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {CATEGORIES.map((item) => {
             const Icon = item.icon;
+            const active = item.label === "Auto";
             return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0c1d30] py-3 text-center"
-              >
-                <Icon className="h-5 w-5 text-[#7eb0ff]" />
-                <span className="text-[11px] font-semibold text-white/80">{item.label}</span>
+              <Link key={item.label} href={item.href} className="flex w-[64px] shrink-0 flex-col items-center gap-1.5">
+                <span
+                  className={cn(
+                    "flex h-14 w-14 items-center justify-center rounded-2xl border",
+                    active ? "border-[#2f7bff] bg-[#2f7bff]/15 text-[#7eb0ff]" : "border-white/10 bg-[#0c1d30] text-[#7eb0ff]",
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className={cn("text-center text-[11px] font-semibold", active ? "text-white" : "text-white/70")}>{item.label}</span>
               </Link>
             );
           })}
@@ -161,6 +181,7 @@ export function CustomerHomeView({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={vehicle.photo} alt="" className="h-[86px] w-full rounded-2xl object-cover" />
               <p className="mt-1.5 truncate text-xs font-bold text-white">{vehicle.label}</p>
+              <p className="truncate text-[11px] text-white/45">{vehicle.caption}</p>
             </Link>
           ))}
           <Link
@@ -173,10 +194,19 @@ export function CustomerHomeView({
         </div>
 
         <h2 className="mt-8 text-lg font-extrabold text-white">Getting it fixed shouldn&apos;t be complicated.</h2>
-        <div className="mt-3 space-y-2">
-          <Step n="1" title="Tell us what's wrong" body="Vehicle, issue and photos." />
-          <Step n="2" title="Find the right shop" body="Compare specialists, reviews, pricing and availability." />
-          <Step n="3" title="Get it fixed" body="Book, approve estimates, message and track the repair." />
+        <div className="mt-3 grid grid-cols-3 gap-1">
+          {STEPS.map((step, index) => (
+            <div key={step.n} className="relative px-1 text-center">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#2f7bff] text-sm font-extrabold text-white">
+                {step.n}
+              </span>
+              <p className="mt-2 text-[11px] font-bold leading-tight text-white">{step.title}</p>
+              <p className="mt-1 text-[10px] leading-tight text-white/50">{step.body}</p>
+              {index < STEPS.length - 1 ? (
+                <ArrowRight className="absolute -right-1 top-3 h-3.5 w-3.5 text-white/25" />
+              ) : null}
+            </div>
+          ))}
         </div>
 
         <AppCard className="mt-6 overflow-hidden p-0">
@@ -228,18 +258,6 @@ export function CustomerHomeView({
           </span>
           <span className="text-sm font-semibold text-[#7eb0ff]">Learn More</span>
         </Link>
-      </div>
-    </div>
-  );
-}
-
-function Step({ n, title, body }: { n: string; title: string; body: string }) {
-  return (
-    <div className="flex gap-3 rounded-2xl border border-white/10 bg-[#0c1d30] p-3.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2f7bff] text-sm font-extrabold text-white">{n}</span>
-      <div>
-        <p className="text-sm font-bold text-white">{title}</p>
-        <p className="text-xs text-white/50">{body}</p>
       </div>
     </div>
   );

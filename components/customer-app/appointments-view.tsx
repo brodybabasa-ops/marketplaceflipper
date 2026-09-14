@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarPlus, Plus } from "lucide-react";
+import { Calendar, CalendarPlus, ChevronRight, Ellipsis, MapPin, Plus } from "lucide-react";
 import {
   AppCard,
   AppPageHeader,
@@ -77,13 +77,18 @@ export function CustomerAppointmentsView({
                     <p className="text-[15px] font-extrabold text-white">{next.vehicleLabel}</p>
                     <p className="text-xs text-white/55">{next.problem}</p>
                   </div>
-                  <StatusBadge label={next.status} tone={next.tone} />
+                  <div className="flex items-center gap-1">
+                    <StatusBadge label={next.status} tone={next.tone} />
+                    <ChevronRight className="h-4 w-4 text-white/25" />
+                  </div>
                 </div>
-                <p className="mt-2 text-xs text-white/70">
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-white/70">
+                  <Calendar className="h-3.5 w-3.5 text-[#2f7bff]" />
                   {next.dateLine}
                   {next.timeLine ? ` · ${next.timeLine}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-white/45">
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-white/45">
+                  <MapPin className="h-3.5 w-3.5 text-[#2f7bff]" />
                   {next.shopName}
                   {next.distanceLabel ? ` · ${next.distanceLabel}` : ""} · {next.shopCity}
                 </p>
@@ -92,6 +97,13 @@ export function CustomerAppointmentsView({
             <div className="mt-3 flex gap-2">
               <OutlineButton href={`${next.href}#appointment`}>Reschedule</OutlineButton>
               {next.calendarHref ? <OutlineButton href={next.calendarHref}>Add to Calendar</OutlineButton> : null}
+              <Link
+                href={next.href}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/55"
+                aria-label="More"
+              >
+                <Ellipsis className="h-4 w-4" />
+              </Link>
             </div>
           </AppCard>
         </div>
@@ -119,13 +131,18 @@ export function CustomerAppointmentsView({
                     <p className="text-sm font-extrabold text-white">{row.vehicleLabel}</p>
                     <p className="text-xs text-white/55">{row.problem}</p>
                   </div>
-                  <StatusBadge label={row.status} tone={row.tone} />
+                  <div className="flex items-center gap-1">
+                    <StatusBadge label={row.status} tone={row.tone} />
+                    <ChevronRight className="h-4 w-4 text-white/25" />
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-white/70">
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-white/70">
+                  <Calendar className="h-3.5 w-3.5 text-[#2f7bff]" />
                   {row.dateLine}
                   {row.timeLine ? ` · ${row.timeLine}` : ""}
                 </p>
-                <p className="text-xs text-white/40">
+                <p className="flex items-center gap-1.5 text-xs text-white/40">
+                  <MapPin className="h-3.5 w-3.5 text-[#2f7bff]" />
                   {row.shopName} · {row.shopCity}
                 </p>
               </div>

@@ -104,6 +104,7 @@ export async function getLandingShowcase() {
 
 export type DirectoryShop = FeaturedShop & {
   id: string;
+  tagline?: string | null;
   distanceMiles: number;
   openNow: boolean;
   sponsored: boolean;
@@ -131,6 +132,7 @@ export async function getDirectoryShops(query: Parameters<typeof searchMechanics
     const extra = extraById.get(shop.id);
     return {
       id: shop.id,
+      tagline: extra?.tagline ?? null,
       slug: shop.slug,
       businessName: shop.businessName,
       averageRating: shop.averageRating,

@@ -9,19 +9,13 @@ import { markAllNotificationsReadAction, openNotificationAction } from "@/app/ac
 import { AppCard, AppPageHeader, FilterTabs } from "@/components/customer-app/primitives";
 import { formatNoticeTime, noticeKind, notificationGroup, type NoticeKind } from "@/lib/customer-app";
 import { cn } from "@/lib/utils";
+import type { AppNotification } from "@/services/notifications";
 
 export function CustomerNotificationsView({
   notifications,
   tab,
 }: {
-  notifications: {
-    id: string;
-    title: string;
-    body: string;
-    href: string | null;
-    readAt: Date | null;
-    createdAt: Date;
-  }[];
+  notifications: AppNotification[];
   tab: string;
 }) {
   const classified = notifications.map((item) => ({ ...item, kind: noticeKind(item.title, item.body, item.href) }));
@@ -80,8 +74,8 @@ export function CustomerNotificationsView({
                       <AppCard className="p-3">
                         <div className="flex gap-3">
                           <span className="relative mt-0.5">
-                            <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", iconWrap(item.kind))}>
-                              <KindIcon kind={item.kind} />
+                            <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", iconWrap(item.kind, item.title))}>
+                              <KindIcon kind={item.kind} title={item.title} />
                             </span>
                             {!item.readAt ? <span className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-[#2f7bff]" /> : null}
                           </span>
@@ -91,6 +85,16 @@ export function CustomerNotificationsView({
                               <span className="shrink-0 text-[11px] text-white/35">{formatNoticeTime(item.createdAt)}</span>
                             </span>
                             <span className="mt-0.5 block text-xs text-white/55">{item.body}</span>
+                            {item.related ? (
+                              <span className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-[#071422]/60 p-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={item.related.photo} alt="" className="h-10 w-12 rounded-lg object-cover" />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-xs font-bold text-white">{item.related.title}</span>
+                                  <span className="block truncate text-[11px] text-white/45">{item.related.subtitle}</span>
+                                </span>
+                              </span>
+                            ) : null}
                           </span>
                           <span className="self-center text-white/25">›</span>
                         </div>
@@ -107,7 +111,8 @@ export function CustomerNotificationsView({
   );
 }
 
-function KindIcon({ kind }: { kind: NoticeKind }) {
+function KindIcon({ kind, title }: { kind: NoticeKind; title: string }) {
+  if (title.toLowerCase().includes("part")) return <CircleAlert className="h-4 w-4" />;
   if (kind === "appointment") return <Calendar className="h-4 w-4" />;
   if (kind === "message") return <MessageSquare className="h-4 w-4" />;
   if (kind === "system") return <Bell className="h-4 w-4" />;
@@ -115,7 +120,8 @@ function KindIcon({ kind }: { kind: NoticeKind }) {
   return <CircleAlert className="h-4 w-4" />;
 }
 
-function iconWrap(kind: NoticeKind) {
+function iconWrap(kind: NoticeKind, title: string) {
+  if (title.toLowerCase().includes("part")) return "bg-[#e23d3d]/20 text-[#ff8b8b]";
   if (kind === "appointment") return "bg-[#1f8a5b]/20 text-[#3ee08f]";
   if (kind === "message") return "bg-[#2f7bff]/20 text-[#7eb0ff]";
   if (kind === "system") return "bg-white/10 text-white/70";

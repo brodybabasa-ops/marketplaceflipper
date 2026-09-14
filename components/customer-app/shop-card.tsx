@@ -1,4 +1,5 @@
 import { Heart, Star } from "lucide-react";
+import Link from "next/link";
 import { toggleSavedShopAction } from "@/app/actions/marketplace";
 import { AppCard, OutlineButton, PrimaryButton, VerifiedMark } from "@/components/customer-app/primitives";
 import { availableChip, shopKind, shopPrimaryAction } from "@/lib/shop-kind";
@@ -52,7 +53,9 @@ export function FindShopCard({
           </div>
         </div>
       </div>
-      <p className="mt-2 line-clamp-1 text-xs text-white/50">{shop.specialties.join(" · ") || "Trusted local repair."}</p>
+      <p className="mt-2 line-clamp-1 text-xs text-white/50">
+        {shop.tagline || shop.specialties.join(" · ") || "Trusted local repair."}
+      </p>
       <div className="mt-3 flex gap-2">
         <OutlineButton href={`/mechanics/${shop.slug}`}>View Shop</OutlineButton>
         <PrimaryButton href={`/request?mechanic=${shop.id}`}>{action}</PrimaryButton>
@@ -63,15 +66,17 @@ export function FindShopCard({
 
 export function HomeShopCard({ shop, saved }: { shop: DirectoryShop; saved?: boolean }) {
   return (
-    <AppCard className="w-[220px] shrink-0 p-0" href={`/mechanics/${shop.slug}`}>
+    <AppCard className="w-[220px] shrink-0 p-0">
       <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shop.photo} alt="" className="h-[110px] w-full rounded-t-[22px] object-cover" />
-        <span className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#071422]/70 text-white">
-          <Heart className={cn("h-4 w-4", saved && "fill-[#ff4d6d] text-[#ff4d6d]")} />
-        </span>
+        <Link href={`/mechanics/${shop.slug}`} className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shop.photo} alt="" className="h-[110px] w-full rounded-t-[22px] object-cover" />
+        </Link>
+        <div className="absolute right-2 top-2">
+          <SaveHeart id={shop.id} slug={shop.slug} saved={saved} returnTo="/home" className="bg-[#071422]/70" />
+        </div>
       </div>
-      <div className="p-3">
+      <Link href={`/mechanics/${shop.slug}`} className="block p-3">
         <p className="flex items-center gap-1 text-sm font-extrabold text-white">
           <span className="truncate">{shop.businessName}</span>
           {shop.verified ? <VerifiedMark /> : null}
@@ -84,7 +89,7 @@ export function HomeShopCard({ shop, saved }: { shop: DirectoryShop; saved?: boo
         <p className="mt-1 line-clamp-1 text-[11px] text-white/45">{shop.specialties.slice(0, 3).join(" · ")}</p>
         <p className="mt-1 text-[11px] font-semibold text-[#3ee08f]">Next opening: {shop.availabilityLabel}</p>
         <span className="mt-2 inline-flex text-sm font-semibold text-[#7eb0ff]">View Shop →</span>
-      </div>
+      </Link>
     </AppCard>
   );
 }
@@ -94,11 +99,13 @@ export function SaveHeart({
   slug,
   saved,
   returnTo,
+  className,
 }: {
   id: string;
   slug: string;
   saved?: boolean;
   returnTo: string;
+  className?: string;
 }) {
   return (
     <form action={toggleSavedShopAction}>
@@ -108,7 +115,7 @@ export function SaveHeart({
       <button
         type="submit"
         name="saveShop"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/5"
+        className={cn("inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/5", className)}
         aria-label={saved ? "Unsave shop" : "Save shop"}
       >
         <Heart className={cn("h-4 w-4", saved ? "fill-[#ff4d6d] text-[#ff4d6d]" : "text-white/55")} />

@@ -1206,6 +1206,7 @@ async function main() {
         role: "CUSTOMER",
         firstName: i === 0 ? "Brody" : firstName,
         lastName: i === 0 ? "Babasa" : lastName,
+        phone: i === 0 ? "(801) 555-0123" : undefined,
         customerProfile: {
           create:
             i === 0

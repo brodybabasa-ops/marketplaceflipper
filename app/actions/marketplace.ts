@@ -473,6 +473,7 @@ export async function toggleSavedShopAction(formData: FormData) {
   }
   revalidatePath("/saved");
   revalidatePath("/search");
+  revalidatePath("/home");
   revalidatePath("/mechanics");
   revalidatePath(`/mechanics/${profile.slug}`);
   redirect(returnTo);

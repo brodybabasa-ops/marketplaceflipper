@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { List, Map as MapIcon, Search, Wrench } from "lucide-react";
+import { List, Map as MapIcon, Search, Wrench, X } from "lucide-react";
 import { AppPageHeader } from "@/components/customer-app/primitives";
 import { CustomerMap } from "@/components/customer-app/map";
 import { FindShopCard } from "@/components/customer-app/shop-card";
@@ -74,8 +74,17 @@ export function CustomerFindView({
           name="q"
           defaultValue={query.q}
           placeholder="Search by issue or service"
-          className="h-11 w-full rounded-full border border-white/10 bg-[#0c1d30] pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/35"
+          className="h-11 w-full rounded-full border border-white/10 bg-[#0c1d30] pl-10 pr-10 text-sm text-white outline-none placeholder:text-white/35"
         />
+        {query.q ? (
+          <Link
+            href={hrefWith({ q: undefined })}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/45"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </Link>
+        ) : null}
       </form>
 
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -141,11 +150,7 @@ export function CustomerFindView({
             <MapIcon className="h-3.5 w-3.5" /> Map
           </Link>
         </div>
-        {view === "list" ? (
-          <div className="h-10 w-28 overflow-hidden rounded-xl">
-            <CustomerMap shops={visible} origin={origin} compact />
-          </div>
-        ) : null}
+        {view === "list" ? <CustomerMap shops={visible} origin={origin} compact mapHref={hrefWith({ view: "map" })} /> : null}
       </div>
 
       {view === "map" ? (
@@ -170,14 +175,16 @@ export function CustomerFindView({
         href="/request"
         className="mt-4 mb-2 flex items-center gap-3 rounded-[22px] border border-[#2f7bff]/35 bg-[#102a4a] p-4"
       >
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2f7bff]/20 text-[#2f7bff]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2f7bff]/20 text-[#2f7bff]">
           <Wrench className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold text-white">Not sure which shop is right?</span>
           <span className="block text-xs text-white/50">Tell us about your issue and we&apos;ll match you with the best shops near you.</span>
         </span>
-        <span className="text-sm font-bold text-[#7eb0ff]">Let Pocket Mechanic Match You ›</span>
+        <span className="inline-flex max-w-[112px] shrink-0 items-center justify-center rounded-full bg-[#2f7bff] px-3 py-2 text-center text-[11px] font-bold leading-tight text-white">
+          Let Pocket Mechanic Match You
+        </span>
       </Link>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, shopInitials } from "@/lib/utils";
 import Link from "next/link";
 
 export function AppLogo({ href = "/home" }: { href?: string }) {
@@ -317,5 +317,18 @@ export function VerifiedMark({ className }: { className?: string }) {
       <circle cx="8" cy="8" r="8" fill="currentColor" />
       <path d="M4.6 8.2 6.7 10.3 11.4 5.7" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+export function ShopMark({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full bg-[#102a4a] font-extrabold text-[#7eb0ff]",
+        size === "sm" ? "h-6 w-6 text-[9px]" : "h-12 w-12 text-xs",
+      )}
+    >
+      {shopInitials(name)}
+    </span>
   );
 }

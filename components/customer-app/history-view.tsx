@@ -1,16 +1,15 @@
-import { FileText } from "lucide-react";
+import { Calendar, ChevronRight, Ellipsis, FileText, Wrench } from "lucide-react";
 import {
   AppCard,
   AppPageHeader,
   FilterTabs,
-  GhostCta,
   OutlineButton,
   SearchSortBar,
   StatusBadge,
   VerifiedMark,
 } from "@/components/customer-app/primitives";
 import type { HistoryRow } from "@/services/customer-history";
-import type { VehicleKind } from "@/lib/vehicles";
+import { historyKindLabel, type VehicleKind } from "@/lib/vehicles";
 
 export function CustomerHistoryView({
   rows,
@@ -55,10 +54,10 @@ export function CustomerHistoryView({
         value={active}
         tabs={[
           { id: "all", label: "All", count: counts.all },
-          { id: "auto", label: "Auto", count: counts.auto },
-          { id: "marine", label: "Marine", count: counts.marine },
-          { id: "powersports", label: "Powersports", count: counts.powersports },
-          { id: "rv", label: "RV", count: counts.rv },
+          { id: "auto", label: historyKindLabel("auto"), count: counts.auto },
+          { id: "marine", label: historyKindLabel("marine"), count: counts.marine },
+          { id: "powersports", label: historyKindLabel("powersports"), count: counts.powersports },
+          { id: "rv", label: historyKindLabel("rv"), count: counts.rv },
         ]}
       />
       <SearchSortBar
@@ -78,7 +77,12 @@ export function CustomerHistoryView({
           <FileText className="mx-auto h-8 w-8 text-white/35" />
           <p className="mt-3 text-sm font-bold text-white">No repair history yet</p>
           <p className="mt-1 text-xs text-white/50">Once you complete a repair, it will show up here.</p>
-          <GhostCta href="/mechanics" icon={<FileText className="h-5 w-5" />} title="Find a Shop" body="Book your first repair and start a history." />
+          <a
+            href="/mechanics"
+            className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-[#2f7bff] px-5 text-sm font-bold text-white"
+          >
+            Find a Shop
+          </a>
         </div>
       ) : (
         <div className="mt-5 space-y-6">
@@ -93,11 +97,16 @@ export function CustomerHistoryView({
                       <img src={row.photo} alt="" className="h-[72px] w-[88px] shrink-0 rounded-2xl object-cover" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <div>
+                          <a href={row.href} className="min-w-0">
                             <p className="text-[15px] font-extrabold text-white">{row.vehicleLabel}</p>
                             <p className="text-xs text-white/55">{row.problem}</p>
+                          </a>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <StatusBadge label="Completed" tone="success" />
+                            <a href={row.href} className="text-white/35" aria-label="Repair details">
+                              <ChevronRight className="h-4 w-4" />
+                            </a>
                           </div>
-                          <StatusBadge label="Completed" tone="success" />
                         </div>
                         <div className="mt-1.5 flex items-center gap-1.5 text-xs text-white/50">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -109,17 +118,26 @@ export function CustomerHistoryView({
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-2">
-                      <div className="flex-1 rounded-xl bg-white/5 px-3 py-2 text-xs">
-                        <p className="text-white/40">Total Cost</p>
-                        <p className="font-bold text-white">{row.cost}</p>
+                      <div className="flex flex-1 items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs">
+                        <Calendar className="h-3.5 w-3.5 text-[#2f7bff]" />
+                        <div>
+                          <p className="text-white/40">Total Cost</p>
+                          <p className="font-bold text-white">{row.cost}</p>
+                        </div>
                       </div>
-                      <div className="flex-1 rounded-xl bg-white/5 px-3 py-2 text-xs">
-                        <p className="text-white/40">Labor</p>
-                        <p className="font-bold text-white">{row.labor}</p>
+                      <div className="flex flex-1 items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs">
+                        <Wrench className="h-3.5 w-3.5 text-[#2f7bff]" />
+                        <div>
+                          <p className="text-white/40">Labor</p>
+                          <p className="font-bold text-white">{row.labor}</p>
+                        </div>
                       </div>
                       <OutlineButton href={row.invoiceHref} className="h-11 max-w-[120px] flex-none">
                         View Invoice
                       </OutlineButton>
+                      <a href={row.href} className="inline-flex h-11 w-10 items-center justify-center rounded-xl border border-white/10 text-white/45" aria-label="More">
+                        <Ellipsis className="h-4 w-4" />
+                      </a>
                     </div>
                   </AppCard>
                 ))}

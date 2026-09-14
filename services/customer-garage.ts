@@ -99,7 +99,7 @@ export async function getCustomerGarage(userId: string) {
       make: vehicle.make.name,
       model: vehicle.model.name,
       trim: vehicle.trim ?? "",
-      subtitle: [vehicle.make.name, vehicle.model.name, vehicle.trim || vehicle.engine].filter(Boolean).join(" · "),
+      subtitle: [vehicle.make.name, vehicle.model.name, vehicle.engine || vehicle.trim].filter(Boolean).join(" · "),
       identifierLabel: hours && kind === "marine" ? "HIN" : "VIN",
       identifier,
       usage: hours ? `${vehicle.mileage.toLocaleString()} hrs` : `${vehicle.mileage.toLocaleString()} mi`,
@@ -170,7 +170,7 @@ function garageBadges(
   if (activeCount > 0) {
     badges.push({
       label: `${activeCount} Active Repair${activeCount === 1 ? "" : "s"}`,
-      tone: "danger",
+      tone: "success",
     });
   }
   if (upcoming?.scheduledAt) {

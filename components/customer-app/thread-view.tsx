@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { ChevronLeft, ImagePlus, MoreHorizontal, Phone, Send, Video } from "lucide-react";
+import { ChevronLeft, FileText, ImagePlus, MoreHorizontal, Phone, Send, Video } from "lucide-react";
 import { sendMessageAction } from "@/app/actions/marketplace";
 import { MarkRead } from "@/components/messages/mark-read";
-import { shopPhotoFor } from "@/lib/landing";
-import { VerifiedMark } from "@/components/customer-app/primitives";
+import { ShopMark, VerifiedMark } from "@/components/customer-app/primitives";
 import { formatThreadTime } from "@/lib/customer-app";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +10,6 @@ export function CustomerThreadView({
   threadId,
   selfId,
   shopName,
-  shopSlug,
   verified,
   subtitle,
   messages,
@@ -39,8 +37,7 @@ export function CustomerThreadView({
         <Link href="/messages" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white" aria-label="Back">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shopPhotoFor(shopSlug ?? "precision-auto-care")} alt="" className="h-9 w-9 rounded-full object-cover" />
+        <ShopMark name={shopName} />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1 text-sm font-extrabold text-white">
             {shopName}
@@ -70,8 +67,7 @@ export function CustomerThreadView({
                 <div className={cn("max-w-[80%]", mine ? "items-end" : "items-start")}>
                   {!mine ? (
                     <div className="mb-1 flex items-center gap-1.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={shopPhotoFor(shopSlug ?? "precision-auto-care")} alt="" className="h-6 w-6 rounded-full object-cover" />
+                      <ShopMark name={shopName} size="sm" />
                     </div>
                   ) : null}
                   <div
@@ -85,8 +81,17 @@ export function CustomerThreadView({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={message.attachmentUrl} alt="" className="mb-2 max-h-40 rounded-xl object-cover" />
                       ) : (
-                        <a href={message.attachmentUrl} className="mb-2 block rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold" target="_blank" rel="noreferrer">
-                          Attachment
+                        <a
+                          href={message.attachmentUrl}
+                          className="mb-2 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span>
+                            <span className="block text-xs font-bold">Attachment</span>
+                            <span className="block text-[10px] opacity-70">PDF · Tap to view</span>
+                          </span>
                         </a>
                       )
                     ) : null}

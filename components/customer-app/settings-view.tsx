@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Bell,
+  Camera,
   Car,
   ChevronRight,
   CreditCard,
@@ -51,20 +52,30 @@ export function CustomerSettingsView({
 
       <AppCard className="mt-5 p-4">
         <div className="flex items-center gap-3">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-          ) : (
-            <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#2f7bff] text-lg font-bold">
-              {initials(firstName, lastName)}
-            </span>
-          )}
+          <span className="relative">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+            ) : (
+              <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#2f7bff] text-lg font-bold">
+                {initials(firstName, lastName)}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="absolute -bottom-0.5 -right-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#2f7bff] text-white"
+              aria-label="Edit profile photo"
+            >
+              <Camera className="h-3 w-3" />
+            </button>
+          </span>
           <div className="min-w-0 flex-1">
             <p className="text-lg font-extrabold text-white">
               {firstName} {lastName.charAt(0)}.
             </p>
             <p className="text-sm text-white/50">{email}</p>
-            {phone ? <p className="text-sm text-white/50">{phone}</p> : null}
+            <p className="text-sm text-white/50">{phone || "Add a phone number"}</p>
           </div>
           <button
             type="button"

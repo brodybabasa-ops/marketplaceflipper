@@ -44,6 +44,7 @@ export type DashboardVehicle = {
   label: string;
   year: number;
   photo: string;
+  caption: string;
 };
 
 export async function getCustomerChrome(userId: string) {
@@ -207,12 +208,25 @@ export async function getCustomerDashboard(userId: string) {
   return {
     locationLabel: chrome.location ?? (zip ? `${zip.city}, ${zip.stateCode}` : "Utah"),
     zip: chrome.zip ?? zip?.zip ?? "84041",
-    vehicles: dashboardVehicles.map((vehicle): DashboardVehicle => ({
-      id: vehicle.id,
-      label: `${vehicle.year} ${vehicle.make.name} ${vehicle.model.name}`,
-      year: vehicle.year,
-      photo: vehiclePhotoFor(vehicle.make.name, vehicle.model.name),
-    })),
+    vehicles: dashboardVehicles.map((vehicle): DashboardVehicle => {
+      const vehicleJobs = jobs.filter((job) => job.vehicle.id === vehicle.id);
+      const active = vehicleJobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED").length;
+      const upcoming = vehicleJobs.some(
+        (job) => job.scheduledAt && job.status !== "COMPLETED" && job.status !== "CANCELLED",
+      );
+      const caption = active
+        ? `${active} active repair${active === 1 ? "" : "s"}`
+        : upcoming
+          ? "1 upcoming service"
+          : "All good";
+      return {
+        id: vehicle.id,
+        label: `${vehicle.year} ${vehicle.make.name} ${vehicle.model.name}`,
+        year: vehicle.year,
+        photo: vehiclePhotoFor(vehicle.make.name, vehicle.model.name),
+        caption,
+      };
+    }),
     repairs,
     shops: preferFeatured(shops).slice(0, 3),
     savedShopIds: chrome.savedShopIds,

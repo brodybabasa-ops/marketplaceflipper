@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, MessageSquare, MoreHorizontal, Plus } from "lucide-react";
+import { Calendar, FileText, MessageSquare, MoreHorizontal, Plus } from "lucide-react";
 import {
   AppCard,
   AppPageHeader,
@@ -128,7 +128,7 @@ export function CustomerSavedView({
                   <Calendar className="h-3.5 w-3.5" /> Book
                 </Link>
                 <Link href={`/request?mechanic=${shop.id}`} className={chip()}>
-                  Get Estimate
+                  <FileText className="h-3.5 w-3.5" /> Get Estimate
                 </Link>
                 <Link href={`/mechanics/${shop.slug}`} className={chip()}>
                   <MoreHorizontal className="h-3.5 w-3.5" />

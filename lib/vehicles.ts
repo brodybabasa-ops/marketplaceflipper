@@ -59,3 +59,10 @@ export function vehicleKindLabel(kind: VehicleKind) {
   if (kind === "rv") return "RV";
   return "Auto";
 }
+
+export function historyKindLabel(kind: VehicleKind) {
+  if (kind === "marine") return "Boat";
+  if (kind === "powersports") return "Dirt Bike";
+  if (kind === "rv") return "Camper";
+  return "Truck";
+}

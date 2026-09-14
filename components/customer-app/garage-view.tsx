@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Ellipsis, Plus, Wrench } from "lucide-react";
+import { Calendar, Clock, Ellipsis, Plus, Wrench } from "lucide-react";
 import {
   AppCard,
   AppPageHeader,
@@ -74,13 +74,19 @@ export function CustomerGarageView({
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl bg-white/5 px-3 py-2">
-                <p className="text-white/40">{vehicle.lastServiceLabel}</p>
-                <p className="font-semibold text-white">{vehicle.lastServiceValue}</p>
+              <div className="flex items-start gap-2">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#2f7bff]" />
+                <div>
+                  <p className="text-white/40">{vehicle.lastServiceLabel}</p>
+                  <p className="font-semibold text-white">{vehicle.lastServiceValue}</p>
+                </div>
               </div>
-              <div className="rounded-xl bg-white/5 px-3 py-2">
-                <p className="text-white/40">{vehicle.nextServiceLabel}</p>
-                <p className="font-semibold text-white">{vehicle.nextServiceValue}</p>
+              <div className="flex items-start gap-2">
+                <Calendar className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#2f7bff]" />
+                <div>
+                  <p className="text-white/40">{vehicle.nextServiceLabel}</p>
+                  <p className="font-semibold text-white">{vehicle.nextServiceValue}</p>
+                </div>
               </div>
             </div>
             <div className="mt-3 flex gap-2">
